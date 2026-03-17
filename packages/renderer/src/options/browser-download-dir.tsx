@@ -9,11 +9,11 @@ export const browserDownloadDirOption = {
 	cliFlag,
 	description: () => (
 		<>
-			Specify the directory where the browser should be downloaded to. By
-			default, Remotion downloads the browser into{' '}
-			<code>node_modules/.remotion</code> inside the nearest project root. Use
-			this option to override the default download location. Pass{' '}
-			<code>null</code> to use the default location.
+			Specify the directory where the browser should be downloaded to when
+			calling <code>npx remotion browser ensure</code>. By default, Remotion
+			downloads the browser into <code>node_modules/.remotion</code> inside the
+			nearest project root. Use this option to override the default download
+			location. Pass <code>null</code> to use the default location.
 		</>
 	),
 	ssrName: 'browserDownloadDir' as const,
