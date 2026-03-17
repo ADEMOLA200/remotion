@@ -54,6 +54,7 @@ try {
 			onProgress: noop,
 		}),
 		chromeMode: config.chromeMode,
+		browserDownloadDir: null,
 	});
 
 	console.log(JSON.stringify({type: 'selecting-composition'}));

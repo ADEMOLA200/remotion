@@ -261,6 +261,7 @@ export const renderVideoFlow = async ({
 		logLevel,
 		onBrowserDownload,
 		chromeMode,
+		browserDownloadDir: null,
 	});
 
 	let isUsingParallelEncoding = false;

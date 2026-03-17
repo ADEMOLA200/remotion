@@ -526,6 +526,7 @@ const internalRenderFramesRaw = ({
 			logLevel,
 			onBrowserDownload,
 			chromeMode,
+			browserDownloadDir: null,
 		});
 
 	const browserInstance = puppeteerInstance ?? makeBrowser();

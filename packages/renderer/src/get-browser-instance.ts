@@ -76,6 +76,7 @@ export const getPageAndCleanupFn = async ({
 		logLevel,
 		onBrowserDownload,
 		chromeMode,
+		browserDownloadDir: null,
 	});
 	const browserPage = await browserInstance.newPage({
 		context: () => null,

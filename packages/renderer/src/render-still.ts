@@ -225,6 +225,7 @@ const innerRenderStill = async ({
 			logLevel,
 			onBrowserDownload,
 			chromeMode,
+			browserDownloadDir: null,
 		}));
 	const page = await browserInstance.newPage({
 		context: sourceMapGetter,

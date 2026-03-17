@@ -76,6 +76,7 @@ try {
 			onProgress: noop,
 		}),
 		chromeMode: config.chromeMode,
+		browserDownloadDir: null,
 	});
 
 	console.log(

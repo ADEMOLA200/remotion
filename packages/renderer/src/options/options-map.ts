@@ -187,6 +187,7 @@ export const optionsMap = {
 		logLevel: logLevelOption,
 		onBrowserDownload: onBrowserDownloadOption,
 		chromeMode: chromeModeOption,
+		browserDownloadDir: browserDownloadDirOption,
 	},
 	deploySiteLambda: {
 		logLevel: logLevelOption,

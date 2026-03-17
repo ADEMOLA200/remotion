@@ -106,6 +106,7 @@ export type OpenBrowserOptions = {
 	browserExecutable?: string | null;
 	chromiumOptions?: ChromiumOptions;
 	chromeMode?: ChromeMode;
+	browserDownloadDir?: string | null;
 	forceDeviceScaleFactor?: number;
 } & LogOptions;
 
@@ -119,6 +120,7 @@ export const internalOpenBrowser = async ({
 	logLevel,
 	onBrowserDownload,
 	chromeMode,
+	browserDownloadDir,
 }: InternalOpenBrowserOptions): Promise<HeadlessBrowser> => {
 	// @ts-expect-error Firefox
 	if (browser === 'firefox') {
@@ -134,7 +136,7 @@ export const internalOpenBrowser = async ({
 		indent,
 		onBrowserDownload,
 		chromeMode,
-		browserDownloadDir: null,
+		browserDownloadDir,
 	});
 	Log.verbose({indent, logLevel}, 'Ensured browser is available.');
 
@@ -143,7 +145,7 @@ export const internalOpenBrowser = async ({
 		logLevel,
 		indent,
 		chromeMode,
-		browserDownloadDir: null,
+		browserDownloadDir,
 	});
 
 	const customGlRenderer = getOpenGlRenderer(chromiumOptions.gl ?? null);
@@ -292,5 +294,6 @@ export const openBrowser = (
 			api: 'openBrowser()',
 		}),
 		chromeMode: options?.chromeMode ?? 'headless-shell',
+		browserDownloadDir: options?.browserDownloadDir ?? null,
 	});
 };
