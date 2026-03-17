@@ -143,6 +143,7 @@ export const internalOpenBrowser = async ({
 		logLevel,
 		indent,
 		chromeMode,
+		browserDownloadDir: null,
 	});
 
 	const customGlRenderer = getOpenGlRenderer(chromiumOptions.gl ?? null);

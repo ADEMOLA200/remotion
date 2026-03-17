@@ -11,11 +11,13 @@ const getBrowserStatus = ({
 	indent,
 	logLevel,
 	chromeMode,
+	browserDownloadDir,
 }: {
 	browserExecutablePath: BrowserExecutable;
 	indent: boolean;
 	logLevel: LogLevel;
 	chromeMode: ChromeMode;
+	browserDownloadDir: string | null;
 }): BrowserStatus => {
 	if (browserExecutablePath) {
 		if (!fs.existsSync(browserExecutablePath)) {
@@ -28,7 +30,7 @@ const getBrowserStatus = ({
 		return {path: browserExecutablePath, type: 'user-defined-path'};
 	}
 
-	const revision = getRevisionInfo({chromeMode, browserDownloadDir: null});
+	const revision = getRevisionInfo({chromeMode, browserDownloadDir});
 	if (revision.local && fs.existsSync(revision.executablePath)) {
 		return {path: revision.executablePath, type: 'local-puppeteer-browser'};
 	}
@@ -41,17 +43,20 @@ export const getLocalBrowserExecutable = ({
 	logLevel,
 	indent,
 	chromeMode,
+	browserDownloadDir,
 }: {
 	preferredBrowserExecutable: BrowserExecutable;
 	logLevel: LogLevel;
 	indent: boolean;
 	chromeMode: ChromeMode;
+	browserDownloadDir: string | null;
 }): string => {
 	const status = getBrowserStatus({
 		browserExecutablePath: preferredBrowserExecutable,
 		indent,
 		logLevel,
 		chromeMode,
+		browserDownloadDir,
 	});
 	if (status.type === 'no-browser' || status.type === 'version-mismatch') {
 		throw new TypeError(
