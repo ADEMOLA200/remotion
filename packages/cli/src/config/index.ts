@@ -62,6 +62,7 @@ const {
 	enforceAudioOption,
 	overwriteOption,
 	chromeModeOption,
+	browserDownloadDirOption,
 	mutedOption,
 	videoCodecOption,
 	colorSpaceOption,
@@ -610,6 +611,11 @@ type FlatConfig = RemotionConfigObject &
 		 */
 		setChromeMode: (chromeMode: ChromeMode) => void;
 		/**
+		 * Set the directory where the browser should be downloaded to.
+		 * By default, Remotion downloads the browser into node_modules/.remotion.
+		 */
+		setBrowserDownloadDir: (dir: string | null) => void;
+		/**
 		 * Set how many times the video should be rendered during a benchmark.
 		 * Default: 3
 		 */
@@ -733,6 +739,7 @@ export const Config: FlatConfig = {
 	setOutputLocation,
 	setOverwriteOutput: overwriteOption.setConfig,
 	setChromeMode: chromeModeOption.setConfig,
+	setBrowserDownloadDir: browserDownloadDirOption.setConfig,
 	setPixelFormat: pixelFormatOption.setConfig,
 	setCodec: videoCodecOption.setConfig,
 	setCrf: crfOption.setConfig,

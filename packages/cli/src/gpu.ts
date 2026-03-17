@@ -60,6 +60,7 @@ export const gpuCommand = async (logLevel: LogLevel) => {
 		logLevel,
 		onBrowserDownload,
 		chromeMode,
+		browserDownloadDir: null,
 	});
 
 	const chromiumOptions: Required<ChromiumOptions> = {

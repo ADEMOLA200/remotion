@@ -49,8 +49,13 @@ const internalEnsureBrowserUncapped = async ({
 	browserExecutable,
 	onBrowserDownload,
 	chromeMode,
+	browserDownloadDir,
 }: InternalEnsureBrowserOptions): Promise<BrowserStatus> => {
-	const status = getBrowserStatus({browserExecutable, chromeMode});
+	const status = getBrowserStatus({
+		browserExecutable,
+		chromeMode,
+		browserDownloadDir,
+	});
 	if (status.type === 'version-mismatch') {
 		const versionInfo = status.actualVersion
 			? ` (installed: ${status.actualVersion})`
@@ -64,10 +69,21 @@ const internalEnsureBrowserUncapped = async ({
 	if (status.type === 'no-browser' || status.type === 'version-mismatch') {
 		const {onProgress, version} = onBrowserDownload({chromeMode});
 
-		await downloadBrowser({indent, logLevel, onProgress, version, chromeMode});
+		await downloadBrowser({
+			indent,
+			logLevel,
+			onProgress,
+			version,
+			chromeMode,
+			browserDownloadDir,
+		});
 	}
 
-	const newStatus = getBrowserStatus({browserExecutable, chromeMode});
+	const newStatus = getBrowserStatus({
+		browserExecutable,
+		chromeMode,
+		browserDownloadDir,
+	});
 	return newStatus;
 };
 
@@ -83,9 +99,11 @@ export const internalEnsureBrowser = (
 const getBrowserStatus = ({
 	browserExecutable,
 	chromeMode,
+	browserDownloadDir,
 }: {
 	browserExecutable: BrowserExecutable;
 	chromeMode: ChromeMode;
+	browserDownloadDir: string | null;
 }): BrowserStatus => {
 	if (browserExecutable) {
 		if (!fs.existsSync(browserExecutable)) {
@@ -97,9 +115,9 @@ const getBrowserStatus = ({
 		return {path: browserExecutable, type: 'user-defined-path'};
 	}
 
-	const revision = getRevisionInfo(chromeMode);
+	const revision = getRevisionInfo({chromeMode, browserDownloadDir});
 	if (revision.local && fs.existsSync(revision.executablePath)) {
-		const actualVersion = readVersionFile(chromeMode);
+		const actualVersion = readVersionFile({chromeMode, browserDownloadDir});
 		if (actualVersion === TESTED_VERSION) {
 			return {path: revision.executablePath, type: 'local-puppeteer-browser'};
 		}
@@ -130,5 +148,6 @@ export const ensureBrowser = (options?: EnsureBrowserOptions) => {
 				logLevel,
 			}),
 		chromeMode: options?.chromeMode ?? 'headless-shell',
+		browserDownloadDir: options?.browserDownloadDir ?? null,
 	});
 };

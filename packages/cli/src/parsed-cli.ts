@@ -76,6 +76,7 @@ const {
 	propsOption,
 	configOption,
 	browserOption,
+	browserDownloadDirOption,
 } = BrowserSafeApis.options;
 
 export type CommandLineOptions = {
@@ -165,6 +166,9 @@ export type CommandLineOptions = {
 	[webpackPollOption.cliFlag]: TypeOfOption<typeof webpackPollOption>;
 	[noOpenOption.cliFlag]: TypeOfOption<typeof noOpenOption>;
 	[browserOption.cliFlag]: TypeOfOption<typeof browserOption>;
+	[browserDownloadDirOption.cliFlag]: TypeOfOption<
+		typeof browserDownloadDirOption
+	>;
 	['browser-args']: string;
 	[userAgentOption.cliFlag]: TypeOfOption<typeof userAgentOption>;
 	[outDirOption.cliFlag]: TypeOfOption<typeof outDirOption>;

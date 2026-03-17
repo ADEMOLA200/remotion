@@ -67,17 +67,30 @@ const getPlatform = (): Platform => {
 	}
 };
 
-const getDownloadsFolder = (chromeMode: ChromeMode) => {
+const getDownloadsFolder = ({
+	chromeMode,
+	browserDownloadDir,
+}: {
+	chromeMode: ChromeMode;
+	browserDownloadDir: string | null;
+}) => {
 	const destination =
 		chromeMode === 'headless-shell'
 			? 'chrome-headless-shell'
 			: 'chrome-for-testing';
 
-	return path.join(getDownloadsCacheDir(), destination);
+	const baseDir = browserDownloadDir ?? getDownloadsCacheDir();
+	return path.join(baseDir, destination);
 };
 
-const getVersionFilePath = (chromeMode: ChromeMode): string => {
-	const downloadsFolder = getDownloadsFolder(chromeMode);
+const getVersionFilePath = ({
+	chromeMode,
+	browserDownloadDir,
+}: {
+	chromeMode: ChromeMode;
+	browserDownloadDir: string | null;
+}): string => {
+	const downloadsFolder = getDownloadsFolder({chromeMode, browserDownloadDir});
 	return path.join(downloadsFolder, 'VERSION');
 };
 
@@ -91,8 +104,14 @@ const getExpectedVersion = (
 	return TESTED_VERSION;
 };
 
-export const readVersionFile = (chromeMode: ChromeMode): string | null => {
-	const versionFilePath = getVersionFilePath(chromeMode);
+export const readVersionFile = ({
+	chromeMode,
+	browserDownloadDir,
+}: {
+	chromeMode: ChromeMode;
+	browserDownloadDir: string | null;
+}): string | null => {
+	const versionFilePath = getVersionFilePath({chromeMode, browserDownloadDir});
 	try {
 		return fs.readFileSync(versionFilePath, 'utf-8').trim();
 	} catch {
@@ -100,8 +119,16 @@ export const readVersionFile = (chromeMode: ChromeMode): string | null => {
 	}
 };
 
-const writeVersionFile = (chromeMode: ChromeMode, version: string): void => {
-	const versionFilePath = getVersionFilePath(chromeMode);
+const writeVersionFile = ({
+	chromeMode,
+	browserDownloadDir,
+	version,
+}: {
+	chromeMode: ChromeMode;
+	browserDownloadDir: string | null;
+	version: string;
+}): void => {
+	const versionFilePath = getVersionFilePath({chromeMode, browserDownloadDir});
 	fs.writeFileSync(versionFilePath, version);
 };
 
@@ -111,12 +138,14 @@ export const downloadBrowser = async ({
 	onProgress,
 	version,
 	chromeMode,
+	browserDownloadDir,
 }: {
 	logLevel: LogLevel;
 	indent: boolean;
 	onProgress: DownloadBrowserProgressFn;
 	version: string | null;
 	chromeMode: ChromeMode;
+	browserDownloadDir: string | null;
 }): Promise<BrowserFetcherRevisionInfo | undefined> => {
 	const platform = getPlatform();
 	const downloadURL = getChromeDownloadUrl({platform, version, chromeMode});
@@ -125,15 +154,15 @@ export const downloadBrowser = async ({
 		throw new Error(`A malformed download URL was found: ${downloadURL}.`);
 	}
 
-	const downloadsFolder = getDownloadsFolder(chromeMode);
+	const downloadsFolder = getDownloadsFolder({chromeMode, browserDownloadDir});
 	const archivePath = path.join(downloadsFolder, fileName);
 	const outputPath = getFolderPath(downloadsFolder, platform);
 	const expectedVersion = getExpectedVersion(version, chromeMode);
 
 	if (await existsAsync(outputPath)) {
-		const installedVersion = readVersionFile(chromeMode);
+		const installedVersion = readVersionFile({chromeMode, browserDownloadDir});
 		if (installedVersion === expectedVersion) {
-			return getRevisionInfo(chromeMode);
+			return getRevisionInfo({chromeMode, browserDownloadDir});
 		}
 
 		// VERSION file missing or mismatched - delete and re-download
@@ -221,9 +250,9 @@ export const downloadBrowser = async ({
 		}
 	}
 
-	writeVersionFile(chromeMode, expectedVersion);
+	writeVersionFile({chromeMode, browserDownloadDir, version: expectedVersion});
 
-	const revisionInfo = getRevisionInfo(chromeMode);
+	const revisionInfo = getRevisionInfo({chromeMode, browserDownloadDir});
 	makeFileExecutableIfItIsNot(revisionInfo.executablePath);
 
 	return revisionInfo;
@@ -233,8 +262,14 @@ const getFolderPath = (downloadsFolder: string, platform: Platform): string => {
 	return path.resolve(downloadsFolder, platform);
 };
 
-const getExecutablePath = (chromeMode: ChromeMode) => {
-	const downloadsFolder = getDownloadsFolder(chromeMode);
+const getExecutablePath = ({
+	chromeMode,
+	browserDownloadDir,
+}: {
+	chromeMode: ChromeMode;
+	browserDownloadDir: string | null;
+}) => {
+	const downloadsFolder = getDownloadsFolder({chromeMode, browserDownloadDir});
 	const platform = getPlatform();
 	const folderPath = getFolderPath(downloadsFolder, platform);
 
@@ -270,11 +305,15 @@ const getExecutablePath = (chromeMode: ChromeMode) => {
 	throw new Error('unsupported chrome mode' + (chromeMode satisfies never));
 };
 
-export const getRevisionInfo = (
-	chromeMode: ChromeMode,
-): BrowserFetcherRevisionInfo => {
-	const executablePath = getExecutablePath(chromeMode);
-	const downloadsFolder = getDownloadsFolder(chromeMode);
+export const getRevisionInfo = ({
+	chromeMode,
+	browserDownloadDir,
+}: {
+	chromeMode: ChromeMode;
+	browserDownloadDir: string | null;
+}): BrowserFetcherRevisionInfo => {
+	const executablePath = getExecutablePath({chromeMode, browserDownloadDir});
+	const downloadsFolder = getDownloadsFolder({chromeMode, browserDownloadDir});
 	const platform = getPlatform();
 	const folderPath = getFolderPath(downloadsFolder, platform);
 

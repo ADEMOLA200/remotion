@@ -6,6 +6,7 @@ import {beepOnFinishOption} from './beep-on-finish';
 import {benchmarkConcurrenciesOption} from './benchmark-concurrencies';
 import {binariesDirectoryOption} from './binaries-directory';
 import {browserOption} from './browser';
+import {browserDownloadDirOption} from './browser-download-dir';
 import {browserExecutableOption} from './browser-executable';
 import {bundleCacheOption} from './bundle-cache';
 import {chromeModeOption} from './chrome-mode';
@@ -91,6 +92,7 @@ import {x264Option} from './x264-preset';
 export const allOptions = {
 	audioCodecOption,
 	benchmarkConcurrenciesOption,
+	browserDownloadDirOption,
 	browserExecutableOption,
 	concurrencyOption,
 	scaleOption,

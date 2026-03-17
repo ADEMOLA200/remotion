@@ -134,6 +134,7 @@ export const internalOpenBrowser = async ({
 		indent,
 		onBrowserDownload,
 		chromeMode,
+		browserDownloadDir: null,
 	});
 	Log.verbose({indent, logLevel}, 'Ensured browser is available.');
 

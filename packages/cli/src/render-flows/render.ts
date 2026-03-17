@@ -123,6 +123,7 @@ export const renderVideoFlow = async ({
 	metadata,
 	hardwareAcceleration,
 	chromeMode,
+
 	audioLatencyHint,
 	imageSequencePattern,
 	mediaCacheSizeInBytes,
@@ -247,6 +248,7 @@ export const renderVideoFlow = async ({
 		logLevel,
 		onBrowserDownload,
 		chromeMode,
+		browserDownloadDir: null,
 	});
 
 	const browserInstance = RenderInternals.internalOpenBrowser({
@@ -737,6 +739,7 @@ export const renderVideoFlow = async ({
 		metadata: metadata ?? null,
 		hardwareAcceleration,
 		chromeMode,
+
 		mediaCacheSizeInBytes,
 		onLog,
 		licenseKey: null,

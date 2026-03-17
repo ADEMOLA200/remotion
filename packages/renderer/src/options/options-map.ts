@@ -2,6 +2,7 @@ import {apiKeyOption} from './api-key';
 import {audioBitrateOption} from './audio-bitrate';
 import {audioCodecOption} from './audio-codec';
 import {binariesDirectoryOption} from './binaries-directory';
+import {browserDownloadDirOption} from './browser-download-dir';
 import {chromeModeOption} from './chrome-mode';
 import {colorSpaceOption} from './color-space';
 import {crfOption} from './crf';
@@ -180,6 +181,7 @@ export const optionsMap = {
 		logLevel: logLevelOption,
 		onBrowserDownload: onBrowserDownloadOption,
 		chromeMode: chromeModeOption,
+		browserDownloadDir: browserDownloadDirOption,
 	},
 	openBrowser: {
 		logLevel: logLevelOption,

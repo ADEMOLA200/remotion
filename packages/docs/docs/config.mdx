@@ -352,6 +352,20 @@ Config.setChromeMode('chrome-for-testing');
 
 The [command line flag](/docs/cli/render#--chrome-mode) `--chrome-mode` will take precedence over this option.
 
+## `setBrowserDownloadDir()`
+
+<Options id="browser-download-dir" />
+
+```tsx twoslash title="remotion.config.ts"
+import {Config} from '@remotion/cli/config';
+
+// ---cut---
+
+Config.setBrowserDownloadDir('/path/to/browser/download');
+```
+
+The [command line flag](#--browser-download-dir) `--browser-download-dir` will take precedence over this option.
+
 ## `setChromiumOpenGlRenderer()`
 
 <Options id="gl" />
