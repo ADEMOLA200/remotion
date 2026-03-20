@@ -16,6 +16,7 @@ import {TimelineWidthContext} from './TimelineWidthProvider';
 
 const AUDIO_GRADIENT = 'linear-gradient(rgb(16 171 58), rgb(43 165 63) 60%)';
 const VIDEO_GRADIENT = 'linear-gradient(to top, #8e44ad, #9b59b6)';
+const IMAGE_GRADIENT = 'linear-gradient(to top, #2980b9, #3498db)';
 
 export const TimelineSequence: React.FC<{
 	readonly s: TSequence;
@@ -69,7 +70,8 @@ const Inner: React.FC<{
 					? s.loopDisplay.durationInFrames * s.loopDisplay.numberOfTimes
 					: s.duration,
 				startFrom: s.loopDisplay ? s.from + s.loopDisplay.startOffset : s.from,
-				startFromMedia: s.type === 'sequence' ? 0 : s.startMediaFrom,
+				startFromMedia:
+					s.type === 'sequence' || s.type === 'image' ? 0 : s.startMediaFrom,
 				maxMediaDuration,
 				video,
 				windowWidth,
@@ -85,7 +87,9 @@ const Inner: React.FC<{
 					? AUDIO_GRADIENT
 					: s.type === 'video'
 						? VIDEO_GRADIENT
-						: BLUE,
+						: s.type === 'image'
+							? IMAGE_GRADIENT
+							: BLUE,
 			border: SEQUENCE_BORDER_WIDTH + 'px solid rgba(255, 255, 255, 0.2)',
 			borderRadius: 2,
 			position: 'absolute',
