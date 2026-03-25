@@ -63,7 +63,7 @@ declare global {
 		remotion_ignoreFastRefreshUpdate: number | null;
 		remotion_numberOfAudioTags: number;
 		remotion_audioLatencyHint: AudioContextLatencyCategory | undefined;
-		remotion_logLevel: LogLevel;
+		remotion_logLevel: LogLevel | undefined;
 		remotion_projectName: string;
 		remotion_cwd: string;
 		remotion_studioServerCommand: string;
@@ -93,7 +93,6 @@ declare global {
 		siteVersion: '11';
 		remotion_version: string;
 		remotion_imported: string | boolean;
-		remotion_unsavedProps: boolean | undefined;
 	}
 }
 
