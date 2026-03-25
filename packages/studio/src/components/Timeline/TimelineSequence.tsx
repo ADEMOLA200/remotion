@@ -10,6 +10,7 @@ import {getTimelineLayerHeight} from '../../helpers/timeline-layout';
 import {useMaxMediaDuration} from '../../helpers/use-max-media-duration';
 import {AudioWaveform} from '../AudioWaveform';
 import {LoopedTimelineIndicator} from './LoopedTimelineIndicators';
+import {TimelineImageInfo} from './TimelineImageInfo';
 import {TimelineSequenceFrame} from './TimelineSequenceFrame';
 import {TimelineVideoInfo} from './TimelineVideoInfo';
 import {TimelineWidthContext} from './TimelineWidthProvider';
@@ -93,7 +94,7 @@ const Inner: React.FC<{
 			border: SEQUENCE_BORDER_WIDTH + 'px solid rgba(255, 255, 255, 0.2)',
 			borderRadius: 2,
 			position: 'absolute',
-			height: getTimelineLayerHeight(s.type === 'video' ? 'video' : 'other'),
+			height: getTimelineLayerHeight(s.type),
 			marginLeft,
 			width,
 			color: 'white',
@@ -164,12 +165,16 @@ const Inner: React.FC<{
 					playbackRate={s.playbackRate}
 				/>
 			) : null}
+			{s.type === 'image' ? (
+				<TimelineImageInfo src={s.src} visualizationWidth={width} />
+			) : null}
 			{s.loopDisplay === undefined ? null : (
 				<LoopedTimelineIndicator loops={s.loopDisplay.numberOfTimes} />
 			)}
 
 			{s.type !== 'audio' &&
 			s.type !== 'video' &&
+			s.type !== 'image' &&
 			s.loopDisplay === undefined &&
 			(isInRange || isPremounting || isPostmounting) ? (
 				<div
