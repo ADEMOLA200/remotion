@@ -15,6 +15,7 @@ const LayoutWrapper = (props: Props): ReactNode => {
 				async
 				id="crawlchat-script"
 				data-id="67c0a28c5b075f0bb35e5366"
+				data-sidepanel="true"
 				data-ask-ai="true"
 				data-ask-ai-background-color="#282A36"
 				data-ask-ai-color="#ffffff"
