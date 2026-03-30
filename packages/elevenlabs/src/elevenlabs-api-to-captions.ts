@@ -29,6 +29,15 @@ export const elevenLabsApiToCaptions = ({
 		character_end_times_seconds,
 	} = alignment;
 
+	if (
+		characters.length !== character_start_times_seconds.length ||
+		characters.length !== character_end_times_seconds.length
+	) {
+		throw new Error(
+			'ElevenLabs alignment arrays must all have the same length',
+		);
+	}
+
 	let currentWord = '';
 	let startMs = -1;
 	let endMs = -1;
@@ -72,7 +81,7 @@ export const elevenLabsApiToCaptions = ({
 		});
 	}
 
-	// Edge case: if the first word starts with a space, we trim it as per OpenAI Whisper implementation
+	// Edge case: if the first word starts with a space, we trim it
 	if (captions.length > 0 && captions[0].text.startsWith(' ')) {
 		captions[0].text = captions[0].text.trimStart();
 	}

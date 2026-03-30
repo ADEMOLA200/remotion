@@ -26,8 +26,7 @@
 	"devDependencies": {
 		"@remotion/eslint-config-internal": "workspace:*",
 		"eslint": "catalog:",
-		"@typescript/native-preview": "catalog:",
-		"vitest": "catalog:"
+		"@typescript/native-preview": "catalog:"
 	},
 	"keywords": [
 		"remotion",
