@@ -86,7 +86,7 @@
 		"clsx": "^1.1.1",
 		"color-namer": "1.4.0",
 		"copy-text-to-clipboard": "^2",
-		"crawlchat-client": "^1.0.2",
+		"crawlchat-client": "^1.2.1",
 		"create-video": "workspace:*",
 		"eslint": "catalog:",
 		"hls.js": "^0.14.17",
