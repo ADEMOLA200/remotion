@@ -16,6 +16,7 @@ import {TableOfContents as LightLeaksTableOfContents} from '../../docs/light-lea
 import {TableOfContents as LottieTableOfContents} from '../../docs/lottie/table-of-contents';
 import {TableOfContents as MediaParserTableOfContents} from '../../docs/media-parser/TableOfContents';
 import {TableOfContents as MediaUtilsTableOfContents} from '../../docs/media-utils/table-of-contents';
+import {TableOfContents as ElevenLabsTableOfContents} from '../../docs/elevenlabs/TableOfContents';
 import {TableOfContents as NewVideoTableOfContents} from '../../docs/media/table-of-contents';
 import {TableOfContents as MotionBlurTableOfContents} from '../../docs/motion-blur/table-of-contents';
 import {TableOfContents as NoiseTableOfContents} from '../../docs/noise/table-of-contents';
@@ -142,6 +143,9 @@ export const TableOfContents: React.FC = () => {
 			<h2>@remotion/openai-whisper</h2>
 			<p>Work with transcriptions from OpenAI Whisper</p>
 			<OpenAiWhisperTableOfContents />
+			<h2>@remotion/elevenlabs</h2>
+			<p>Work with transcriptions from ElevenLabs</p>
+			<ElevenLabsTableOfContents />
 			<h2>@remotion/animated-emoji</h2>
 			<p>Google Fonts Animated Emojis as Remotion Components</p>
 			<AnimatedEmojiTableOfContents />

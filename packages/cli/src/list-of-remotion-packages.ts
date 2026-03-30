@@ -22,6 +22,7 @@ export const listOfRemotionPackages = [
 	'@remotion/discord-poster',
 	'@remotion/docusaurus-plugin',
 	'@remotion/docs',
+	'@remotion/elevenlabs',
 	'@remotion/enable-scss',
 	'@remotion/eslint-config',
 	'@remotion/eslint-config-flat',
