@@ -1,5 +1,5 @@
-import {build} from 'bun';
 import path from 'path';
+import {build} from 'bun';
 import {Exports, validateExports} from './validate-exports';
 
 if (process.env.NODE_ENV !== 'production') {
@@ -174,7 +174,7 @@ export const buildPackage = async ({
 			}
 		}
 	}
-	validateExports(newExports);
+	validateExports(newExports, pkg.type === 'module');
 	await Bun.write(
 		path.join(process.cwd(), 'package.json'),
 		JSON.stringify(

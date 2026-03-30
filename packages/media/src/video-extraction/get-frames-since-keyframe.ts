@@ -1,4 +1,4 @@
-import type {EncodedPacket, UrlSourceOptions} from 'mediabunny';
+import type {InputFormat, UrlSourceOptions} from 'mediabunny';
 import {
 	ALL_FORMATS,
 	AudioSampleSink,
@@ -9,13 +9,12 @@ import {
 	VideoSampleSink,
 	WEBM,
 } from 'mediabunny';
-import type {LogLevel} from 'remotion';
-import {makeKeyframeBank} from './keyframe-bank';
+import {canBrowserUseWebGl2} from '../browser-can-use-webgl2';
+import {isNetworkError} from '../is-type-of-error';
 import {rememberActualMatroskaTimestamps} from './remember-actual-matroska-timestamps';
 
 type VideoSinks = {
 	sampleSink: VideoSampleSink;
-	packetSink: EncodedPacketSink;
 };
 
 type AudioSinks = {
@@ -26,37 +25,54 @@ export type AudioSinkResult =
 	| AudioSinks
 	| 'no-audio-track'
 	| 'cannot-decode-audio'
-	| 'unknown-container-format';
+	| 'unknown-container-format'
+	| 'network-error';
 export type VideoSinkResult =
 	| VideoSinks
 	| 'no-video-track'
 	| 'cannot-decode'
-	| 'unknown-container-format';
+	| 'cannot-decode-alpha'
+	| 'unknown-container-format'
+	| 'network-error';
 
 const getRetryDelay = (() => {
 	return null;
 }) satisfies UrlSourceOptions['getRetryDelay'];
 
-const getFormatOrNull = async (input: Input) => {
+const getFormatOrNullOrNetworkError = async (
+	input: Input,
+): Promise<InputFormat | 'network-error' | null> => {
 	try {
 		return await input.getFormat();
-	} catch {
+	} catch (err) {
+		if (isNetworkError(err as Error)) {
+			return 'network-error';
+		}
+
 		return null;
 	}
 };
 
-export const getSinks = async (src: string) => {
+export const getSinks = async (
+	src: string,
+	credentials: RequestCredentials | undefined,
+) => {
 	const input = new Input({
 		formats: ALL_FORMATS,
 		source: new UrlSource(src, {
 			getRetryDelay,
+			...(credentials ? {requestInit: {credentials}} : undefined),
 		}),
 	});
 
-	const format = await getFormatOrNull(input);
+	const format = await getFormatOrNullOrNetworkError(input);
 	const isMatroska = format === MATROSKA || format === WEBM;
 
 	const getVideoSinks = async (): Promise<VideoSinkResult> => {
+		if (format === 'network-error') {
+			return 'network-error';
+		}
+
 		if (format === null) {
 			return 'unknown-container-format';
 		}
@@ -72,9 +88,23 @@ export const getSinks = async (src: string) => {
 			return 'cannot-decode';
 		}
 
+		const sampleSink = new VideoSampleSink(videoTrack);
+		const packetSink = new EncodedPacketSink(videoTrack);
+
+		// Try to get the keypacket at the requested timestamp.
+		// If it returns null (timestamp is before the first keypacket), fall back to the first packet.
+		// This matches mediabunny's internal behavior and handles videos that don't start at timestamp 0.
+		const startPacket = await packetSink.getFirstPacket({
+			verifyKeyPackets: true,
+		});
+
+		const hasAlpha = startPacket?.sideData.alpha;
+		if (hasAlpha && !canBrowserUseWebGl2()) {
+			return 'cannot-decode-alpha';
+		}
+
 		return {
-			sampleSink: new VideoSampleSink(videoTrack),
-			packetSink: new EncodedPacketSink(videoTrack),
+			sampleSink,
 		};
 	};
 
@@ -97,6 +127,10 @@ export const getSinks = async (src: string) => {
 	const getAudioSinks = async (index: number): Promise<AudioSinkResult> => {
 		if (format === null) {
 			return 'unknown-container-format';
+		}
+
+		if (format === 'network-error') {
+			return 'network-error';
 		}
 
 		const audioTracks = await input.getAudioTracks();
@@ -138,36 +172,3 @@ export const getSinks = async (src: string) => {
 };
 
 export type GetSink = Awaited<ReturnType<typeof getSinks>>;
-
-export const getFramesSinceKeyframe = async ({
-	packetSink,
-	videoSampleSink,
-	startPacket,
-	logLevel,
-	src,
-}: {
-	packetSink: EncodedPacketSink;
-	videoSampleSink: VideoSampleSink;
-	startPacket: EncodedPacket;
-	logLevel: LogLevel;
-	src: string;
-}) => {
-	const nextKeyPacket = await packetSink.getNextKeyPacket(startPacket, {
-		verifyKeyPackets: true,
-	});
-
-	const sampleIterator = videoSampleSink.samples(
-		startPacket.timestamp,
-		nextKeyPacket ? nextKeyPacket.timestamp : Infinity,
-	);
-
-	const keyframeBank = makeKeyframeBank({
-		startTimestampInSeconds: startPacket.timestamp,
-		endTimestampInSeconds: nextKeyPacket ? nextKeyPacket.timestamp : Infinity,
-		sampleIterator,
-		logLevel,
-		src,
-	});
-
-	return keyframeBank;
-};

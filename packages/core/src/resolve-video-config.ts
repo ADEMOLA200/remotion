@@ -1,4 +1,4 @@
-import type {AnyZodObject} from 'zod';
+import type {AnyZodObject} from './any-zod-type.js';
 import type {
 	CalcMetadataReturnType,
 	CalculateMetadataFunction,
@@ -94,14 +94,14 @@ type ResolveVideoConfigParams = {
 	> | null;
 	signal: AbortSignal;
 	defaultProps: Record<string, unknown>;
-	originalProps: Record<string, unknown>;
+	inputProps: Record<string, unknown>;
 };
 
 export const resolveVideoConfig = ({
 	calculateMetadata,
 	signal,
 	defaultProps,
-	originalProps,
+	inputProps: originalProps,
 	compositionId,
 	compositionDurationInFrames,
 	compositionFps,

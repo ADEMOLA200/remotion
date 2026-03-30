@@ -1,12 +1,13 @@
 import React from "react";
-import { AbsoluteFill, Html5Audio, Sequence, useVideoConfig } from "remotion";
+import { AbsoluteFill, Sequence, useVideoConfig } from "remotion";
 
-import { Spectrum } from "./Spectrum";
+import { Audio } from "@remotion/media";
+import { FONT_FAMILY } from "../helpers/font";
 import { AudiogramCompositionSchemaType } from "../helpers/schema";
-import { Waveform } from "./Waveform";
 import { BassOverlay } from "./BassOverlay";
 import { SongInfo } from "./SongInfo";
-import { FONT_FAMILY } from "../helpers/font";
+import { Spectrum } from "./Spectrum";
+import { Waveform } from "./Waveform";
 
 const containerStyle: React.CSSProperties = {
   flexDirection: "column",
@@ -46,7 +47,7 @@ export const Visualizer: React.FC<AudiogramCompositionSchemaType> = ({
     >
       <Sequence from={-audioOffsetInFrames}>
         <BassOverlay audioSrc={audioFileUrl} color={visualizer.color} />
-        <Html5Audio pauseWhenBuffering src={audioFileUrl} />
+        <Audio src={audioFileUrl} />
         <AbsoluteFill style={containerStyle}>
           <div style={visualizerContainerStyle}>
             {visualizer.type === "oscilloscope" ? (

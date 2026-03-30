@@ -12,7 +12,6 @@ import type {
 	VolumeProp,
 } from 'remotion';
 import {
-	cancelRender,
 	Internals,
 	Loop,
 	random,
@@ -21,9 +20,11 @@ import {
 	useRemotionEnvironment,
 	useVideoConfig,
 } from 'remotion';
+import {useMaxMediaCacheSize} from '../caches';
 import {applyVolume} from '../convert-audiodata/apply-volume';
 import {TARGET_SAMPLE_RATE} from '../convert-audiodata/resample-audiodata';
 import {frameForVolumeProp} from '../looped-frame';
+import {type MediaOnError, callOnErrorAndResolve} from '../on-error';
 import {extractFrameViaBroadcastChannel} from '../video-extraction/extract-frame-via-broadcast-channel';
 import type {FallbackOffthreadVideoProps} from './props';
 
@@ -48,6 +49,9 @@ type InnerVideoProps = {
 	readonly toneFrequency: number;
 	readonly trimBeforeValue: number | undefined;
 	readonly trimAfterValue: number | undefined;
+	readonly headless: boolean;
+	readonly onError: MediaOnError | undefined;
+	readonly credentials: RequestCredentials | undefined;
 };
 
 type FallbackToOffthreadVideo = {
@@ -75,6 +79,9 @@ export const VideoForRendering: React.FC<InnerVideoProps> = ({
 	toneFrequency,
 	trimAfterValue,
 	trimBeforeValue,
+	headless,
+	onError,
+	credentials,
 }) => {
 	if (!src) {
 		throw new TypeError('No `src` was passed to <Video>.');
@@ -106,7 +113,7 @@ export const VideoForRendering: React.FC<InnerVideoProps> = ({
 	);
 
 	const environment = useRemotionEnvironment();
-	const {delayRender, continueRender} = useDelayRender();
+	const {delayRender, continueRender, cancelRender} = useDelayRender();
 
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const [replaceWithOffthreadVideo, setReplaceWithOffthreadVideo] = useState<
@@ -116,8 +123,16 @@ export const VideoForRendering: React.FC<InnerVideoProps> = ({
 	const audioEnabled = Internals.useAudioEnabled();
 	const videoEnabled = Internals.useVideoEnabled();
 
+	const maxCacheSize = useMaxMediaCacheSize(logLevel);
+
+	const [error, setError] = useState<Error | null>(null);
+
+	if (error) {
+		throw error;
+	}
+
 	useLayoutEffect(() => {
-		if (!canvasRef.current) {
+		if (!canvasRef.current && !headless) {
 			return;
 		}
 
@@ -125,13 +140,24 @@ export const VideoForRendering: React.FC<InnerVideoProps> = ({
 			return;
 		}
 
+		if (!canvasRef.current?.getContext && !headless) {
+			return setError(
+				new Error(
+					'Canvas does not have .getContext() method available. This could be because <Video> was mounted inside an <svg> tag.',
+				),
+			);
+		}
+
 		const timestamp = frame / fps;
 		const durationInSeconds = 1 / fps;
 
-		const newHandle = delayRender(`Extracting frame at time ${timestamp}`, {
-			retries: delayRenderRetries ?? undefined,
-			timeoutInMilliseconds: delayRenderTimeoutInMilliseconds ?? undefined,
-		});
+		const newHandle = delayRender(
+			`Extracting frame at time ${timestamp} from ${src}`,
+			{
+				retries: delayRenderRetries ?? undefined,
+				timeoutInMilliseconds: delayRenderTimeoutInMilliseconds ?? undefined,
+			},
+		);
 
 		const shouldRenderAudio = (() => {
 			if (!audioEnabled) {
@@ -159,89 +185,92 @@ export const VideoForRendering: React.FC<InnerVideoProps> = ({
 			trimAfter: trimAfterValue,
 			trimBefore: trimBeforeValue,
 			fps,
+			maxCacheSize,
+			credentials,
 		})
 			.then((result) => {
-				if (result.type === 'unknown-container-format') {
-					if (disallowFallbackToOffthreadVideo) {
-						cancelRender(
-							new Error(
-								`Unknown container format ${src}, and 'disallowFallbackToOffthreadVideo' was set. Failing the render.`,
-							),
-						);
+				const handleError = (
+					err: Error,
+					clientSideError: Error,
+					fallbackMessage: string,
+					mediaDurationInSeconds: number | null,
+				) => {
+					if (environment.isClientSideRendering) {
+						cancelRender(clientSideError);
+						return;
 					}
 
+					const [action, errorToUse] = callOnErrorAndResolve({
+						onError,
+						error: err,
+						disallowFallback: disallowFallbackToOffthreadVideo,
+						isClientSideRendering: environment.isClientSideRendering,
+						clientSideError: err,
+					});
+
+					if (action === 'fail') {
+						cancelRender(errorToUse);
+						return;
+					}
+
+					// action === 'fallback'
 					if (window.remotion_isMainTab) {
-						Internals.Log.info(
+						Internals.Log.warn(
 							{logLevel, tag: '@remotion/media'},
-							`Unknown container format for ${src} (Supported formats: https://www.remotion.dev/docs/mediabunny/formats), falling back to <OffthreadVideo>`,
+							fallbackMessage,
 						);
 					}
 
-					setReplaceWithOffthreadVideo({durationInSeconds: null});
+					setReplaceWithOffthreadVideo({
+						durationInSeconds: mediaDurationInSeconds,
+					});
+				};
+
+				if (result.type === 'unknown-container-format') {
+					handleError(
+						new Error(`Unknown container format ${src}.`),
+						new Error(
+							`Cannot render video "${src}": Unknown container format. See supported formats: https://www.remotion.dev/docs/mediabunny/formats`,
+						),
+						`Unknown container format for ${src} (Supported formats: https://www.remotion.dev/docs/mediabunny/formats), falling back to <OffthreadVideo>`,
+						null,
+					);
 					return;
 				}
 
 				if (result.type === 'cannot-decode') {
-					if (disallowFallbackToOffthreadVideo) {
-						cancelRender(
-							new Error(
-								`Cannot decode ${src}, and 'disallowFallbackToOffthreadVideo' was set. Failing the render.`,
-							),
-						);
-					}
-
-					if (window.remotion_isMainTab) {
-						Internals.Log.info(
-							{logLevel, tag: '@remotion/media'},
-							`Cannot decode ${src}, falling back to <OffthreadVideo>`,
-						);
-					}
-
-					setReplaceWithOffthreadVideo({
-						durationInSeconds: result.durationInSeconds,
-					});
+					handleError(
+						new Error(`Cannot decode ${src}.`),
+						new Error(
+							`Cannot render video "${src}": The video could not be decoded by the browser.`,
+						),
+						`Cannot decode ${src}, falling back to <OffthreadVideo>`,
+						result.durationInSeconds,
+					);
 					return;
 				}
 
 				if (result.type === 'cannot-decode-alpha') {
-					if (disallowFallbackToOffthreadVideo) {
-						cancelRender(
-							new Error(
-								`Cannot decode alpha component for ${src}, and 'disallowFallbackToOffthreadVideo' was set. Failing the render.`,
-							),
-						);
-					}
-
-					if (window.remotion_isMainTab) {
-						Internals.Log.info(
-							{logLevel, tag: '@remotion/media'},
-							`Cannot decode alpha component for ${src}, falling back to <OffthreadVideo>`,
-						);
-					}
-
-					setReplaceWithOffthreadVideo({
-						durationInSeconds: result.durationInSeconds,
-					});
+					handleError(
+						new Error(`Cannot decode alpha component for ${src}.`),
+						new Error(
+							`Cannot render video "${src}": The alpha channel could not be decoded by the browser.`,
+						),
+						`Cannot decode alpha component for ${src}, falling back to <OffthreadVideo>`,
+						result.durationInSeconds,
+					);
 					return;
 				}
 
 				if (result.type === 'network-error') {
-					if (disallowFallbackToOffthreadVideo) {
-						cancelRender(
-							new Error(
-								`Cannot decode ${src}, and 'disallowFallbackToOffthreadVideo' was set. Failing the render.`,
-							),
-						);
-					}
-
-					if (window.remotion_isMainTab) {
-						Internals.Log.info(
-							{logLevel, tag: '@remotion/media'},
-							`Network error fetching ${src}, falling back to <OffthreadVideo>`,
-						);
-					}
-
-					setReplaceWithOffthreadVideo({durationInSeconds: null});
+					handleError(
+						new Error(`Network error fetching ${src}.`),
+						new Error(
+							`Cannot render video "${src}": Network error while fetching the video (possibly CORS).`,
+						),
+						`Network error fetching ${src} (no CORS?), falling back to <OffthreadVideo>`,
+						null,
+					);
 					return;
 				}
 
@@ -250,25 +279,20 @@ export const VideoForRendering: React.FC<InnerVideoProps> = ({
 					audio,
 					durationInSeconds: assetDurationInSeconds,
 				} = result;
+
 				if (imageBitmap) {
 					onVideoFrame?.(imageBitmap);
 					const context = canvasRef.current?.getContext('2d', {
 						alpha: true,
 					});
-					if (!context) {
-						return;
-					}
+					// Could be in headless mode
+					if (context) {
+						context.canvas.width = imageBitmap.width;
+						context.canvas.height = imageBitmap.height;
 
-					context.canvas.width =
-						imageBitmap instanceof ImageBitmap
-							? imageBitmap.width
-							: imageBitmap.displayWidth;
-					context.canvas.height =
-						imageBitmap instanceof ImageBitmap
-							? imageBitmap.height
-							: imageBitmap.displayHeight;
-					context.canvas.style.aspectRatio = `${context.canvas.width} / ${context.canvas.height}`;
-					context.drawImage(imageBitmap, 0, 0);
+						context.canvas.style.aspectRatio = `${context.canvas.width} / ${context.canvas.height}`;
+						context.drawImage(imageBitmap, 0, 0);
+					}
 
 					imageBitmap.close();
 				} else if (videoEnabled) {
@@ -309,7 +333,9 @@ export const VideoForRendering: React.FC<InnerVideoProps> = ({
 					registerRenderAsset({
 						type: 'inline-audio',
 						id,
-						audio: Array.from(audio.data),
+						audio: environment.isClientSideRendering
+							? audio.data
+							: Array.from(audio.data),
 						frame: absoluteFrame,
 						timestamp: audio.timestamp,
 						duration: (audio.numberOfFrames / TARGET_SAMPLE_RATE) * 1_000_000,
@@ -319,8 +345,8 @@ export const VideoForRendering: React.FC<InnerVideoProps> = ({
 
 				continueRender(newHandle);
 			})
-			.catch((error) => {
-				cancelRender(error);
+			.catch((err) => {
+				cancelRender(err);
 			});
 
 		return () => {
@@ -356,6 +382,11 @@ export const VideoForRendering: React.FC<InnerVideoProps> = ({
 		trimBeforeValue,
 		audioEnabled,
 		videoEnabled,
+		maxCacheSize,
+		cancelRender,
+		headless,
+		onError,
+		credentials,
 	]);
 
 	const classNameValue = useMemo(() => {
@@ -392,12 +423,14 @@ export const VideoForRendering: React.FC<InnerVideoProps> = ({
 				toneFrequency={toneFrequency}
 				// these shouldn't matter during rendering / should not appear at all
 				showInTimeline={false}
-				crossOrigin={undefined}
-				onAutoPlayError={() => undefined}
-				pauseWhenBuffering={false}
+				crossOrigin={fallbackOffthreadVideoProps?.crossOrigin}
+				onAutoPlayError={fallbackOffthreadVideoProps?.onAutoPlayError ?? null}
+				pauseWhenBuffering={
+					fallbackOffthreadVideoProps?.pauseWhenBuffering ?? false
+				}
 				trimAfter={trimAfterValue}
 				trimBefore={trimBeforeValue}
-				useWebAudioApi={false}
+				useWebAudioApi={fallbackOffthreadVideoProps?.useWebAudioApi ?? false}
 				startFrom={undefined}
 				endAt={undefined}
 				stack={stack}
@@ -407,11 +440,13 @@ export const VideoForRendering: React.FC<InnerVideoProps> = ({
 
 		if (loop) {
 			if (!replaceWithOffthreadVideo.durationInSeconds) {
-				cancelRender(
-					new Error(
-						`Cannot render video ${src}: @remotion/media was unable to render, and fell back to <OffthreadVideo>. Also, "loop" was set, but <OffthreadVideo> does not support looping and @remotion/media could also not determine the duration of the video.`,
-					),
+				const err = new Error(
+					`Cannot render video ${src}: @remotion/media was unable to render, and fell back to <OffthreadVideo>. Also, "loop" was set, but <OffthreadVideo> does not support looping and @remotion/media could also not determine the duration of the video.`,
 				);
+
+				cancelRender(err);
+
+				throw err;
 			}
 
 			return (
@@ -431,6 +466,10 @@ export const VideoForRendering: React.FC<InnerVideoProps> = ({
 		}
 
 		return fallback;
+	}
+
+	if (headless) {
+		return null;
 	}
 
 	return <canvas ref={canvasRef} style={style} className={classNameValue} />;

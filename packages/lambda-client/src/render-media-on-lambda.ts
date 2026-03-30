@@ -63,6 +63,8 @@ export type RenderMediaOnLambdaInput = {
 	webhook?: WebhookOption | null;
 	forceWidth?: number | null;
 	forceHeight?: number | null;
+	forceFps?: number | null;
+	forceDurationInFrames?: number | null;
 	rendererFunctionName?: string | null;
 	forceBucketName?: string;
 	audioCodec?: AudioCodec | null;
@@ -74,7 +76,17 @@ export type RenderMediaOnLambdaInput = {
 	metadata?: Record<string, string> | null;
 	storageClass?: StorageClass | null;
 	requestHandler?: RequestHandler;
-} & Partial<ToOptions<typeof BrowserSafeApis.optionsMap.renderMediaOnLambda>>;
+	isProduction?: boolean;
+} & {
+	/**
+	 * @deprecated Use `licenseKey` instead
+	 */
+	apiKey?: string | null;
+} & Partial<
+		ToOptions<
+			Omit<typeof BrowserSafeApis.optionsMap.renderMediaOnLambda, 'apiKey'>
+		>
+	>;
 
 export type RenderMediaOnLambdaOutput = {
 	renderId: string;
@@ -164,6 +176,8 @@ export const renderMediaOnLambdaOptionalToRequired = (
 		forceBucketName: options.forceBucketName ?? null,
 		forceHeight: options.forceHeight ?? null,
 		forceWidth: options.forceWidth ?? null,
+		forceFps: options.forceFps ?? null,
+		forceDurationInFrames: options.forceDurationInFrames ?? null,
 		frameRange: options.frameRange ?? null,
 		framesPerLambda: options.framesPerLambda ?? null,
 		functionName: options.functionName,
@@ -196,10 +210,11 @@ export const renderMediaOnLambdaOptionalToRequired = (
 		forcePathStyle: options.forcePathStyle ?? false,
 		indent: false,
 		metadata: options.metadata ?? null,
-		apiKey: options.apiKey ?? null,
+		licenseKey: options.licenseKey ?? options.apiKey ?? null,
 		storageClass: options.storageClass ?? null,
 		requestHandler: options.requestHandler ?? null,
 		mediaCacheSizeInBytes: options.mediaCacheSizeInBytes ?? null,
+		isProduction: options.isProduction ?? null,
 	};
 };
 

@@ -1,28 +1,30 @@
 {
 	"name": "@remotion/media",
-	"version": "4.0.373",
+	"version": "4.0.441",
 	"main": "dist/index.js",
 	"types": "dist/index.d.ts",
 	"module": "dist/esm/index.mjs",
 	"repository": {
 		"url": "https://github.com/remotion-dev/remotion/tree/main/packages/media"
 	},
-	"sideEffects": false,
 	"author": "Jonny Burger <jonny@remotion.dev>, Hunain Ahmed <junaidhunain6@gmail.com>",
 	"bugs": {
 		"url": "https://github.com/remotion-dev/remotion/issues"
 	},
+	"type": "module",
 	"scripts": {
 		"if-node-18+": "node -e \"const [maj]=process.versions.node.split('.').map(Number); process.exit(maj>=18?0:1)\"",
-		"formatting": "prettier --experimental-cli src --check",
+		"formatting": "oxfmt src --check",
+		"format": "oxfmt src",
 		"lint": "eslint src",
-		"watch": "tsc -w",
+		"watch": "tsgo -w",
 		"test": "node src/test/execute.mjs",
-		"make": "tsc -d && bun --env-file=../.env.bundle bundle.ts"
+		"make": "tsgo && bun --env-file=../.env.bundle bundle.ts"
 	},
 	"dependencies": {
 		"mediabunny": "catalog:",
-		"remotion": "workspace:*"
+		"remotion": "workspace:*",
+		"zod": "catalog:"
 	},
 	"peerDependencies": {
 		"react": ">=16.8.0",
@@ -30,12 +32,13 @@
 	},
 	"devDependencies": {
 		"@remotion/eslint-config-internal": "workspace:*",
-		"@vitest/browser-webdriverio": "4.0.7",
+		"@vitest/browser-webdriverio": "4.0.9",
 		"eslint": "catalog:",
 		"react": "catalog:",
 		"react-dom": "catalog:",
-		"vitest": "4.0.7",
-		"webdriverio": "9.19.2"
+		"vitest": "catalog:",
+		"webdriverio": "9.19.2",
+		"@typescript/native-preview": "catalog:"
 	},
 	"keywords": [],
 	"publishConfig": {
@@ -44,7 +47,6 @@
 	"exports": {
 		".": {
 			"types": "./dist/index.d.ts",
-			"require": "./dist/index.js",
 			"module": "./dist/esm/index.mjs",
 			"import": "./dist/esm/index.mjs"
 		},

@@ -71,7 +71,6 @@ const config: Config = {
 						{to: '/lambda', label: 'Lambda'},
 						{to: '/docs/editor-starter', label: 'Editor Starter'},
 						{to: '/docs/timeline', label: 'Timeline'},
-						{to: '/docs/webcodecs', label: 'WebCodecs'},
 						{to: '/docs/recorder', label: 'Recorder'},
 					],
 				},
@@ -80,6 +79,7 @@ const config: Config = {
 					label: 'Resources',
 					position: 'left',
 					items: [
+						{to: 'https://remotion.dev/prompts', label: 'Prompts'},
 						{to: 'learn', label: 'Learn'},
 						{
 							to: '/docs/resources',
@@ -88,7 +88,9 @@ const config: Config = {
 						{to: 'blog', label: 'Blog'},
 						{to: 'showcase', label: 'Showcase'},
 						{to: 'https://remotion.dev/convert', label: 'Convert a video'},
+						{to: 'https://remotion.dev/timing-editor', label: 'Timing Editor'},
 						{to: '/docs/support', label: 'Support'},
+						{to: '/templates', label: 'Templates'},
 					],
 				},
 				{
@@ -143,6 +145,10 @@ const config: Config = {
 							to: '/docs/',
 						},
 						{
+							label: 'Templates',
+							to: '/templates',
+						},
+						{
 							label: 'API Reference',
 							to: '/docs/api',
 						},
@@ -180,6 +186,10 @@ const config: Config = {
 					title: 'Community',
 					items: [
 						{
+							label: 'Prompt Showcase',
+							to: 'https://remotion.dev/prompts',
+						},
+						{
 							label: 'Showcase',
 							to: 'showcase',
 						},
@@ -187,7 +197,6 @@ const config: Config = {
 							label: 'Experts',
 							to: 'experts',
 						},
-
 						{
 							label: 'Discord',
 							href: 'https://remotion.dev/discord',
@@ -250,6 +259,14 @@ const config: Config = {
 							href: 'https://remotion.dev/license',
 						},
 						{
+							label: 'Terms and Conditions',
+							href: 'https://remotion.pro/terms',
+						},
+						{
+							label: 'Privacy Policy',
+							href: 'https://remotion.pro/privacy',
+						},
+						{
 							label: 'Brand',
 							href: 'https://remotion.dev/brand',
 						},
@@ -265,9 +282,6 @@ const config: Config = {
 		[
 			'classic',
 			{
-				gtag: {
-					trackingID: 'G-Z6B254S5Q4',
-				},
 				docs: {
 					path: 'docs',
 					sidebarPath: './sidebars.ts',

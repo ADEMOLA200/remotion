@@ -3,7 +3,6 @@ import {RenderInternals} from '@remotion/renderer';
 import {BrowserSafeApis} from '@remotion/renderer/client';
 import {defaultBrowserDownloadProgress} from './browser-download-bar';
 import {chalk} from './chalk';
-import {getCliOptions} from './get-cli-options';
 import {Log} from './log';
 import {parsedCli, quietFlagProvided} from './parsed-cli';
 
@@ -15,20 +14,24 @@ const {
 	delayRenderTimeoutInMillisecondsOption,
 	headlessOption,
 	chromeModeOption,
+	darkModeOption,
+	browserExecutableOption,
+	userAgentOption,
+	disableWebSecurityOption,
+	ignoreCertificateErrorsOption,
 } = BrowserSafeApis.options;
 
 export const gpuCommand = async (logLevel: LogLevel) => {
-	const {
-		browserExecutable,
-		disableWebSecurity,
-		ignoreCertificateErrors,
-		userAgent,
-	} = getCliOptions({
-		isStill: false,
-		logLevel,
-		indent: false,
-	});
-
+	const browserExecutable = browserExecutableOption.getValue({
+		commandLine: parsedCli,
+	}).value;
+	const userAgent = userAgentOption.getValue({commandLine: parsedCli}).value;
+	const disableWebSecurity = disableWebSecurityOption.getValue({
+		commandLine: parsedCli,
+	}).value;
+	const ignoreCertificateErrors = ignoreCertificateErrorsOption.getValue({
+		commandLine: parsedCli,
+	}).value;
 	const enableMultiProcessOnLinux = enableMultiprocessOnLinuxOption.getValue({
 		commandLine: parsedCli,
 	}).value;
@@ -42,11 +45,13 @@ export const gpuCommand = async (logLevel: LogLevel) => {
 	const chromeMode = chromeModeOption.getValue({
 		commandLine: parsedCli,
 	}).value;
+	const darkMode = darkModeOption.getValue({commandLine: parsedCli}).value;
 
 	const onBrowserDownload = defaultBrowserDownloadProgress({
 		quiet: quietFlagProvided(),
 		indent: false,
 		logLevel,
+		onProgress: () => undefined,
 	});
 
 	await RenderInternals.internalEnsureBrowser({
@@ -57,13 +62,14 @@ export const gpuCommand = async (logLevel: LogLevel) => {
 		chromeMode,
 	});
 
-	const chromiumOptions: ChromiumOptions = {
+	const chromiumOptions: Required<ChromiumOptions> = {
 		disableWebSecurity,
 		enableMultiProcessOnLinux,
 		gl,
 		headless,
 		ignoreCertificateErrors,
 		userAgent,
+		darkMode,
 	};
 
 	const statuses = await RenderInternals.getChromiumGpuInformation({
@@ -76,6 +82,7 @@ export const gpuCommand = async (logLevel: LogLevel) => {
 			indent: false,
 			logLevel,
 			quiet: quietFlagProvided(),
+			onProgress: () => undefined,
 		}),
 		chromeMode,
 		onLog: RenderInternals.defaultOnLog,

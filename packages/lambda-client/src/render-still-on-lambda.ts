@@ -1,3 +1,4 @@
+import type {StorageClass} from '@aws-sdk/client-s3';
 import type {
 	BrowserSafeApis,
 	ChromiumOptions,
@@ -6,8 +7,6 @@ import type {
 	ToOptions,
 } from '@remotion/serverless-client';
 import {ServerlessRoutines} from '@remotion/serverless-client';
-
-import type {StorageClass} from '@aws-sdk/client-s3';
 import type {
 	CostsInfo,
 	OutNameInput,
@@ -42,6 +41,8 @@ type OptionalParameters = {
 	downloadBehavior: DownloadBehavior;
 	forceWidth: number | null;
 	forceHeight: number | null;
+	forceFps: number | null;
+	forceDurationInFrames: number | null;
 	forceBucketName: string | null;
 	onInit: (data: {
 		renderId: string;
@@ -52,13 +53,14 @@ type OptionalParameters = {
 	forcePathStyle: boolean;
 	storageClass: StorageClass | null;
 	requestHandler: RequestHandler | null | undefined;
+	isProduction: boolean | null;
 } & ToOptions<typeof BrowserSafeApis.optionsMap.renderStillOnLambda>;
 
 export type RenderStillOnLambdaNonNullInput = MandatoryParameters &
-	OptionalParameters;
+	Omit<OptionalParameters, 'apiKey'>;
 
 export type RenderStillOnLambdaInput = MandatoryParameters &
-	Partial<OptionalParameters> & {
+	Partial<Omit<OptionalParameters, 'apiKey'>> & {
 		requestHandler?: RequestHandler;
 	};
 
@@ -161,7 +163,7 @@ export const internalRenderStillOnLambda = wrapWithErrorHandling(
  * @description Renders a still image inside a lambda function and writes it to the specified output location.
  * @see [Documentation](https://remotion.dev/docs/lambda/renderstillonlambda)
  */
-export const renderStillOnLambda = (
+export function renderStillOnLambda(
 	input: RenderStillOnLambdaInput & {
 		/**
 		 * @deprecated Renamed to `jpegQuality`
@@ -171,8 +173,12 @@ export const renderStillOnLambda = (
 		 * @deprecated Renamed to `logLevel`
 		 */
 		dumpBrowserLogs?: boolean;
+		/**
+		 * @deprecated Use `licenseKey` instead
+		 */
+		apiKey?: string | null;
 	},
-) => {
+): Promise<RenderStillOnLambdaOutput> {
 	return internalRenderStillOnLambda({
 		chromiumOptions: input.chromiumOptions ?? {},
 		composition: input.composition,
@@ -182,6 +188,8 @@ export const renderStillOnLambda = (
 		forceBucketName: input.forceBucketName ?? null,
 		forceHeight: input.forceHeight ?? null,
 		forceWidth: input.forceWidth ?? null,
+		forceFps: input.forceFps ?? null,
+		forceDurationInFrames: input.forceDurationInFrames ?? null,
 		frame: input.frame ?? 0,
 		functionName: input.functionName,
 		imageFormat: input.imageFormat,
@@ -200,10 +208,11 @@ export const renderStillOnLambda = (
 		scale: input.scale ?? 1,
 		timeoutInMilliseconds: input.timeoutInMilliseconds ?? 30000,
 		forcePathStyle: input.forcePathStyle ?? false,
-		apiKey: input.apiKey ?? null,
+		licenseKey: input.licenseKey ?? input.apiKey ?? null,
 		offthreadVideoThreads: input.offthreadVideoThreads ?? null,
 		storageClass: input.storageClass ?? null,
 		requestHandler: input.requestHandler ?? null,
 		mediaCacheSizeInBytes: input.mediaCacheSizeInBytes ?? null,
+		isProduction: input.isProduction ?? null,
 	});
-};
+}

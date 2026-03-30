@@ -14,6 +14,7 @@ import {forSeamlessAacConcatenationOption} from './for-seamless-aac-concatenatio
 import {hardwareAccelerationOption} from './hardware-acceleration';
 import {imageSequencePatternOption} from './image-sequence-pattern';
 import {jpegQualityOption} from './jpeg-quality';
+import {licenseKeyOption} from './license-key';
 import {logLevelOption} from './log-level';
 import {mutedOption} from './mute';
 import {numberOfGifLoopsOption} from './number-of-gif-loops';
@@ -57,6 +58,7 @@ export const optionsMap = {
 		onBrowserDownload: onBrowserDownloadOption,
 		hardwareAcceleration: hardwareAccelerationOption,
 		chromeMode: chromeModeOption,
+		licenseKey: licenseKeyOption,
 	},
 	stitchFramesToVideo: {
 		separateAudioTo: separateAudioOption,
@@ -72,6 +74,8 @@ export const optionsMap = {
 		binariesDirectory: binariesDirectoryOption,
 		onBrowserDownload: onBrowserDownloadOption,
 		chromeMode: chromeModeOption,
+		apiKey: apiKeyOption,
+		licenseKey: licenseKeyOption,
 	},
 	getCompositions: {
 		mediaCacheSizeInBytes: mediaCacheSizeInBytesOption,
@@ -123,6 +127,7 @@ export const optionsMap = {
 		logLevel: logLevelOption,
 		timeoutInMilliseconds: delayRenderTimeoutInMillisecondsOption,
 		apiKey: apiKeyOption,
+		licenseKey: licenseKeyOption,
 	},
 	renderStillOnLambda: {
 		mediaCacheSizeInBytes: mediaCacheSizeInBytesOption,
@@ -134,6 +139,7 @@ export const optionsMap = {
 		scale: scaleOption,
 		timeoutInMilliseconds: delayRenderTimeoutInMillisecondsOption,
 		apiKey: apiKeyOption,
+		licenseKey: licenseKeyOption,
 	},
 	getCompositionsOnLambda: {
 		mediaCacheSizeInBytes: mediaCacheSizeInBytesOption,

@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import type {
 	AudioCodec,
 	BrowserLog,
@@ -6,7 +8,6 @@ import type {
 } from '@remotion/renderer';
 import {RenderInternals} from '@remotion/renderer';
 import {NoReactAPIs} from '@remotion/renderer/pure';
-
 import type {
 	CloudProvider,
 	ObjectChunkTimingData,
@@ -22,8 +23,6 @@ import {
 	truthy,
 	VERSION,
 } from '@remotion/serverless-client';
-import fs from 'node:fs';
-import path from 'node:path';
 import type {LaunchedBrowser} from '../get-browser-instance';
 import {getTmpDirStateIfENoSp} from '../get-tmp-dir';
 import {startLeakDetection} from '../leak-detection';
@@ -61,6 +60,14 @@ const renderHandler = async <Provider extends CloudProvider>({
 }): Promise<{}> => {
 	if (params.type !== ServerlessRoutines.renderer) {
 		throw new Error('Params must be renderer');
+	}
+
+	if (params.chromiumOptions.gl === 'angle') {
+		RenderInternals.Log.warn(
+			{indent: false, logLevel: params.logLevel},
+			'gl=angle is not supported in Lambda. Changing to gl=swangle instead.',
+		);
+		params.chromiumOptions.gl = 'swangle';
 	}
 
 	if (params.launchFunctionConfig.version !== VERSION) {
@@ -346,6 +353,9 @@ const renderHandler = async <Provider extends CloudProvider>({
 			offthreadVideoThreads: params.offthreadVideoThreads,
 			mediaCacheSizeInBytes: params.mediaCacheSizeInBytes,
 			onLog: RenderInternals.defaultOnLog,
+			// Not doing telemetry for the individual chunks
+			licenseKey: null,
+			isProduction: false,
 		})
 			.then(({slowestFrames}) => {
 				RenderInternals.Log.verbose(

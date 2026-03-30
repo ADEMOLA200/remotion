@@ -53,7 +53,7 @@ npx remotion lambda still testbed my-comp out.png
 
 ### `--frame`
 
-Render a specific frame of a composition. Default `0`
+<Options id="frame" />
 
 ### `--region`
 
@@ -61,10 +61,7 @@ The [AWS region](/docs/lambda/region-selection) to select. Both project and func
 
 ### `--props`
 
-[Input Props to pass to the selected composition of your video.](/docs/passing-props#passing-input-props-in-the-cli).  
-Must be a serialized JSON string (`--props='{"hello": "world"}'`) or a path to a JSON file (`./path/to/props.json`).  
-From the root component the props can be read using [`getInputProps()`](/docs/get-input-props).  
-You may transform input props using [`calculateMetadata()`](/docs/calculate-metadata).
+<Options id="props" />
 
 :::note
 Inline JSON string isn't supported on Windows shells because it removes the `"` character, use a file name instead.
@@ -90,6 +87,10 @@ How many times a single chunk is being retried if it fails to render. Default `1
 
 The file name of the media output as stored in the S3 bucket. By default, it is `out` plus the appropriate file extension, for example: `out.png`. Must match `/([0-9a-zA-Z-!_.*'()/]+)/g`.
 
+### `--image-format`
+
+<Options id="still-image-format" />
+
 ### `--jpeg-quality`
 
 [Value between 0 and 100 for JPEG rendering quality](/docs/config#setjpegquality). Doesn't work when rendering an image format other than JPEG.
@@ -105,6 +106,10 @@ Results in invalid SSL certificates in Chrome, such as self-signed ones, being i
 ### `--disable-web-security`
 
 This will most notably disable CORS in Chrome among other security features.
+
+### `--dark-mode`<AvailableFrom v="4.0.381"/>
+
+<Options id="dark-mode" />
 
 ### `--user-agent`<AvailableFrom v="3.3.83"/>
 
@@ -130,10 +135,16 @@ Lets you set a custom user agent that the headless Chrome browser assumes.
 
 Passes `forcePathStyle` to the AWS S3 client. If you don't know what this is, you probably don't need it.
 
-### `apiKey?`<AvailableFrom v="4.0.253"/>
-
-<Options id="api-key" />
-
 ### `--storage-class`<AvailableFrom v="4.0.305"/>
 
 An [identifier](https://docs.aws.amazon.com/AmazonS3/latest/userguide/storage-class-intro.html#sc-compare) for the S3 storage class of the rendered media. Default: `undefined` (which is `STANDARD`).
+
+### `--license-key`<AvailableFrom v="4.0.409"/>
+
+<Options id="license-key" />
+
+### ~~`--api-key`<AvailableFrom v="4.0.253"/>~~
+
+_deprecated in v4.0.409_
+
+<Options id="api-key" />

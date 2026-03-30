@@ -79,6 +79,12 @@ export const exampleVideos = {
 	),
 	flac: path.join(__dirname, '..', 'videos', 'sample.flac'),
 	webp: path.join(__dirname, '..', 'videos', '1.webp'),
+	noFramesInBeginning: path.join(
+		__dirname,
+		'..',
+		'videos',
+		'no-frames-in-beginning.webm',
+	),
 	pdf: path.join(
 		docsPackage,
 		'static',
@@ -139,6 +145,12 @@ export const exampleVideos = {
 		'wave-format-extensible.wav',
 	),
 	junk: path.join(__dirname, '..', 'videos', 'junk.wav'),
+	audioWith64msoffsetEditlist: path.join(
+		__dirname,
+		'..',
+		'videos',
+		'audio-with-64msoffset-editlist.mp4',
+	),
 };
 export {
 	getPrivateExampleVideo,

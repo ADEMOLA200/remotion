@@ -3,6 +3,7 @@ import {Internals} from 'remotion';
 import {NoReactInternals} from 'remotion/no-react';
 import {restartStudio} from '../api/restart-studio';
 import {askAiModalRef} from '../components/AskAiModal';
+import {Row} from '../components/layout';
 import type {Menu} from '../components/Menu/MenuItem';
 import type {
 	ComboboxValue,
@@ -12,7 +13,6 @@ import {showNotification} from '../components/Notifications/NotificationCenter';
 import type {TQuickSwitcherResult} from '../components/QuickSwitcher/QuickSwitcherResult';
 import {getPreviewSizeLabel, getUniqueSizes} from '../components/SizeSelector';
 import {inOutHandles} from '../components/TimelineInOutToggle';
-import {Row} from '../components/layout';
 import {cmdOrCtrlCharacter} from '../error-overlay/remotion-overlay/ShortcutHint';
 import {Checkmark} from '../icons/Checkmark';
 import {drawRef} from '../state/canvas-ref';
@@ -30,6 +30,7 @@ import {getGitMenuItem} from './get-git-menu-item';
 import {useMobileLayout} from './mobile-layout';
 import {openInEditor} from './open-in-editor';
 import {pickColor} from './pick-color';
+import {SHOW_BROWSER_RENDERING} from './show-browser-rendering';
 import {areKeyboardShortcutsDisabled} from './use-keybinding';
 
 type Structure = Menu[];
@@ -87,8 +88,8 @@ const getFileMenu = ({
 						}
 
 						const renderButton = document.getElementById(
-							'render-modal-button',
-						) as HTMLDivElement;
+							'render-modal-button-server',
+						) as HTMLButtonElement;
 
 						renderButton.click();
 					},
@@ -98,6 +99,27 @@ const getFileMenu = ({
 					subMenu: null,
 					quickSwitcherLabel: 'Render...',
 				},
+		SHOW_BROWSER_RENDERING && !readOnlyStudio
+			? {
+					id: 'render-on-web',
+					value: 'render-on-web',
+					label: 'Render on web...',
+					onClick: () => {
+						closeMenu();
+
+						const renderButton = document.getElementById(
+							'render-modal-button-client',
+						) as HTMLButtonElement;
+
+						renderButton.click();
+					},
+					type: 'item' as const,
+					keyHint: null,
+					leftItem: null,
+					subMenu: null,
+					quickSwitcherLabel: 'Render on web...',
+				}
+			: null,
 		window.remotion_editorName && !readOnlyStudio
 			? {
 					type: 'divider' as const,
@@ -645,20 +667,22 @@ export const useMenuStructure = (
 				label: 'Tools',
 				leaveLeftPadding: false,
 				items: [
-					{
-						id: 'ask-ai',
-						value: 'ask-ai',
-						label: 'Ask AI',
-						onClick: () => {
-							closeMenu();
-							askAiModalRef.current?.toggle();
-						},
-						leftItem: null,
-						keyHint: `${cmdOrCtrlCharacter}+I`,
-						subMenu: null,
-						type: 'item' as const,
-						quickSwitcherLabel: 'Ask AI',
-					},
+					process.env.ASK_AI_ENABLED
+						? {
+								id: 'ask-ai',
+								value: 'ask-ai',
+								label: 'Ask AI',
+								onClick: () => {
+									closeMenu();
+									askAiModalRef.current?.toggle();
+								},
+								leftItem: null,
+								keyHint: `${cmdOrCtrlCharacter}+I`,
+								subMenu: null,
+								type: 'item' as const,
+								quickSwitcherLabel: 'Ask AI',
+							}
+						: null,
 					'EyeDropper' in window
 						? {
 								id: 'color-picker',
@@ -678,10 +702,10 @@ export const useMenuStructure = (
 					{
 						id: 'spring-editor',
 						value: 'spring-editor',
-						label: 'spring() Editor',
+						label: 'Timing Editor',
 						onClick: () => {
 							closeMenu();
-							window.open('https://springs.remotion.dev', '_blank');
+							window.open('https://www.remotion.dev/timing-editor', '_blank');
 						},
 						leftItem: null,
 						keyHint: null,

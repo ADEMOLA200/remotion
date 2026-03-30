@@ -1,6 +1,9 @@
-import type {AudioBufferSink, WrappedAudioBuffer} from 'mediabunny';
+import type {WrappedAudioBuffer} from 'mediabunny';
+import {Internals} from 'remotion';
 import {roundTo4Digits} from '../helpers/round-to-4-digits';
-import {allowWaitRoutine, type AllowWait} from './allow-wait';
+import type {PrewarmedAudioIteratorCache} from '../prewarm-iterator-for-looping';
+import {ALLOWED_GLOBAL_TIME_ANCHOR_SHIFT} from '../set-global-time-anchor';
+import type {SharedAudioContextForMediaPlayer} from '../shared-audio-context-for-media-player';
 
 export const HEALTHY_BUFFER_THRESHOLD_SECONDS = 1;
 
@@ -8,73 +11,128 @@ export type QueuedNode = {
 	node: AudioBufferSourceNode;
 	timestamp: number;
 	buffer: AudioBuffer;
+	scheduledTime: number;
+	playbackRate: number;
+	scheduledAtAnchor: number;
 };
 
-export const makeAudioIterator = (
-	audioSink: AudioBufferSink,
-	startFromSecond: number,
-) => {
+export type QueuedPeriod = {
+	from: number;
+	until: number;
+};
+
+export const makeAudioIterator = ({
+	startFromSecond,
+	maximumTimestamp,
+	cache,
+	debugAudioScheduling,
+}: {
+	startFromSecond: number;
+	maximumTimestamp: number;
+	cache: PrewarmedAudioIteratorCache;
+	debugAudioScheduling: boolean;
+}) => {
 	let destroyed = false;
-	const iterator = audioSink.buffers(startFromSecond);
+	const iterator = cache.makeIteratorOrUsePrewarmed(
+		startFromSecond,
+		maximumTimestamp,
+	);
 	const queuedAudioNodes: QueuedNode[] = [];
 	const audioChunksForAfterResuming: {
 		buffer: AudioBuffer;
 		timestamp: number;
 	}[] = [];
+	let mostRecentTimestamp = -Infinity;
+	let pendingNext: Promise<IteratorResult<WrappedAudioBuffer, void>> | null =
+		null;
 
-	const cleanupAudioQueue = () => {
+	const cleanupAudioQueue = (
+		audioContext: SharedAudioContextForMediaPlayer,
+	) => {
 		for (const node of queuedAudioNodes) {
-			node.node.stop();
+			try {
+				// When we unmount at the end of playback, we might not yet be done with audio anchors
+				// we should not stop the nodes
+				const isAlreadyPlaying =
+					node.scheduledTime - ALLOWED_GLOBAL_TIME_ANCHOR_SHIFT <
+					audioContext.audioContext.currentTime;
+
+				// except for when the audio anchor changed (e.g. through a seek)
+				const wasScheduledForThisAnchor =
+					node.scheduledAtAnchor === audioContext.audioSyncAnchor.value;
+
+				if (isAlreadyPlaying && wasScheduledForThisAnchor) {
+					continue;
+				}
+
+				if (debugAudioScheduling) {
+					const currentlyHearing =
+						audioContext.audioContext.getOutputTimestamp().contextTime!;
+					const nodeEndTime =
+						node.scheduledTime + node.buffer.duration / node.playbackRate;
+
+					Internals.Log.info(
+						{logLevel: 'trace', tag: 'audio-scheduling'},
+						`Stopping node ${node.timestamp.toFixed(3)}, currently hearing = ${currentlyHearing.toFixed(3)} currentTime = ${audioContext.audioContext.currentTime.toFixed(3)} nodeEndTime = ${nodeEndTime.toFixed(3)} scheduledTime = ${node.scheduledTime.toFixed(3)}`,
+					);
+				}
+
+				node.node.stop();
+			} catch {
+				// Node may not have been started
+			}
 		}
 
 		queuedAudioNodes.length = 0;
 	};
 
-	let lastReturnedBuffer: WrappedAudioBuffer | null = null;
-	let iteratorEnded = false;
+	const getNextOrNullIfNotAvailable = async () => {
+		let next = pendingNext;
 
-	const getNextOrNullIfNotAvailable = async (allowWait: AllowWait | null) => {
-		const next = iterator.next();
-		const result = allowWait
-			? await allowWaitRoutine(next, allowWait)
-			: await Promise.race([
-					next,
-					new Promise<void>((resolve) => {
-						Promise.resolve().then(() => resolve());
-					}),
-				]);
+		if (!next) {
+			next = iterator.next();
+		}
+
+		pendingNext = null;
+		const result = await Promise.race([
+			next,
+			new Promise<void>((resolve) => {
+				Promise.resolve().then(() => resolve());
+			}),
+		]);
 
 		if (!result) {
+			pendingNext = next;
 			return {
 				type: 'need-to-wait-for-it' as const,
 				waitPromise: async () => {
 					const res = await next;
-					if (res.value) {
-						lastReturnedBuffer = res.value;
-					} else {
-						iteratorEnded = true;
-					}
-
 					return res.value;
 				},
 			};
 		}
 
 		if (result.value) {
-			lastReturnedBuffer = result.value;
-		} else {
-			iteratorEnded = true;
+			mostRecentTimestamp = Math.max(
+				mostRecentTimestamp,
+				result.value.timestamp + result.value.duration,
+			);
+			// preload next already
+			pendingNext = iterator.next();
+			return {
+				type: 'got-buffer' as const,
+				buffer: result.value,
+			};
 		}
 
 		return {
-			type: 'got-buffer-or-end' as const,
-			buffer: result.value ?? null,
+			type: 'got-end' as const,
+			mostRecentTimestamp,
 		};
 	};
 
 	const tryToSatisfySeek = async (
 		time: number,
-		allowWait: AllowWait | null,
 		onBufferScheduled: (buffer: WrappedAudioBuffer) => void,
 	): Promise<
 		| {
@@ -82,44 +140,21 @@ export const makeAudioIterator = (
 				reason: string;
 		  }
 		| {
+				type: 'ended';
+		  }
+		| {
 				type: 'satisfied';
 		  }
 	> => {
-		if (lastReturnedBuffer) {
-			const bufferTimestamp = roundTo4Digits(lastReturnedBuffer.timestamp);
-			const bufferEndTimestamp = roundTo4Digits(
-				lastReturnedBuffer.timestamp + lastReturnedBuffer.duration,
-			);
-
-			if (roundTo4Digits(time) < bufferTimestamp) {
-				return {
-					type: 'not-satisfied' as const,
-					reason: `iterator is too far, most recently returned ${bufferTimestamp}-${bufferEndTimestamp}, requested ${time}`,
-				};
-			}
-
-			if (roundTo4Digits(time) <= bufferEndTimestamp) {
-				onBufferScheduled(lastReturnedBuffer);
-				return {
-					type: 'satisfied' as const,
-				};
-			}
-
-			// fall through
-		}
-
-		if (iteratorEnded) {
-			if (lastReturnedBuffer) {
-				onBufferScheduled(lastReturnedBuffer);
-			}
-
+		if (time < startFromSecond) {
 			return {
-				type: 'satisfied' as const,
+				type: 'not-satisfied' as const,
+				reason: `time requested is before the start of the iterator`,
 			};
 		}
 
 		while (true) {
-			const buffer = await getNextOrNullIfNotAvailable(allowWait);
+			const buffer = await getNextOrNullIfNotAvailable();
 			if (buffer.type === 'need-to-wait-for-it') {
 				return {
 					type: 'not-satisfied' as const,
@@ -127,25 +162,35 @@ export const makeAudioIterator = (
 				};
 			}
 
-			if (buffer.type === 'got-buffer-or-end') {
-				if (buffer.buffer === null) {
-					iteratorEnded = true;
-					if (lastReturnedBuffer) {
-						onBufferScheduled(lastReturnedBuffer);
-					}
-
+			if (buffer.type === 'got-end') {
+				if (time >= mostRecentTimestamp) {
 					return {
-						type: 'satisfied' as const,
+						type: 'ended' as const,
 					};
 				}
 
+				return {
+					type: 'not-satisfied' as const,
+					reason: `iterator ended before the requested time`,
+				};
+			}
+
+			if (buffer.type === 'got-buffer') {
 				const bufferTimestamp = roundTo4Digits(buffer.buffer.timestamp);
 				const bufferEndTimestamp = roundTo4Digits(
 					buffer.buffer.timestamp + buffer.buffer.duration,
 				);
+
 				const timestamp = roundTo4Digits(time);
 
-				if (bufferTimestamp <= timestamp && bufferEndTimestamp > timestamp) {
+				if (timestamp < bufferTimestamp) {
+					return {
+						type: 'not-satisfied' as const,
+						reason: `iterator is too far, most recently returned ${bufferTimestamp}-${bufferEndTimestamp}, requested ${timestamp}`,
+					};
+				}
+
+				if (bufferTimestamp <= timestamp && bufferEndTimestamp >= timestamp) {
 					onBufferScheduled(buffer.buffer);
 					return {
 						type: 'satisfied' as const,
@@ -161,10 +206,41 @@ export const makeAudioIterator = (
 		}
 	};
 
+	const bufferAsFarAsPossible = async (
+		onBufferScheduled: (buffer: WrappedAudioBuffer) => void,
+		maxTimestamp: number,
+	): Promise<{type: 'ended'} | {type: 'waiting'} | {type: 'max-reached'}> => {
+		while (true) {
+			if (mostRecentTimestamp >= maxTimestamp) {
+				return {type: 'max-reached'};
+			}
+
+			const buffer = await getNextOrNullIfNotAvailable();
+			if (buffer.type === 'need-to-wait-for-it') {
+				return {type: 'waiting'};
+			}
+
+			if (buffer.type === 'got-end') {
+				return {type: 'ended'};
+			}
+
+			if (buffer.type === 'got-buffer') {
+				onBufferScheduled(buffer.buffer);
+				continue;
+			}
+
+			throw new Error('Unreachable');
+		}
+	};
+
 	const removeAndReturnAllQueuedAudioNodes = () => {
 		const nodes = queuedAudioNodes.slice();
 		for (const node of nodes) {
-			node.node.stop();
+			try {
+				node.node.stop();
+			} catch {
+				// Node may not have been started
+			}
 		}
 
 		queuedAudioNodes.length = 0;
@@ -172,13 +248,23 @@ export const makeAudioIterator = (
 	};
 
 	const addChunkForAfterResuming = (buffer: AudioBuffer, timestamp: number) => {
-		audioChunksForAfterResuming.push({buffer, timestamp});
+		audioChunksForAfterResuming.push({
+			buffer,
+			timestamp,
+		});
 	};
 
 	const moveQueuedChunksToPauseQueue = () => {
 		const toQueue = removeAndReturnAllQueuedAudioNodes();
 		for (const chunk of toQueue) {
 			addChunkForAfterResuming(chunk.buffer, chunk.timestamp);
+		}
+
+		if (debugAudioScheduling && toQueue.length > 0) {
+			Internals.Log.trace(
+				{logLevel: 'trace', tag: 'audio-scheduling'},
+				`Moved ${toQueue.length} ${toQueue.length === 1 ? 'chunk' : 'chunks'} to pause queue (${toQueue[0].timestamp.toFixed(3)}-${toQueue[toQueue.length - 1].timestamp + toQueue[toQueue.length - 1].buffer.duration.toFixed(3)})`,
+			);
 		}
 	};
 
@@ -187,8 +273,8 @@ export const makeAudioIterator = (
 	};
 
 	return {
-		destroy: () => {
-			cleanupAudioQueue();
+		destroy: (audioContext: SharedAudioContextForMediaPlayer) => {
+			cleanupAudioQueue(audioContext);
 			destroyed = true;
 			iterator.return().catch(() => undefined);
 			audioChunksForAfterResuming.length = 0;
@@ -196,9 +282,10 @@ export const makeAudioIterator = (
 		getNext: async () => {
 			const next = await iterator.next();
 			if (next.value) {
-				lastReturnedBuffer = next.value;
-			} else {
-				iteratorEnded = true;
+				mostRecentTimestamp = Math.max(
+					mostRecentTimestamp,
+					next.value.timestamp + next.value.duration,
+				);
 			}
 
 			return next;
@@ -206,12 +293,30 @@ export const makeAudioIterator = (
 		isDestroyed: () => {
 			return destroyed;
 		},
-		addQueuedAudioNode: (
-			node: AudioBufferSourceNode,
-			timestamp: number,
-			buffer: AudioBuffer,
-		) => {
-			queuedAudioNodes.push({node, timestamp, buffer});
+
+		addQueuedAudioNode: ({
+			node,
+			timestamp,
+			buffer,
+			scheduledTime,
+			playbackRate,
+			scheduledAtAnchor,
+		}: {
+			node: AudioBufferSourceNode;
+			timestamp: number;
+			buffer: AudioBuffer;
+			scheduledTime: number;
+			playbackRate: number;
+			scheduledAtAnchor: number;
+		}) => {
+			queuedAudioNodes.push({
+				node,
+				timestamp,
+				buffer,
+				scheduledTime,
+				playbackRate,
+				scheduledAtAnchor,
+			});
 		},
 		removeQueuedAudioNode: (node: AudioBufferSourceNode) => {
 			const index = queuedAudioNodes.findIndex((n) => n.node === node);
@@ -248,6 +353,7 @@ export const makeAudioIterator = (
 			};
 		},
 		tryToSatisfySeek,
+		bufferAsFarAsPossible,
 		addChunkForAfterResuming,
 		moveQueuedChunksToPauseQueue,
 		getNumberOfChunksAfterResuming,

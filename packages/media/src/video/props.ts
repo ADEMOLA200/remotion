@@ -4,12 +4,21 @@ import type {
 	OnVideoFrame,
 	VolumeProp,
 } from 'remotion';
+import type {MediaOnError} from '../on-error';
+
+export type MediaErrorEvent = {
+	error: Error;
+};
 
 export type FallbackOffthreadVideoProps = {
 	acceptableTimeShiftInSeconds?: number;
 	transparent?: boolean;
 	toneMapped?: boolean;
 	onError?: (err: Error) => void;
+	crossOrigin?: '' | 'anonymous' | 'use-credentials' | undefined;
+	useWebAudioApi?: boolean;
+	pauseWhenBuffering?: boolean;
+	onAutoPlayError?: null | (() => void);
 };
 
 type MandatoryVideoProps = {
@@ -46,6 +55,10 @@ type OptionalVideoProps = {
 	toneFrequency: number;
 	showInTimeline: boolean;
 	debugOverlay: boolean;
+	debugAudioScheduling: boolean;
+	headless: boolean;
+	onError: MediaOnError | undefined;
+	credentials: RequestCredentials | undefined;
 };
 
 export type InnerVideoProps = MandatoryVideoProps &

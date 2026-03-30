@@ -1,8 +1,10 @@
-import type {MediaParserInternalTypes} from '@remotion/media-parser';
+import type {
+	CreateContent,
+	Writer,
+	WriterInterface,
+} from '@remotion/media-parser';
 
-const createContent: MediaParserInternalTypes['CreateContent'] = async ({
-	filename,
-}) => {
+const createContent: CreateContent = async ({filename}) => {
 	const directoryHandle = await navigator.storage.getDirectory();
 	const actualFilename = `__remotion_mediaparser:${filename}`;
 
@@ -26,17 +28,19 @@ const createContent: MediaParserInternalTypes['CreateContent'] = async ({
 	let writPromise = Promise.resolve();
 
 	const write = async (arr: Uint8Array) => {
+		// @ts-expect-error
 		await writable.write(arr);
 		written += arr.byteLength;
 	};
 
 	const updateDataAt = async (position: number, data: Uint8Array) => {
 		await writable.seek(position);
+		// @ts-expect-error
 		await writable.write(data);
 		await writable.seek(written);
 	};
 
-	const writer: MediaParserInternalTypes['Writer'] = {
+	const writer: Writer = {
 		write: (arr: Uint8Array) => {
 			writPromise = writPromise.then(() => write(arr));
 			return writPromise;
@@ -68,7 +72,7 @@ const createContent: MediaParserInternalTypes['CreateContent'] = async ({
 	return writer;
 };
 
-export const webFsWriter: MediaParserInternalTypes['WriterInterface'] = {
+export const webFsWriter: WriterInterface = {
 	createContent,
 };
 

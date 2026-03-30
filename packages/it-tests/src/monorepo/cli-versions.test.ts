@@ -1,6 +1,6 @@
-import {$} from 'bun';
 import {expect, test} from 'bun:test';
 import path from 'node:path';
+import {$} from 'bun';
 import {VERSION} from 'remotion';
 
 test('should return list of versions', async () => {
@@ -12,5 +12,5 @@ test('should return list of versions', async () => {
 
 	expect(text).toInclude(`On version: ${VERSION}`);
 	expect(text).toInclude(`- @remotion/three`);
-	expect(text).toInclude(`Great! All packages have the same version`);
+	expect(text).toInclude(`All packages have the correct version`);
 });

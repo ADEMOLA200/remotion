@@ -2,6 +2,7 @@ import type {ChromeMode} from './chrome-mode';
 import type {AnyRemotionOption} from './option';
 
 export type DownloadBrowserProgressFn = (progress: {
+	alreadyAvailable: boolean;
 	percent: number;
 	downloadedBytes: number;
 	totalSizeInBytes: number;
@@ -36,4 +37,5 @@ export const onBrowserDownloadOption = {
 	setConfig: () => {
 		throw new Error('does not support config file');
 	},
+	id: cliFlag,
 } satisfies AnyRemotionOption<OnBrowserDownload>;

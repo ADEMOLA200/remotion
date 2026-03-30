@@ -149,6 +149,8 @@ export type ServerlessStartPayload<Provider extends CloudProvider> = {
 	webhook: WebhookOption;
 	forceHeight: number | null;
 	forceWidth: number | null;
+	forceFps: number | null;
+	forceDurationInFrames: number | null;
 	bucketName: string | null;
 	offthreadVideoCacheSizeInBytes: number | null;
 	offthreadVideoThreads: number | null;
@@ -158,8 +160,9 @@ export type ServerlessStartPayload<Provider extends CloudProvider> = {
 	preferLossless: boolean;
 	forcePathStyle: boolean;
 	metadata: Record<string, string> | null;
-	apiKey: string | null;
+	licenseKey: string | null;
 	storageClass: Provider['storageClass'] | null;
+	isProduction: boolean | null;
 };
 
 export type ServerlessPayloads<Provider extends CloudProvider> = {
@@ -193,7 +196,8 @@ export type ServerlessPayloads<Provider extends CloudProvider> = {
 		frameRange: FrameRange | null;
 		outName: OutNameInput<Provider> | null;
 		timeoutInMilliseconds: number;
-		chromiumOptions: ChromiumOptions;
+		// Non-JS SDKs may not set chromiumOptions, may be undefined
+		chromiumOptions: ChromiumOptions | undefined;
 		scale: number;
 		everyNthFrame: number;
 		numberOfGifLoops: number | null;
@@ -208,6 +212,8 @@ export type ServerlessPayloads<Provider extends CloudProvider> = {
 		webhook: WebhookOption;
 		forceHeight: number | null;
 		forceWidth: number | null;
+		forceFps: number | null;
+		forceDurationInFrames: number | null;
 		offthreadVideoCacheSizeInBytes: number | null;
 		offthreadVideoThreads: number | null;
 		mediaCacheSizeInBytes: number | null;
@@ -216,8 +222,9 @@ export type ServerlessPayloads<Provider extends CloudProvider> = {
 		preferLossless: boolean;
 		forcePathStyle: boolean;
 		metadata: Record<string, string> | null;
-		apiKey: string | null;
+		licenseKey: string | null;
 		storageClass: Provider['storageClass'] | null;
+		isProduction: boolean;
 	};
 	status: ServerlessStatusPayload<Provider>;
 	renderer: {
@@ -292,6 +299,8 @@ export type ServerlessPayloads<Provider extends CloudProvider> = {
 		version: string;
 		forceHeight: number | null;
 		forceWidth: number | null;
+		forceFps: number | null;
+		forceDurationInFrames: number | null;
 		bucketName: string | null;
 		offthreadVideoCacheSizeInBytes: number | null;
 		offthreadVideoThreads: number | null;
@@ -299,8 +308,9 @@ export type ServerlessPayloads<Provider extends CloudProvider> = {
 		deleteAfter: DeleteAfter | null;
 		streamed: boolean;
 		forcePathStyle: boolean;
-		apiKey: string | null;
+		licenseKey: string | null;
 		storageClass: Provider['storageClass'] | null;
+		isProduction: boolean | null;
 	};
 	compositions: {
 		type: ServerlessRoutines.compositions;

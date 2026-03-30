@@ -1,8 +1,8 @@
+import {existsSync, lstatSync} from 'fs';
 import {CliInternals} from '@remotion/cli';
 import {ConfigInternals} from '@remotion/cli/config';
 import type {LogLevel} from '@remotion/renderer';
 import {BrowserSafeApis} from '@remotion/renderer/client';
-import {existsSync, lstatSync} from 'fs';
 import {Internals} from 'remotion';
 import {displaySiteInfo} from '.';
 import {internalDeploySiteRaw} from '../../../api/deploy-site';
@@ -23,6 +23,14 @@ import {
 } from '../../helpers/progress-bar';
 import {quit} from '../../helpers/quit';
 import {Log} from '../../log';
+
+const {
+	disableGitSourceOption,
+	askAIOption,
+	experimentalClientSideRenderingOption,
+	experimentalVisualModeOption,
+	keyboardShortcutsOption,
+} = BrowserSafeApis.options;
 
 export const SITES_CREATE_SUBCOMMAND = 'create';
 
@@ -138,16 +146,29 @@ export const sitesCreateSubcommand = async (
 	const bundleStart = Date.now();
 	let uploadStart = Date.now();
 
-	const disableGitSource =
-		BrowserSafeApis.options.disableGitSourceOption.getValue({
-			commandLine: CliInternals.parsedCli,
-		}).value;
+	const disableGitSource = disableGitSourceOption.getValue({
+		commandLine: CliInternals.parsedCli,
+	}).value;
 
 	const gitSource = CliInternals.getGitSource({
 		remotionRoot,
 		disableGitSource,
 		logLevel,
 	});
+
+	const askAIEnabled = askAIOption.getValue({
+		commandLine: CliInternals.parsedCli,
+	}).value;
+	const experimentalClientSideRenderingEnabled =
+		experimentalClientSideRenderingOption.getValue({
+			commandLine: CliInternals.parsedCli,
+		}).value;
+	const experimentalVisualModeEnabled = experimentalVisualModeOption.getValue({
+		commandLine: CliInternals.parsedCli,
+	}).value;
+	const keyboardShortcutsEnabled = keyboardShortcutsOption.getValue({
+		commandLine: CliInternals.parsedCli,
+	}).value;
 
 	const {serveUrl, siteName, stats} = await internalDeploySiteRaw({
 		entryPoint: file,
@@ -172,13 +193,19 @@ export const sitesCreateSubcommand = async (
 				};
 				updateProgress(false);
 			},
-			enableCaching: ConfigInternals.getWebpackCaching(),
+			enableCaching: BrowserSafeApis.options.bundleCacheOption.getValue({
+				commandLine: CliInternals.parsedCli,
+			}).value,
 			webpackOverride: ConfigInternals.getWebpackOverrideFn() ?? ((f) => f),
 			gitSource,
 			bypassBucketNameValidation: true,
 			ignoreRegisterRootWarning: true,
 			publicDir: null,
 			rootDir: remotionRoot,
+			askAIEnabled,
+			experimentalClientSideRenderingEnabled,
+			experimentalVisualModeEnabled,
+			keyboardShortcutsEnabled,
 		},
 		indent: false,
 		privacy: parsedCloudrunCli.privacy ?? 'public',

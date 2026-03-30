@@ -2,12 +2,34 @@ import React, {useCallback, useRef, useState} from 'react';
 import {cn} from './helpers/cn';
 import {useHoverTransforms} from './helpers/hover-transforms';
 import {Outer} from './helpers/Outer';
+import {Spinner} from './Spinner';
 
-export const Button: React.FC<
-	React.ButtonHTMLAttributes<HTMLButtonElement> & {
-		readonly depth?: number;
-	}
-> = ({children, className, disabled, depth, ...buttonProps}) => {
+type CommonProps = {
+	readonly depth?: number;
+	readonly loading?: boolean;
+	readonly disabled?: boolean;
+};
+
+type ButtonAsButton = CommonProps &
+	Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'href' | 'disabled'> & {
+		readonly href?: undefined;
+	};
+
+type ButtonAsAnchor = CommonProps &
+	Omit<React.AnchorHTMLAttributes<HTMLAnchorElement>, 'type'> & {
+		readonly href: string;
+	};
+
+export type ButtonProps = ButtonAsButton | ButtonAsAnchor;
+
+export const Button: React.FC<ButtonProps> = ({
+	children,
+	className,
+	disabled,
+	depth,
+	loading,
+	...rest
+}) => {
 	const [dimensions, setDimensions] = useState<{
 		width: number;
 		height: number;
@@ -15,7 +37,10 @@ export const Button: React.FC<
 	} | null>(null);
 
 	const ref = useRef<HTMLDivElement>(null);
-	const {isActive, progress} = useHoverTransforms(ref, Boolean(disabled));
+	const {isActive, progress} = useHoverTransforms(
+		ref,
+		Boolean(disabled || loading),
+	);
 
 	const onPointerEnter = useCallback(
 		(e: React.PointerEvent<HTMLDivElement>) => {
@@ -41,7 +66,7 @@ export const Button: React.FC<
 				const rect = childNode.getBoundingClientRect();
 				const {borderRadius} = getComputedStyle(childNode);
 
-				const cornerRadius = borderRadius.includes('e+0')
+				const cornerRadius = borderRadius.includes('e')
 					? Infinity
 					: parseInt(borderRadius ?? '0', 10);
 
@@ -69,37 +94,75 @@ export const Button: React.FC<
 		[],
 	);
 
-	const content = (
+	const isDisabled = disabled || loading;
+
+	const sharedClasses = cn(
+		'text-text',
+		'inline-flex',
+		'justify-center',
+		'bg-button-bg',
+		'items-center',
+		'font-brand',
+		'border-solid',
+		'text-[1em]',
+		'rounded-lg',
+		'border-black',
+		'border-2',
+		'border-b-4',
+		'cursor-pointer',
+		'px-4',
+		'h-12',
+		'flex-row',
+		'items-center',
+		'relative',
+		'overflow-hidden',
+		isDisabled && 'cursor-default opacity-50',
+		className,
+	);
+
+	const innerContent = (
+		<>
+			<div className={cn(loading && 'invisible', 'inline-flex items-center')}>
+				{children}
+			</div>
+			{loading ? (
+				<div
+					className={cn(
+						'absolute w-full h-full flex inset-0 items-center justify-center text-inherit bg-inherit',
+					)}
+				>
+					<Spinner size={20} duration={1} />
+				</div>
+			) : null}
+		</>
+	);
+
+	const isAnchor = 'href' in rest && rest.href !== undefined;
+
+	const content = isAnchor ? (
+		<a
+			{...(rest as React.AnchorHTMLAttributes<HTMLAnchorElement>)}
+			className={cn('no-underline text-inherit', sharedClasses)}
+			aria-disabled={isDisabled || undefined}
+			tabIndex={isDisabled ? -1 : undefined}
+			onClick={
+				isDisabled
+					? (e: React.MouseEvent<HTMLAnchorElement>) => {
+							e.preventDefault();
+						}
+					: (rest as React.AnchorHTMLAttributes<HTMLAnchorElement>).onClick
+			}
+		>
+			{innerContent}
+		</a>
+	) : (
 		<button
 			type="button"
-			disabled={disabled}
-			className={cn(
-				'text-text',
-				'flex',
-				'justify-center',
-				'bg-button-bg',
-				'items-center',
-				'font-brand',
-				'border-solid',
-				'text-[1em]',
-				'rounded-lg',
-				'border-black',
-				'border-2',
-				'border-b-4',
-				'cursor-pointer',
-				'px-4',
-				'h-12',
-				'flex',
-				'flex-row',
-				'items-center',
-				'disabled:cursor-default',
-				'disabled:border-gray-500',
-				'disabled:text-gray-500',
-				className,
-			)}
-			{...buttonProps}
+			disabled={isDisabled}
+			className={sharedClasses}
+			{...(rest as React.ButtonHTMLAttributes<HTMLButtonElement>)}
 		>
-			{children}
+			{innerContent}
 		</button>
 	);
 

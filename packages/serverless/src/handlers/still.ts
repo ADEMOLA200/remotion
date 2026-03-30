@@ -1,6 +1,7 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import type {EmittedArtifact, StillImageFormat} from '@remotion/renderer';
 import {RenderInternals} from '@remotion/renderer';
-
 import type {
 	CloudProvider,
 	OnStream,
@@ -25,8 +26,6 @@ import {
 	validatePrivacy,
 	VERSION,
 } from '@remotion/serverless-client';
-import fs from 'node:fs';
-import path from 'node:path';
 import {cleanupSerializedInputProps} from '../cleanup-serialized-input-props';
 import {getTmpDirStateIfENoSp} from '../get-tmp-dir';
 import {onDownloadsHelper} from '../on-downloads-helpers';
@@ -111,6 +110,7 @@ const innerStillHandler = async <Provider extends CloudProvider>(
 			forcePathStyle: params.forcePathStyle,
 			skipPutAcl: false,
 			requestHandler: null,
+			logLevel: params.logLevel,
 		}).then((b) => b.bucketName);
 
 	const outputDir = RenderInternals.tmpDir('remotion-render-');
@@ -170,6 +170,8 @@ const innerStillHandler = async <Provider extends CloudProvider>(
 		port: null,
 		forceHeight: params.forceHeight,
 		forceWidth: params.forceWidth,
+		forceFps: params.forceFps ?? null,
+		forceDurationInFrames: params.forceDurationInFrames ?? null,
 		logLevel: params.logLevel,
 		server,
 		offthreadVideoCacheSizeInBytes: params.offthreadVideoCacheSizeInBytes,
@@ -334,6 +336,8 @@ const innerStillHandler = async <Provider extends CloudProvider>(
 		chromeMode: 'headless-shell',
 		offthreadVideoThreads: params.offthreadVideoThreads,
 		onLog: RenderInternals.defaultOnLog,
+		licenseKey: null,
+		isProduction: null,
 	});
 
 	const {size} = await fs.promises.stat(outputPath);
@@ -361,7 +365,12 @@ const innerStillHandler = async <Provider extends CloudProvider>(
 			forcePathStyle: params.forcePathStyle,
 		}),
 		server.closeServer(true),
-		sendTelemetryEvent(params.apiKey, params.logLevel),
+		sendTelemetryEvent({
+			licenseKey: params.licenseKey,
+			logLevel: params.logLevel,
+			isStill: true,
+			isProduction: params.isProduction ?? true,
+		}),
 	]);
 
 	const estimatedPrice = providerSpecifics.estimatePrice({

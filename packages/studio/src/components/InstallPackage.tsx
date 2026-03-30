@@ -1,5 +1,10 @@
-import type {PackageManager, Pkgs} from '@remotion/studio-shared';
-import {apiDocs, descriptions, installableMap} from '@remotion/studio-shared';
+import type {ExtraPackage, PackageManager, Pkgs} from '@remotion/studio-shared';
+import {
+	apiDocs,
+	descriptions,
+	extraPackages,
+	installableMap,
+} from '@remotion/studio-shared';
 import React, {useCallback, useContext, useEffect} from 'react';
 import {VERSION} from 'remotion';
 import {installPackages} from '../api/install-package';
@@ -10,12 +15,12 @@ import {LIGHT_TEXT} from '../helpers/colors';
 import {useKeybinding} from '../helpers/use-keybinding';
 import {Checkbox} from './Checkbox';
 import {InstallablePackageComp} from './InstallablePackage';
+import {Flex, Row, Spacing} from './layout';
 import {VERTICAL_SCROLLBAR_CLASSNAME} from './Menu/is-menu-item';
 import {ModalButton} from './ModalButton';
 import {ModalFooterContainer} from './ModalFooter';
 import {ModalHeader} from './ModalHeader';
 import {DismissableModal} from './NewComposition/DismissableModal';
-import {Flex, Row, Spacing} from './layout';
 
 const container: React.CSSProperties = {
 	padding: 20,
@@ -155,6 +160,34 @@ export const InstallPackageModal: React.FC<{
 									</Row>
 								);
 							})}
+						{extraPackages.map((extraPkg: ExtraPackage) => {
+							const isInstalled =
+								window.remotion_installedPackages?.includes(extraPkg.name) ??
+								false;
+
+							return (
+								<Row key={extraPkg.name} align="center">
+									<Checkbox
+										checked={map[extraPkg.name]}
+										name={extraPkg.name}
+										onChange={() => {
+											setMap((prev) => ({
+												...prev,
+												[extraPkg.name]: !prev[extraPkg.name],
+											}));
+										}}
+										disabled={!canSelectPackages || isInstalled}
+									/>
+									<Spacing x={1.5} />
+									<InstallablePackageComp
+										description={extraPkg.description}
+										isInstalled={isInstalled}
+										link={extraPkg.docsUrl}
+										pkg={`${extraPkg.name}@${extraPkg.version}`}
+									/>
+								</Row>
+							);
+						})}
 					</div>
 				)}
 			</div>

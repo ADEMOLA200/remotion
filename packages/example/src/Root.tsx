@@ -1,6 +1,3 @@
-// @ts-expect-error no types
-import styles from './styles.module.scss';
-
 import {alias} from 'lib/alias';
 import React, {useCallback, useMemo} from 'react';
 import {
@@ -24,6 +21,8 @@ import {ColorInterpolation} from './ColorInterpolation';
 import {ComplexSounds} from './ComplexSounds';
 import {MyCtx, WrappedInContext} from './Context';
 import CorruptVideo from './CorruptVideo';
+import {CssLoaderTest} from './CssLoaderTest';
+import {DarkModeTest} from './DarkModeTest';
 import {DecoderDemo} from './DecoderDemo';
 import {DynamicDuration, dynamicDurationSchema} from './DynamicDuration';
 import {EmojiTestbed} from './Emoji';
@@ -59,12 +58,7 @@ import RemoteVideo from './RemoteVideo';
 import {RetryDelayRender} from './RetryDelayRender';
 import RiveVehicle from './Rive/RiveExample';
 import {ScalePath} from './ScalePath';
-import {
-	ArrayTest,
-	SchemaTest,
-	schemaArrayTestSchema,
-	schemaTestSchema,
-} from './SchemaTest';
+import {SchemaTest, schemaTestSchema} from './SchemaTest';
 import {Scripts} from './Scripts';
 import {WidthHeightSequences} from './Sequence/WidthHeightSequences';
 import CircleTest from './Shapes/CircleTest';
@@ -72,7 +66,9 @@ import EllipseTest from './Shapes/EllipseTest';
 import RectTest from './Shapes/RectTest';
 import StarTest from './Shapes/StarTest';
 import TriangleTest from './Shapes/TriangleTest';
+import {SimpleImg} from './SimpleImg';
 import {SkipZeroFrame} from './SkipZeroFrame';
+import {SlicedVideo} from './SlicedVideo';
 import {BaseSpring, SpringWithDuration} from './Spring/base-spring';
 import {SeriesTesting} from './StaggerTesting';
 import {StaticDemo} from './StaticServer';
@@ -86,8 +82,8 @@ import {
 } from './StudioApis/SaveDefaultProps';
 import {TriggerCalculateMetadata} from './StudioApis/TriggerCalculateMetadata';
 import {WriteStaticFile} from './StudioApis/WriteStaticFile';
-import './style.css';
 import {SubtitleArtifact} from './SubtitleArtifact/SubtitleArtifact';
+import './style.css';
 import {SvgFilter} from './SvgFilter';
 import {Tailwind} from './Tailwind';
 import {TenFrameTester} from './TenFrameTester';
@@ -108,6 +104,9 @@ import {VideoTesting} from './VideoTesting';
 import {WarpDemoOuter} from './WarpText';
 import {WarpDemo2} from './WarpText/demo2';
 import {WatchStaticDemo} from './watch-static';
+import {ZodV4SchemaTest, zodV4Schema} from './ZodV4SchemaTest';
+// @ts-expect-error no types
+import styles from './styles.module.scss';
 
 if (alias !== 'alias') {
 	throw new Error('should support TS aliases');
@@ -122,31 +121,45 @@ import {ThreeDContext} from './3DContext';
 import {ThreeDSvgContent} from './3DSvgContent';
 import {AnimatedImages} from './AnimatedImage/Avif';
 import Amplify from './AudioTesting/Amplify';
-import {CTAEndCard} from './CallToAction';
-import {
-	WhatIsRemotion,
-	whatIsRemotionCalculateMetadata,
-	whatIsRemotionSchema,
-} from './Compose/WhatIsRemotion';
+import {BrowserTest} from './BrowserTest';
 import {EdgeBlur} from './EdgeBlur/EdgeBlur';
 import {Empty} from './Empty';
 import {JumpCuts, SAMPLE_SECTIONS, calculateMetadataJumpCuts} from './JumpCuts';
+import {LightLeakExample} from './LightLeak';
+import {LightLeakAnimatedSize} from './LightLeak/AnimatedSize';
+import {LoopDisplayTestComp} from './LoopDisplayTest';
 import {NewAudioExample} from './NewAudio/NewAudio';
+import {NewVideoComp} from './NewVideo';
+import {ChangingTrimBeforeValue} from './OffthreadRemoteVideo/ChangingTrimBefore';
+import {LoopedNewVideo} from './OffthreadRemoteVideo/LoopedNewVideo';
 import {LoopedOffthreadRemoteVideo} from './OffthreadRemoteVideo/LoopedOffthreadRemoteVideo';
 import {MultiChannelAudio} from './OffthreadRemoteVideo/MultiChannelAudio';
-import {NewVideoComp} from './OffthreadRemoteVideo/NewRemoteVideo';
 import {OffthreadRemoteSeries} from './OffthreadRemoteVideo/OffthreadRemoteSeries';
 import {ParseAndDownloadMedia} from './ParseAndDownloadMedia';
 import {PremountOnTransitionSeries} from './PremountOnTransitionSeries';
 import {PrintProps} from './PrintProps';
+import {SfxExample} from './Sfx';
 import {SmoothTextTransition} from './SmoothTextTransition';
+import {SpringSeason} from './SpringSeason';
+import {StarburstExample} from './Starburst';
 import {Seek} from './StudioApis/Seek';
 import {TikTokTextBoxPlayground} from './TikTokTextbox/TikTokTextBox';
 import {FitTextOnNLines, fitTextOnNLinesSchema} from './Title/FitTextOnNLines';
 import {TransitionRounding} from './TransitionRounding';
+import {
+	OverlayAndTransitionMixed,
+	OverlayBasic,
+	OverlayMultipleScenes,
+	OverlayWithOffset,
+} from './TransitionSeriesOverlay';
+import {TriangleComp} from './Triangle';
+import {NewVideoBufferStateComp} from './VideoInterruptedByForeignBuffer';
 import {VideoTestingPlayback} from './VideoTesting/playback';
 import {VideoTestingTrim} from './VideoTesting/trim';
+import {RemotionMediaVideoTexture} from './VideoTexture';
 import {VisualControls} from './VisualControls';
+import {FastUpdates} from './VisualModeTests/FastUpdates';
+import {FastUpdatesNested} from './VisualModeTests/FastUpdatesNested';
 import {VoiceVisualization} from './voice-visualization';
 import {WhisperWeb} from './WhisperWeb';
 
@@ -429,6 +442,14 @@ export const Index: React.FC = () => {
 			</Folder>
 			<Folder name="regression-testing">
 				<Composition
+					id="simple-img"
+					component={SimpleImg}
+					width={1080}
+					height={1080}
+					fps={30}
+					durationInFrames={10}
+				/>
+				<Composition
 					id="missing-img"
 					component={MissingImg}
 					width={1080}
@@ -659,6 +680,14 @@ export const Index: React.FC = () => {
 					durationInFrames={2}
 				/>
 				<Composition
+					id="css-loader-test"
+					component={CssLoaderTest}
+					width={1080}
+					height={1080}
+					fps={30}
+					durationInFrames={90}
+				/>
+				<Composition
 					id="react-svg"
 					component={ReactSvg}
 					width={1920}
@@ -778,7 +807,10 @@ export const Index: React.FC = () => {
 				/>
 				<OffthreadRemoteVideo />
 				<NewVideoComp />
+				<NewVideoBufferStateComp />
+				<LoopDisplayTestComp />
 				<OffthreadRemoteSeries />
+				<LoopedNewVideo />
 				<LoopedOffthreadRemoteVideo />
 				<MultiChannelAudio />
 				<Composition
@@ -902,6 +934,12 @@ export const Index: React.FC = () => {
 				<Still
 					id="watch-static"
 					component={WatchStaticDemo}
+					width={1080}
+					height={1080}
+				/>
+				<Still
+					id="dark-mode-test"
+					component={DarkModeTest}
 					width={1080}
 					height={1080}
 				/>
@@ -1392,6 +1430,14 @@ export const Index: React.FC = () => {
 					durationInFrames={300}
 					width={1080}
 				/>
+				<Composition
+					id="sliced-video"
+					component={SlicedVideo}
+					fps={30}
+					height={1080}
+					durationInFrames={300}
+					width={1920}
+				/>
 			</Folder>
 			<Folder name="Postmount">
 				<Composition
@@ -1449,16 +1495,16 @@ export const Index: React.FC = () => {
 					defaultProps={{
 						title: 'sdasds',
 						delay: 5.2,
-						color: '#df822a',
+						color: 'rgba(223, 42, 42, 0.46)',
 						list: [{name: 'first', age: 12}],
-						matrix: [0, 1, 1, 0],
+						matrix: [0, 1, 1, 0] as const,
 						description: 'Sample description \nOn multiple lines',
 						dropdown: 'a' as const,
 						superSchema: [
 							{type: 'a' as const, a: {a: 'hi'}},
 							{type: 'b' as const, b: {b: 'hi'}},
 						],
-						discriminatedUnion: {type: 'auto'},
+						discriminatedUnion: {type: 'auto' as const},
 						tuple: ['foo', 42, {a: 'hi'}],
 					}}
 				/>
@@ -1473,16 +1519,23 @@ export const Index: React.FC = () => {
 					durationInFrames={150}
 					schema={schemaTestSchema}
 				/>
+
 				<Composition
-					id="array-schema"
-					component={ArrayTest}
-					width={1200}
-					height={630}
+					id="zod-v4-schema-test"
+					component={ZodV4SchemaTest}
+					width={1920}
+					height={1080}
 					fps={30}
 					durationInFrames={150}
-					// @ts-expect-error Needs an object
-					schema={schemaArrayTestSchema}
-					defaultProps={{}}
+					schema={zodV4Schema}
+					defaultProps={{
+						greeting: 'Hello from Zod v4!',
+						count: 42,
+						enabled: false,
+						items: [{label: 'alpha!', value: 1}],
+						mode: 'light' as const,
+						nested: {a: 'asdfadsf', b: 99},
+					}}
 				/>
 			</Folder>
 			<Folder name="TailwindCSS">
@@ -1675,16 +1728,6 @@ export const Index: React.FC = () => {
 					durationInFrames={1000}
 				/>
 				<Composition
-					id="WhatIsRemotion"
-					component={WhatIsRemotion}
-					width={1080}
-					fps={30}
-					durationInFrames={273}
-					schema={whatIsRemotionSchema}
-					defaultProps={{fade: false, whiteBackground: false, reel: false}}
-					calculateMetadata={whatIsRemotionCalculateMetadata}
-				/>
-				<Composition
 					id="3DContext"
 					component={ThreeDContext}
 					width={1080}
@@ -1724,8 +1767,8 @@ export const Index: React.FC = () => {
 				<Composition
 					id="visual-controls"
 					component={VisualControls}
-					width={1080}
-					height={1080}
+					width={1920}
+					height={2400}
 					fps={30}
 					durationInFrames={900}
 				/>
@@ -1734,6 +1777,14 @@ export const Index: React.FC = () => {
 			<Composition
 				id="empty"
 				component={Empty}
+				width={1080}
+				height={1080}
+				fps={30}
+				durationInFrames={900}
+			/>
+			<Composition
+				id="spring-season"
+				component={SpringSeason}
 				width={1080}
 				height={1080}
 				fps={30}
@@ -1756,23 +1807,117 @@ export const Index: React.FC = () => {
 				durationInFrames={500}
 			/>
 			<Composition
-				id="CallToAction"
-				component={CTAEndCard}
-				width={1920}
+				id="Triangle"
+				component={TriangleComp}
+				width={100}
+				height={100}
+				fps={30}
+				durationInFrames={100}
+			/>
+			<Composition
+				id="media-video-texture"
+				component={RemotionMediaVideoTexture}
+				width={1280}
+				height={720}
+				fps={30}
+				durationInFrames={600}
+			/>
+			<Folder name="light-leaks">
+				<Composition
+					id="light-leak"
+					component={LightLeakExample}
+					width={1080}
+					height={1080}
+					fps={30}
+					durationInFrames={90}
+				/>
+				<Composition
+					id="light-leak-animated-size"
+					component={LightLeakAnimatedSize}
+					width={1080}
+					height={1080}
+					fps={30}
+					durationInFrames={120}
+				/>
+			</Folder>
+			<Folder name="starburst">
+				<Composition
+					id="starburst"
+					component={StarburstExample}
+					width={1080}
+					height={1080}
+					fps={30}
+					durationInFrames={90}
+				/>
+			</Folder>
+			<Composition
+				id="sfx"
+				component={SfxExample}
+				width={1080}
 				height={1080}
 				fps={30}
-				durationInFrames={90}
-				defaultProps={{
-					cornerRadius: 10,
-				}}
-				calculateMetadata={() => {
-					return {
-						defaultPixelFormat: 'yuva444p10le',
-						defaultCodec: 'prores',
-						defaultProResProfile: '4444',
-						defaultVideoImageFormat: 'png',
-					};
-				}}
+				durationInFrames={60}
+			/>
+			<Folder name="transition-series-overlay">
+				<Composition
+					id="overlay-basic"
+					component={OverlayBasic}
+					width={1080}
+					height={1080}
+					fps={30}
+					durationInFrames={120}
+				/>
+				<Composition
+					id="overlay-with-offset"
+					component={OverlayWithOffset}
+					width={1080}
+					height={1080}
+					fps={30}
+					durationInFrames={120}
+				/>
+				<Composition
+					id="overlay-multiple-scenes"
+					component={OverlayMultipleScenes}
+					width={1080}
+					height={1080}
+					fps={30}
+					durationInFrames={180}
+				/>
+				<Composition
+					id="overlay-and-transition-mixed"
+					component={OverlayAndTransitionMixed}
+					width={1080}
+					height={1080}
+					fps={30}
+					durationInFrames={165}
+				/>
+			</Folder>
+			<Folder name="VisualModeTests">
+				<Composition
+					id="fast-updates"
+					component={FastUpdates}
+					width={1080}
+					height={1080}
+					fps={30}
+					durationInFrames={60}
+				/>
+				<Composition
+					id="fast-updates-nested"
+					component={FastUpdatesNested}
+					width={1080}
+					height={1080}
+					fps={30}
+					durationInFrames={60}
+				/>
+			</Folder>
+			<ChangingTrimBeforeValue />
+			<Composition
+				id="browser-test"
+				component={BrowserTest}
+				width={1280}
+				height={720}
+				fps={30}
+				durationInFrames={2 * 60 * 30}
 			/>
 		</>
 	);

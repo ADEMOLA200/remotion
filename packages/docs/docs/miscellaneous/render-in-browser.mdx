@@ -5,33 +5,11 @@ title: Can I render videos in the browser?
 crumb: 'FAQ'
 ---
 
-Rendering videos in the browser is currently not supported.  
-In order to render videos, you need to hook up [server-side rendering](/docs/ssr), [Remotion Lambda](/docs/lambda), or [render videos locally](/docs/render).
+Yes! Remotion supports rendering videos directly in the browser using the [`@remotion/web-renderer`](/docs/web-renderer) package.
 
-## Our future plan
-
-**We are planning to add support for rendering videos in the browser in the future.**  
-As of September 2025, this is our biggest priority on the roadmap and the feature is in the works.
-
-The biggest limitation is that there is no way to capture the browser viewport.
-
-Therefore, with browser rendering, only certain tags will be supported, such as `<canvas>`, `<svg>`, `<Video>` and `<Img>`. Also, `<Audio>` can be processed.
-
-It will still be possible to layout these tags using `<div>`'s and CSS, since Remotion will be able to programmatically determine the position of the elements.
-Remotion will extract canvas-like elements from the DOM and compose them.  
-This keeps the possibility to have event handlers like `onPointerDown` attached to them. We hope this is more productive than to just have one `<canvas>` element and disable event handlers and CSS layouting.
-
-The encoding of the video will work with [Mediabunny](/docs/mediabunny).  
-We hope to launch this mode in late 2025.
-
-## Future-proofing your code
-
-To prepare yourself for client-side rendering, update your code:
-
-- to use the [`useRemotionEnvironment()`](/docs/use-remotion-environment) hook instead of `getRemotionEnvironment()`
-- to use the [`useDelayRender()`](/docs/use-delay-render) hook instead of `delayRender()`
-- Ensure your assets are available via CORS, so the client-side can access them
+See [Client-side rendering](/docs/client-side-rendering) for an overview, including [how it works](/docs/client-side-rendering/how-it-works) and [limitations](/docs/client-side-rendering/limitations).
 
 ## See also
 
-- [`<Player>`](/player): Displaying a Remotion video in the browser without encoding it
+- [Client-side rendering](/docs/client-side-rendering)
+- [`<Player>`](/docs/player): Displaying a Remotion video in the browser without encoding it

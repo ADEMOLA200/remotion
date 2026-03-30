@@ -1,8 +1,8 @@
-import {LambdaClientInternals} from '@remotion/lambda-client';
 import {beforeAll, expect, test} from 'bun:test';
 import {execSync} from 'child_process';
 import {readFileSync, writeFileSync} from 'fs';
 import path from 'path';
+import {LambdaClientInternals} from '@remotion/lambda-client';
 
 const PYTHON_OUTPUT_MARKER = 10;
 const referenceVersion = readFileSync(
@@ -75,6 +75,8 @@ test('Python package should create the same renderMedia payload as normal Lambda
 			forceBucketName: null,
 			forceHeight: null,
 			forceWidth: null,
+			forceDurationInFrames: null,
+			forceFps: null,
 			frameRange: null,
 			framesPerLambda: null,
 			imageFormat: 'jpeg',
@@ -82,7 +84,7 @@ test('Python package should create the same renderMedia payload as normal Lambda
 			logLevel: 'info',
 			maxRetries: 1,
 			muted: false,
-			numberOfGifLoops: 0,
+			numberOfGifLoops: null,
 			offthreadVideoCacheSizeInBytes: null,
 			offthreadVideoThreads: null,
 			outName: null,
@@ -110,9 +112,10 @@ test('Python package should create the same renderMedia payload as normal Lambda
 			metadata: {
 				Author: 'Lunar',
 			},
-			apiKey: null,
+			licenseKey: null,
 			storageClass: null,
 			mediaCacheSizeInBytes: null,
+			isProduction: null,
 		});
 	const jsonOutput = toParse.substring(0, toParse.lastIndexOf('}') + 1);
 	const parsedJson = JSON.parse(jsonOutput);
@@ -180,6 +183,8 @@ test('Python package should create the same renderStill payload as normal Lambda
 			forceBucketName: null,
 			forceHeight: null,
 			forceWidth: null,
+			forceDurationInFrames: null,
+			forceFps: null,
 			imageFormat: 'jpeg',
 			jpegQuality: 80,
 			logLevel: 'info',
@@ -194,10 +199,11 @@ test('Python package should create the same renderStill payload as normal Lambda
 			indent: false,
 			onInit: () => undefined,
 			forcePathStyle: false,
-			apiKey: null,
+			licenseKey: null,
 			storageClass: null,
 			requestHandler: null,
 			mediaCacheSizeInBytes: null,
+			isProduction: null,
 		});
 	const jsonOutput = toParse.substring(0, toParse.lastIndexOf('}') + 1);
 	const {streamed: _, ...parsedJson} = JSON.parse(jsonOutput);

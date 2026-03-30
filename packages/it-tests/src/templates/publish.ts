@@ -1,14 +1,32 @@
-import {$} from 'bun';
-import {CreateVideoInternals, Template} from 'create-video';
 import {cpSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import path from 'path';
+import {$} from 'bun';
+import {CreateVideoInternals} from 'create-video';
+
+type MinimalTemplate = {
+	shortName: string;
+	org: string;
+	repoName: string;
+	defaultBranch: string;
+	templateInMonorepo: string;
+};
 
 const folders = CreateVideoInternals.FEATURED_TEMPLATES.filter(
 	(t) => t.templateInMonorepo !== null,
 );
 
-const publish = async (template: Template) => {
+const skillsTemplate: MinimalTemplate = {
+	defaultBranch: 'main',
+	templateInMonorepo: 'skills',
+	org: 'remotion-dev',
+	repoName: 'skills',
+	shortName: 'Skills',
+};
+
+const templates = [skillsTemplate, ...folders];
+
+const publish = async (template: MinimalTemplate) => {
 	const folder = path.join(
 		__dirname,
 		'..',
@@ -65,6 +83,27 @@ const publish = async (template: Template) => {
 	await $`git push origin ${defaultBranch.trim()}`.cwd(workingDir);
 };
 
-for (const template of folders) {
-	await publish(template);
+const CONCURRENCY = 1;
+
+const results: PromiseSettledResult<void>[] = [];
+
+for (let i = 0; i < templates.length; i += CONCURRENCY) {
+	const batch = templates.slice(i, i + CONCURRENCY);
+	const batchResults = await Promise.allSettled(
+		batch.map((template) => publish(template)),
+	);
+	results.push(...batchResults);
+}
+
+const failures = results.filter(
+	(r): r is PromiseRejectedResult => r.status === 'rejected',
+);
+
+if (failures.length > 0) {
+	console.error(`${failures.length} template(s) failed to publish:`);
+	for (const failure of failures) {
+		console.error(failure.reason);
+	}
+
+	process.exit(1);
 }

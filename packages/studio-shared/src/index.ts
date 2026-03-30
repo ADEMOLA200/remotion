@@ -6,9 +6,13 @@ export {
 	ApplyCodemodResponse,
 	ApplyVisualControlRequest,
 	ApplyVisualControlResponse,
-	CanUpdateDefaultPropsRequest,
 	CanUpdateDefaultPropsResponse,
+	CanUpdateSequencePropsRequest,
+	CanUpdateSequencePropsResponse,
 	CancelRenderRequest,
+	SubscribeToSequencePropsRequest,
+	SubscribeToSequencePropsResponse,
+	UnsubscribeFromSequencePropsRequest,
 	CancelRenderResponse,
 	CopyStillToClipboardRequest,
 	DeleteStaticFileRequest,
@@ -18,12 +22,22 @@ export {
 	OpenInFileExplorerRequest,
 	ProjectInfoRequest,
 	ProjectInfoResponse,
+	RedoRequest,
+	RedoResponse,
 	RemoveRenderRequest,
 	RestartStudioRequest,
 	RestartStudioResponse,
+	SaveSequencePropsRequest,
+	SaveSequencePropsResponse,
+	SequenceNodePath,
 	SimpleDiff,
+	SubscribeToDefaultPropsRequest,
+	SubscribeToDefaultPropsResponse,
 	SubscribeToFileExistenceRequest,
 	SubscribeToFileExistenceResponse,
+	UndoRequest,
+	UndoResponse,
+	UnsubscribeFromDefaultPropsRequest,
 	UnsubscribeFromFileExistenceRequest,
 	UpdateAvailableRequest,
 	UpdateAvailableResponse,
@@ -52,8 +66,10 @@ export {
 	Pkgs,
 	apiDocs,
 	descriptions,
+	extraPackages,
 	installableMap,
 	packages,
+	type ExtraPackage,
 } from './package-info';
 export {PackageManager} from './package-manager';
 export {ProjectInfo} from './project-info';
@@ -61,6 +77,7 @@ export type {RenderDefaults} from './render-defaults';
 export {
 	AggregateRenderProgress,
 	ArtifactProgress,
+	BrowserDownloadState,
 	BrowserProgressLog,
 	BundlingState,
 	CopyingState,
@@ -73,6 +90,7 @@ export {
 	StitchingProgressInput,
 	UiOpenGlOptions,
 } from './render-job';
+export type {CompletedClientRender} from './render-job';
 export {SOURCE_MAP_ENDPOINT} from './source-map-endpoint';
 export {
 	ScriptLine,

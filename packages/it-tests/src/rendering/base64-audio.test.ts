@@ -1,8 +1,8 @@
-import {RenderInternals} from '@remotion/renderer';
 import {afterEach, beforeEach, expect, test} from 'bun:test';
-import execa from 'execa';
 import fs from 'fs';
 import path from 'path';
+import {RenderInternals} from '@remotion/renderer';
+import execa from 'execa';
 
 const outputPath = path.join(process.cwd(), 'packages/example/out.mp3');
 
@@ -48,5 +48,5 @@ test(
 		expect(data).not.toContain('Stream #1');
 		fs.unlinkSync(outputPath);
 	},
-	{timeout: 30000},
+	{timeout: 30000, retry: 3},
 );

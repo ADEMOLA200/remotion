@@ -18,9 +18,12 @@ def get_render_media_on_lambda_payload(
   env_variables: {},
   every_nth_frame: 1,
   force_height: nil,
+  force_fps: nil,
+  force_duration_in_frames: nil,
   force_path_style: false,
   force_width: nil,
   api_key: nil,
+  license_key: nil,
   frame_range: nil,
   frames_per_lambda: nil,
   image_format: "jpeg",
@@ -47,8 +50,13 @@ def get_render_media_on_lambda_payload(
   video_bitrate: nil,
   webhook: nil,
   x264_preset: nil,
-  chromium_options: {}
+  chromium_options: {},
+  is_production: nil
 )
+
+if api_key != nil
+  warn "[DEPRECATED] The 'api_key' parameter is deprecated and will be removed in a future version. Please use 'license_key' instead."
+end
 
 payload = {
     audioBitrate: audio_bitrate,
@@ -68,9 +76,11 @@ payload = {
     envVariables: env_variables,
     everyNthFrame: every_nth_frame,
     forceHeight: force_height,
+    forceFps: force_fps,
+    forceDurationInFrames: force_duration_in_frames,
     forcePathStyle: force_path_style,
     forceWidth: force_width,
-    apiKey: api_key,
+    licenseKey: license_key || api_key,
     frameRange: frame_range,
     framesPerLambda: frames_per_lambda,
     imageFormat: image_format,
@@ -102,7 +112,8 @@ payload = {
     videoBitrate: video_bitrate,
     webhook: webhook,
     x264Preset: x264_preset,
-    bucketName: bucket_name
+    bucketName: bucket_name,
+    isProduction: is_production
   }
   payload
 end

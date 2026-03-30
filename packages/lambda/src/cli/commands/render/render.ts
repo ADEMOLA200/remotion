@@ -1,12 +1,6 @@
+import path from 'path';
 import {CliInternals} from '@remotion/cli';
 import {ConfigInternals} from '@remotion/cli/config';
-import type {ChromiumOptions, LogLevel} from '@remotion/renderer';
-import {RenderInternals} from '@remotion/renderer';
-import {BrowserSafeApis} from '@remotion/renderer/client';
-import path from 'path';
-import {NoReactInternals} from 'remotion/no-react';
-import {internalDownloadMedia} from '../../../api/download-media';
-
 import {
 	AwsProvider,
 	getRenderProgress,
@@ -17,8 +11,13 @@ import {
 	DEFAULT_MAX_RETRIES,
 	DEFAULT_OUTPUT_PRIVACY,
 } from '@remotion/lambda-client/constants';
+import type {ChromiumOptions, LogLevel} from '@remotion/renderer';
+import {RenderInternals} from '@remotion/renderer';
+import {BrowserSafeApis} from '@remotion/renderer/client';
 import type {EnhancedErrorInfo, ProviderSpecifics} from '@remotion/serverless';
 import {validatePrivacy, type ServerlessCodec} from '@remotion/serverless';
+import {NoReactInternals} from 'remotion/no-react';
+import {internalDownloadMedia} from '../../../api/download-media';
 import {sleep} from '../../../shared/sleep';
 import {validateMaxRetries} from '../../../shared/validate-retries';
 import {parsedLambdaCli} from '../../args';
@@ -55,6 +54,20 @@ const {
 	preferLosslessOption,
 	metadataOption,
 	mediaCacheSizeInBytesOption,
+	darkModeOption,
+	pixelFormatOption,
+	browserExecutableOption,
+	everyNthFrameOption,
+	proResProfileOption,
+	userAgentOption,
+	disableWebSecurityOption,
+	ignoreCertificateErrorsOption,
+	audioCodecOption,
+	videoCodecOption,
+	overrideHeightOption,
+	overrideWidthOption,
+	overrideFpsOption,
+	overrideDurationOption,
 } = BrowserSafeApis.options;
 
 export const renderCommand = async ({
@@ -85,25 +98,46 @@ export const renderCommand = async ({
 
 	const region = getAwsRegion();
 
-	const {
-		envVariables,
-		frameRange,
-		inputProps,
-		pixelFormat,
-		proResProfile,
-		everyNthFrame,
-		height,
-		width,
-		browserExecutable,
-		ignoreCertificateErrors,
-		userAgent,
-		disableWebSecurity,
-	} = CliInternals.getCliOptions({
+	const {envVariables, frameRange, inputProps} = CliInternals.getCliOptions({
 		isStill: false,
 		logLevel,
 		indent: false,
 	});
 
+	const height = overrideHeightOption.getValue({
+		commandLine: CliInternals.parsedCli,
+	}).value;
+	const width = overrideWidthOption.getValue({
+		commandLine: CliInternals.parsedCli,
+	}).value;
+	const fps = overrideFpsOption.getValue({
+		commandLine: CliInternals.parsedCli,
+	}).value;
+	const durationInFrames = overrideDurationOption.getValue({
+		commandLine: CliInternals.parsedCli,
+	}).value;
+
+	const pixelFormat = pixelFormatOption.getValue({
+		commandLine: CliInternals.parsedCli,
+	}).value;
+	const browserExecutable = browserExecutableOption.getValue({
+		commandLine: CliInternals.parsedCli,
+	}).value;
+	const everyNthFrame = everyNthFrameOption.getValue({
+		commandLine: CliInternals.parsedCli,
+	}).value;
+	const proResProfile = proResProfileOption.getValue({
+		commandLine: CliInternals.parsedCli,
+	}).value;
+	const userAgent = userAgentOption.getValue({
+		commandLine: CliInternals.parsedCli,
+	}).value;
+	const disableWebSecurity = disableWebSecurityOption.getValue({
+		commandLine: CliInternals.parsedCli,
+	}).value;
+	const ignoreCertificateErrors = ignoreCertificateErrorsOption.getValue({
+		commandLine: CliInternals.parsedCli,
+	}).value;
 	const x264Preset = x264Option.getValue({
 		commandLine: CliInternals.parsedCli,
 	}).value;
@@ -179,14 +213,21 @@ export const renderCommand = async ({
 	const metadata = metadataOption.getValue({
 		commandLine: CliInternals.parsedCli,
 	}).value;
+	const darkMode = darkModeOption.getValue({
+		commandLine: CliInternals.parsedCli,
+	}).value;
+	const audioCodec = audioCodecOption.getValue({
+		commandLine: CliInternals.parsedCli,
+	}).value;
 
-	const chromiumOptions: ChromiumOptions = {
+	const chromiumOptions: Required<ChromiumOptions> = {
 		disableWebSecurity,
 		enableMultiProcessOnLinux,
 		gl,
 		headless,
 		ignoreCertificateErrors,
 		userAgent,
+		darkMode,
 	};
 
 	let composition: string = args[1];
@@ -227,6 +268,9 @@ export const renderCommand = async ({
 				chromiumOptions,
 				envVariables,
 				height,
+				width,
+				fps,
+				durationInFrames,
 				indent,
 				serializedInputPropsWithCustomSchema:
 					NoReactInternals.serializeJSONWithSpecialTypes({
@@ -239,7 +283,6 @@ export const renderCommand = async ({
 				serveUrlOrWebpackUrl: serveUrl,
 				timeoutInMilliseconds,
 				logLevel,
-				width,
 				server,
 				offthreadVideoCacheSizeInBytes,
 				offthreadVideoThreads,
@@ -248,6 +291,7 @@ export const renderCommand = async ({
 					indent,
 					logLevel,
 					quiet: CliInternals.quietFlagProvided(),
+					onProgress: () => undefined,
 				}),
 				chromeMode: 'headless-shell',
 				mediaCacheSizeInBytes: mediaCacheSizeInBytes,
@@ -258,19 +302,18 @@ export const renderCommand = async ({
 	const outName = parsedLambdaCli['out-name'];
 	const downloadName = args[2] ?? null;
 
-	const {value: codec, source: reason} =
-		BrowserSafeApis.options.videoCodecOption.getValue(
-			{
-				commandLine: CliInternals.parsedCli,
-			},
-			{
-				downloadName,
-				outName: outName ?? null,
-				configFile: ConfigInternals.getOutputCodecOrUndefined() ?? null,
-				uiCodec: null,
-				compositionCodec: null,
-			},
-		);
+	const {value: codec, source: reason} = videoCodecOption.getValue(
+		{
+			commandLine: CliInternals.parsedCli,
+		},
+		{
+			downloadName,
+			outName: outName ?? null,
+			configFile: ConfigInternals.getOutputCodecOrUndefined() ?? null,
+			uiCodec: null,
+			compositionCodec: null,
+		},
+	);
 
 	const imageFormat = CliInternals.getVideoImageFormat({
 		codec,
@@ -324,6 +367,8 @@ export const renderCommand = async ({
 		encodingMaxRate,
 		forceHeight: height,
 		forceWidth: width,
+		forceFps: fps,
+		forceDurationInFrames: durationInFrames,
 		webhook: parsedLambdaCli.webhook
 			? {
 					url: parsedLambdaCli.webhook,
@@ -333,8 +378,7 @@ export const renderCommand = async ({
 			: null,
 		rendererFunctionName: parsedLambdaCli['renderer-function-name'] ?? null,
 		forceBucketName: parsedLambdaCli['force-bucket-name'] ?? null,
-		audioCodec:
-			CliInternals.parsedCli[BrowserSafeApis.options.audioCodecOption.cliFlag],
+		audioCodec,
 		deleteAfter: deleteAfter ?? null,
 		colorSpace,
 		downloadBehavior: {type: 'play-in-browser'},
@@ -346,10 +390,13 @@ export const renderCommand = async ({
 		indent: false,
 		forcePathStyle: parsedLambdaCli['force-path-style'] ?? false,
 		metadata: metadata ?? null,
-		apiKey:
-			parsedLambdaCli[BrowserSafeApis.options.apiKeyOption.cliFlag] ?? null,
+		licenseKey:
+			parsedLambdaCli[BrowserSafeApis.options.licenseKeyOption.cliFlag] ?? null,
 		storageClass: parsedLambdaCli['storage-class'] ?? null,
 		requestHandler: null,
+		isProduction:
+			parsedLambdaCli[BrowserSafeApis.options.isProductionOption.cliFlag] ??
+			true,
 	});
 
 	const progressBar = CliInternals.createOverwriteableCliOutput({
@@ -502,6 +549,9 @@ export const renderCommand = async ({
 					},
 					providerSpecifics: providerSpecifics,
 					forcePathStyle: parsedLambdaCli['force-path-style'],
+					signal: new AbortController().signal,
+					customCredentials: null,
+					requestHandler: null,
 				});
 				downloadOrNothing = download;
 				progressBar.update(

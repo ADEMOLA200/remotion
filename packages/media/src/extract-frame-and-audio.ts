@@ -1,8 +1,9 @@
 import type {LogLevel} from 'remotion';
 import {extractAudio} from './audio-extraction/extract-audio';
-import {isNetworkError} from './is-network-error';
+import {isNetworkError} from './is-type-of-error';
 import {extractFrame} from './video-extraction/extract-frame';
 import type {ExtractFrameViaBroadcastChannelResult} from './video-extraction/extract-frame-via-broadcast-channel';
+import {rotateFrame} from './video-extraction/rotate-frame';
 
 export const extractFrameAndAudio = async ({
 	src,
@@ -17,6 +18,8 @@ export const extractFrameAndAudio = async ({
 	trimAfter,
 	trimBefore,
 	fps,
+	maxCacheSize,
+	credentials,
 }: {
 	src: string;
 	timeInSeconds: number;
@@ -30,9 +33,11 @@ export const extractFrameAndAudio = async ({
 	trimAfter: number | undefined;
 	trimBefore: number | undefined;
 	fps: number;
+	maxCacheSize: number;
+	credentials: RequestCredentials | undefined;
 }): Promise<ExtractFrameViaBroadcastChannelResult> => {
 	try {
-		const [frame, audio] = await Promise.all([
+		const [video, audio] = await Promise.all([
 			includeVideo
 				? extractFrame({
 						src,
@@ -43,6 +48,8 @@ export const extractFrameAndAudio = async ({
 						playbackRate,
 						trimBefore,
 						fps,
+						maxCacheSize,
+						credentials,
 					})
 				: null,
 			includeAudio
@@ -57,51 +64,58 @@ export const extractFrameAndAudio = async ({
 						trimAfter,
 						fps,
 						trimBefore,
+						maxCacheSize,
+						credentials,
 					})
 				: null,
 		]);
 
-		if (frame?.type === 'cannot-decode') {
+		if (video?.type === 'cannot-decode') {
 			return {
 				type: 'cannot-decode',
-				durationInSeconds: frame.durationInSeconds,
+				durationInSeconds: video.durationInSeconds,
 			};
 		}
 
-		if (frame?.type === 'unknown-container-format') {
+		if (video?.type === 'unknown-container-format') {
 			return {type: 'unknown-container-format'};
 		}
 
-		if (frame?.type === 'cannot-decode-alpha') {
+		if (video?.type === 'cannot-decode-alpha') {
 			return {
 				type: 'cannot-decode-alpha',
-				durationInSeconds: frame.durationInSeconds,
+				durationInSeconds: video.durationInSeconds,
 			};
+		}
+
+		if (video?.type === 'network-error') {
+			return {type: 'network-error'};
 		}
 
 		if (audio === 'unknown-container-format') {
-			if (frame !== null) {
-				frame?.frame?.close();
-			}
-
 			return {type: 'unknown-container-format'};
 		}
 
-		if (audio === 'cannot-decode') {
-			if (frame?.type === 'success' && frame.frame !== null) {
-				frame?.frame.close();
-			}
+		if (audio === 'network-error') {
+			return {type: 'network-error'};
+		}
 
+		if (audio === 'cannot-decode') {
 			return {
 				type: 'cannot-decode',
 				durationInSeconds:
-					frame?.type === 'success' ? frame.durationInSeconds : null,
+					video?.type === 'success' ? video.durationInSeconds : null,
 			};
 		}
 
 		return {
 			type: 'success',
-			frame: frame?.frame?.toVideoFrame() ?? null,
+			frame: video?.frame
+				? await rotateFrame({
+						frame: video.frame,
+						rotation: video.rotation,
+					})
+				: null,
 			audio: audio?.data ?? null,
 			durationInSeconds: audio?.durationInSeconds ?? null,
 		};

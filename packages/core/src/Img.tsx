@@ -5,14 +5,17 @@ import React, {
 	useImperativeHandle,
 	useLayoutEffect,
 	useRef,
+	useState,
 } from 'react';
-import {SequenceContext} from './SequenceContext.js';
 import type {IsExact} from './audio/props.js';
-import {cancelRender} from './cancel-render.js';
+import {addSequenceStackTraces} from './enable-sequence-stack-traces.js';
 import {getCrossOriginValue} from './get-cross-origin-value.js';
 import {usePreload} from './prefetch.js';
+import {SequenceContext} from './SequenceContext.js';
 import {useBufferState} from './use-buffer-state.js';
 import {useDelayRender} from './use-delay-render.js';
+import {useImageInTimeline} from './use-media-in-timeline.js';
+import {useRemotionEnvironment} from './use-remotion-environment.js';
 
 function exponentialBackoff(errorCount: number): number {
 	return 1000 * 2 ** (errorCount - 1);
@@ -31,8 +34,14 @@ export type ImgProps = NativeImgProps & {
 	readonly pauseWhenLoading?: boolean;
 	readonly delayRenderRetries?: number;
 	readonly delayRenderTimeoutInMilliseconds?: number;
-	readonly onImageFrame?: (imgelement: HTMLImageElement) => void;
+	readonly onImageFrame?: (imageElement: HTMLImageElement) => void;
 	readonly src: string;
+	readonly showInTimeline?: boolean;
+	readonly name?: string;
+	/**
+	 * @deprecated For internal use only
+	 */
+	readonly stack?: string;
 };
 
 type Expected = Omit<NativeImgProps, 'onError' | 'src' | 'crossOrigin'>;
@@ -50,6 +59,9 @@ const ImgRefForwarding: React.ForwardRefRenderFunction<
 		delayRenderTimeoutInMilliseconds,
 		onImageFrame,
 		crossOrigin,
+		showInTimeline,
+		name,
+		stack,
 		...props
 	},
 	ref,
@@ -58,6 +70,7 @@ const ImgRefForwarding: React.ForwardRefRenderFunction<
 	const errors = useRef<Record<string, number>>({});
 	const {delayPlayback} = useBufferState();
 	const sequenceContext = useContext(SequenceContext);
+	const [timelineId] = useState(() => String(Math.random()));
 
 	if (!src) {
 		throw new Error('No "src" prop was passed to <Img>.');
@@ -72,6 +85,17 @@ const ImgRefForwarding: React.ForwardRefRenderFunction<
 	useImperativeHandle(ref, () => {
 		return imageRef.current as HTMLImageElement;
 	}, []);
+
+	useImageInTimeline({
+		src,
+		displayName: name ?? null,
+		id: timelineId,
+		stack: stack ?? null,
+		showInTimeline: showInTimeline ?? true,
+		premountDisplay: sequenceContext?.premountDisplay ?? null,
+		postmountDisplay: sequenceContext?.postmountDisplay ?? null,
+		loopDisplay: undefined,
+	});
 
 	const actualSrc = usePreload(src as string);
 
@@ -98,6 +122,8 @@ const ImgRefForwarding: React.ForwardRefRenderFunction<
 			imageRef.current.setAttribute('src', newSrc);
 		}, timeout);
 	}, []);
+
+	const {delayRender, continueRender, cancelRender} = useDelayRender();
 
 	const didGetError = useCallback(
 		(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
@@ -132,14 +158,17 @@ const ImgRefForwarding: React.ForwardRefRenderFunction<
 				return;
 			}
 
-			cancelRender(
-				'Error loading image with src: ' + (imageRef.current?.src as string),
-			);
+			try {
+				cancelRender(
+					'Error loading image with src: ' + (imageRef.current?.src as string),
+				);
+			} catch {
+				// cancelRender() intentionally throws after storing the error in scope.
+				// In async image callbacks, we rely on the stored error for renderer propagation.
+			}
 		},
-		[maxRetries, onError, retryIn],
+		[cancelRender, maxRetries, onError, retryIn],
 	);
-
-	const {delayRender, continueRender} = useDelayRender();
 
 	if (typeof window !== 'undefined') {
 		const isPremounting = Boolean(sequenceContext?.premounting);
@@ -209,7 +238,13 @@ const ImgRefForwarding: React.ForwardRefRenderFunction<
 					// eslint-disable-next-line no-console
 					console.warn(err);
 
-					if (current.complete) {
+					// HTMLImageElement.complete is also true for broken images (e.g. 404),
+					// so only treat it as loaded if intrinsic dimensions are available.
+					if (
+						current.complete &&
+						current.naturalWidth > 0 &&
+						current.naturalHeight > 0
+					) {
 						onComplete();
 					} else {
 						current.addEventListener('load', onComplete);
@@ -237,9 +272,12 @@ const ImgRefForwarding: React.ForwardRefRenderFunction<
 		]);
 	}
 
+	const {isClientSideRendering} = useRemotionEnvironment();
+
 	const crossOriginValue = getCrossOriginValue({
 		crossOrigin,
 		requestsVideoFrame: false,
+		isClientSideRendering,
 	});
 
 	// src gets set once we've loaded and decoded the image.
@@ -259,3 +297,4 @@ const ImgRefForwarding: React.ForwardRefRenderFunction<
  * @see [Documentation](https://remotion.dev/docs/img)
  */
 export const Img = forwardRef(ImgRefForwarding);
+addSequenceStackTraces(Img);

@@ -3,7 +3,7 @@
 <p align="center">
   <a href="https://github.com/remotion-dev/logo">
     <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="https://github.com/remotion-dev/logo/raw/main/animated-logo-banner-dark.gif">
+      <source media="(prefers-color-scheme: dark)" srcset="https://github.com/remotion-dev/logo/raw/main/animated-logo-banner-dark.apng">
       <img alt="Animated Remotion Logo" src="https://github.com/remotion-dev/logo/raw/main/animated-logo-banner-light.gif">
     </picture>
   </a>
@@ -13,7 +13,7 @@ This template provides an Express.js server that allows you to start new video r
 
 The server exposes the following main endpoints:
 
-- `POST /render` - Start a new render job
+- `POST /renders` - Start a new render job
 - `GET /renders/:id` - Get the status of a render
 - `DELETE /renders/:id` - Cancel a running render
 

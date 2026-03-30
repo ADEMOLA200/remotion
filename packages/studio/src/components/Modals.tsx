@@ -8,8 +8,9 @@ import {DuplicateComposition} from './NewComposition/DuplicateComposition';
 import {RenameComposition} from './NewComposition/RenameComposition';
 import {OverrideInputPropsModal} from './OverrideInputProps';
 import QuickSwitcher from './QuickSwitcher/QuickSwitcher';
-import {RenderModalWithLoader} from './RenderModal/RenderModal';
 import {RenderStatusModal} from './RenderModal/RenderStatusModal';
+import {RenderModalWithLoader} from './RenderModal/ServerRenderModal';
+import {WebRenderModalWithLoader} from './RenderModal/WebRenderModal';
 import {UpdateModal} from './UpdateModal/UpdateModal';
 
 export const Modals: React.FC<{
@@ -38,9 +39,16 @@ export const Modals: React.FC<{
 				<OverrideInputPropsModal />
 			)}
 
-			{modalContextType && canRender && modalContextType.type === 'render' && (
+			{modalContextType && modalContextType.type === 'web-render' && (
+				<WebRenderModalWithLoader {...modalContextType} />
+			)}
+			{modalContextType &&
+			modalContextType.type === 'server-render' &&
+			(canRender || modalContextType.readOnlyStudio) ? (
 				<RenderModalWithLoader
+					readOnlyStudio={modalContextType.readOnlyStudio ?? false}
 					initialFrame={modalContextType.initialFrame}
+					initialDarkMode={modalContextType.initialDarkMode}
 					compositionId={modalContextType.compositionId}
 					initialVideoImageFormat={modalContextType.initialVideoImageFormat}
 					initialJpegQuality={modalContextType.initialJpegQuality}
@@ -105,13 +113,11 @@ export const Modals: React.FC<{
 					initialChromeMode={modalContextType.initialChromeMode}
 					renderDefaults={modalContextType.renderDefaults}
 				/>
-			)}
+			) : null}
 
-			{modalContextType &&
-				canRender &&
-				modalContextType.type === 'render-progress' && (
-					<RenderStatusModal jobId={modalContextType.jobId} />
-				)}
+			{modalContextType && modalContextType.type === 'render-progress' && (
+				<RenderStatusModal jobId={modalContextType.jobId} />
+			)}
 
 			{modalContextType && modalContextType.type === 'update' && (
 				<UpdateModal
@@ -130,7 +136,7 @@ export const Modals: React.FC<{
 					initialMode={modalContextType.mode}
 				/>
 			)}
-			<AskAiModal />
+			{process.env.ASK_AI_ENABLED && <AskAiModal />}
 		</>
 	);
 };

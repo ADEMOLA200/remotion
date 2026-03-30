@@ -1,17 +1,19 @@
-import type {ExecaChildProcess} from 'execa';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import {LicensingInternals} from '@remotion/licensing';
+import type {ExecaChildProcess} from 'execa';
 import type {_InternalTypes} from 'remotion';
 import type {VideoConfig} from 'remotion/no-react';
 import {NoReactInternals} from 'remotion/no-react';
 import {type RenderMediaOnDownload} from './assets/download-and-map-assets-to-file';
+import type {Bitrate} from './bitrate';
 import type {BrowserExecutable} from './browser-executable';
 import type {BrowserLog} from './browser-log';
 import type {HeadlessBrowser} from './browser/Browser';
+import {defaultBrowserDownloadProgress} from './browser/browser-download-progress-bar';
 import type {OnLog} from './browser/BrowserPage';
 import {DEFAULT_TIMEOUT} from './browser/TimeoutSettings';
-import {defaultBrowserDownloadProgress} from './browser/browser-download-progress-bar';
 import {canUseParallelEncoding} from './can-use-parallel-encoding';
 import type {Codec} from './codec';
 import {codecSupportsMedia} from './codec-supports-media';
@@ -38,6 +40,7 @@ import {DEFAULT_JPEG_QUALITY, validateJpegQuality} from './jpeg-quality';
 import {Log} from './logger';
 import type {CancelSignal} from './make-cancel-signal';
 import {cancelErrorMessages, makeCancelSignal} from './make-cancel-signal';
+import {mimeLookup} from './mime-types';
 import type {ChromiumOptions} from './open-browser';
 import {DEFAULT_COLOR_SPACE, type ColorSpace} from './options/color-space';
 import {DEFAULT_RENDER_FRAMES_OFFTHREAD_VIDEO_THREADS} from './options/offthreadvideo-threads';
@@ -84,7 +87,7 @@ const MAX_RECENT_FRAME_TIMINGS = 150;
 
 export type SlowFrame = {frame: number; time: number};
 
-export type RenderMediaOnProgress = (progress: {
+export type RenderMediaProgress = {
 	renderedFrames: number;
 	encodedFrames: number;
 	encodedDoneIn: number | null;
@@ -92,9 +95,27 @@ export type RenderMediaOnProgress = (progress: {
 	renderEstimatedTime: number;
 	progress: number;
 	stitchStage: StitchingState;
-}) => void;
+};
+
+export type RenderMediaOnProgress = (progress: RenderMediaProgress) => void;
 
 type MoreRenderMediaOptions = ToOptions<typeof optionsMap.renderMedia>;
+
+type EitherApiKeyOrLicenseKey =
+	true extends typeof NoReactInternals.ENABLE_V5_BREAKING_CHANGES
+		? {
+				licenseKey: string | null;
+			}
+		:
+				| {
+						/**
+						 * @deprecated Use `licenseKey` instead
+						 */
+						apiKey?: string | null;
+				  }
+				| {
+						licenseKey?: string | null;
+				  };
 
 export type InternalRenderMediaOptions = {
 	outputLocation: string | null;
@@ -133,6 +154,8 @@ export type InternalRenderMediaOptions = {
 	onArtifact: OnArtifact | null;
 	metadata: Record<string, string> | null;
 	onLog: OnLog;
+	licenseKey: string | null;
+	isProduction: boolean | null;
 } & MoreRenderMediaOptions;
 
 type Prettify<T> = {
@@ -178,9 +201,9 @@ export type RenderMediaOptions = Prettify<{
 	preferLossless?: boolean;
 	enforceAudioTrack?: boolean;
 	ffmpegOverride?: FfmpegOverrideFn;
-	audioBitrate?: string | null;
-	encodingMaxRate?: string | null;
-	encodingBufferSize?: string | null;
+	audioBitrate?: Bitrate | null;
+	encodingMaxRate?: Bitrate | null;
+	encodingBufferSize?: Bitrate | null;
 	disallowParallelEncoding?: boolean;
 	serveUrl: string;
 	concurrency?: number | string | null;
@@ -190,7 +213,9 @@ export type RenderMediaOptions = Prettify<{
 	onArtifact?: OnArtifact;
 	metadata?: Record<string, string> | null;
 	compositionStart?: number;
+	isProduction?: boolean;
 }> &
+	EitherApiKeyOrLicenseKey &
 	Partial<MoreRenderMediaOptions>;
 
 type Await<T> = T extends PromiseLike<infer U> ? U : T;
@@ -198,6 +223,7 @@ type Await<T> = T extends PromiseLike<infer U> ? U : T;
 type RenderMediaResult = {
 	buffer: Buffer | null;
 	slowestFrames: SlowFrame[];
+	contentType: string;
 };
 
 const internalRenderMediaRaw = ({
@@ -259,6 +285,8 @@ const internalRenderMediaRaw = ({
 	offthreadVideoThreads,
 	mediaCacheSizeInBytes,
 	onLog,
+	licenseKey,
+	isProduction,
 }: InternalRenderMediaOptions): Promise<RenderMediaResult> => {
 	const pixelFormat =
 		userPixelFormat ??
@@ -672,13 +700,13 @@ const internalRenderMediaRaw = ({
 								const exitStatus = preStitcher?.getExitStatus();
 								if (exitStatus?.type === 'quit-successfully') {
 									throw new Error(
-										`FFmpeg already quit while trying to pipe frame ${frame} to it. Stderr: ${exitStatus.stderr}}`,
+										`FFmpeg already quit while trying to pipe frame ${frame} to it. Stderr: ${exitStatus.stderr}`,
 									);
 								}
 
 								if (exitStatus?.type === 'quit-with-error') {
 									throw new Error(
-										`FFmpeg quit with code ${exitStatus.exitCode} while piping frame ${frame}. Stderr: ${exitStatus.stderr}}`,
+										`FFmpeg quit with code ${exitStatus.exitCode}${exitStatus.signal ? ` (signal ${exitStatus.signal})` : ''} while piping frame ${frame}. Stderr: ${exitStatus.stderr}`,
 									);
 								}
 
@@ -754,10 +782,10 @@ const internalRenderMediaRaw = ({
 					crf,
 					assetsInfo,
 					onProgress: (frame: number) => {
-						stitchStage = 'muxing';
 						// With seamless AAC concatenation, the amount of rendered frames
 						// might be longer, so we need to clamp it to avoid progress over 100%
 						if (preEncodedFileLocation) {
+							stitchStage = 'muxing';
 							muxedFrames = Math.min(frame, totalFramesToRender);
 						} else {
 							muxedFrames = Math.min(frame, totalFramesToRender);
@@ -802,13 +830,43 @@ const internalRenderMediaRaw = ({
 				const result: RenderMediaResult = {
 					buffer,
 					slowestFrames,
+					contentType:
+						mimeLookup(
+							'file.' + getFileExtensionFromCodec(codec, audioCodec),
+						) || 'application/octet-stream',
+				};
+
+				const sendTelemetryAndResolve = () => {
+					if (licenseKey === null) {
+						resolve(result);
+						return;
+					}
+
+					LicensingInternals.internalRegisterUsageEvent({
+						event: 'cloud-render',
+						host: null,
+						succeeded: true,
+						licenseKey: licenseKey ?? null,
+						isProduction: isProduction ?? true,
+						isStill: false,
+					})
+						.then(() => {
+							Log.verbose({indent, logLevel}, 'Usage event sent successfully');
+						})
+						.catch((err) => {
+							Log.error({indent, logLevel}, 'Failed to send usage event');
+							Log.error({indent: true, logLevel}, err);
+						})
+						.finally(() => {
+							resolve(result);
+						});
 				};
 
 				if (isReproEnabled()) {
 					getReproWriter()
 						.onRenderSucceed({indent, logLevel, output: absoluteOutputLocation})
 						.then(() => {
-							resolve(result);
+							sendTelemetryAndResolve();
 						})
 						.catch((err) => {
 							Log.error(
@@ -816,9 +874,10 @@ const internalRenderMediaRaw = ({
 								'Could not create reproduction',
 								err,
 							);
+							sendTelemetryAndResolve();
 						});
 				} else {
-					resolve(result);
+					sendTelemetryAndResolve();
 				}
 			})
 			.catch((err) => {
@@ -946,6 +1005,8 @@ export const renderMedia = ({
 	offthreadVideoThreads,
 	compositionStart,
 	mediaCacheSizeInBytes,
+	isProduction,
+	...apiKeyOrLicenseKey
 }: RenderMediaOptions): Promise<RenderMediaResult> => {
 	const indent = false;
 	const logLevel =
@@ -957,6 +1018,11 @@ export const renderMedia = ({
 			`The "quality" option has been renamed. Please use "jpegQuality" instead.`,
 		);
 	}
+
+	const licenseKey =
+		'licenseKey' in apiKeyOrLicenseKey ? apiKeyOrLicenseKey.licenseKey : null;
+	const apiKey =
+		'apiKey' in apiKeyOrLicenseKey ? apiKeyOrLicenseKey.apiKey : null;
 
 	return internalRenderMedia({
 		proResProfile: proResProfile ?? undefined,
@@ -1032,6 +1098,8 @@ export const renderMedia = ({
 		hardwareAcceleration: hardwareAcceleration ?? 'disable',
 		chromeMode: chromeMode ?? 'headless-shell',
 		mediaCacheSizeInBytes: mediaCacheSizeInBytes ?? null,
+		licenseKey: licenseKey ?? apiKey ?? null,
 		onLog: defaultOnLog,
+		isProduction: isProduction ?? null,
 	});
 };

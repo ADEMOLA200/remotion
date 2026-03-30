@@ -8,12 +8,12 @@ import React, {
 	useRef,
 	useState,
 } from 'react';
-import {SequenceContext} from '../SequenceContext.js';
-import {SequenceVisibilityToggleContext} from '../SequenceManager.js';
 import {getCrossOriginValue} from '../get-cross-origin-value.js';
 import {useLogLevel} from '../log-level-context.js';
 import {usePreload} from '../prefetch.js';
 import {random} from '../random.js';
+import {SequenceContext} from '../SequenceContext.js';
+import {SequenceVisibilityToggleContext} from '../SequenceManager.js';
 import {useVolume} from '../use-amplification.js';
 import {useMediaInTimeline} from '../use-media-in-timeline.js';
 import {useMediaPlayback} from '../use-media-playback.js';
@@ -25,7 +25,7 @@ import {
 import {evaluateVolume} from '../volume-prop.js';
 import {warnAboutTooHighVolume} from '../volume-safeguard.js';
 import type {IsExact, NativeAudioProps, RemotionAudioProps} from './props.js';
-import {SharedAudioContext, useSharedAudio} from './shared-audio-tags.js';
+import {useSharedAudio} from './shared-audio-tags.js';
 import {useFrameForVolumeProp} from './use-audio-frame.js';
 
 type AudioForPreviewProps = RemotionAudioProps & {
@@ -124,6 +124,7 @@ const AudioForDevelopmentForwardRefFunction: React.ForwardRefRenderFunction<
 	const crossOriginValue = getCrossOriginValue({
 		crossOrigin,
 		requestsVideoFrame: false,
+		isClientSideRendering: false,
 	});
 
 	const propsToPass = useMemo((): AudioHTMLAttributes<HTMLAudioElement> => {
@@ -164,15 +165,15 @@ const AudioForDevelopmentForwardRefFunction: React.ForwardRefRenderFunction<
 		],
 	);
 
-	const context = useContext(SharedAudioContext);
-	if (!context) {
-		throw new Error('SharedAudioContext not found');
-	}
-
-	const {el: audioRef, mediaElementSourceNode} = useSharedAudio({
+	const {
+		el: audioRef,
+		mediaElementSourceNode,
+		cleanupOnMediaTagUnmount,
+	} = useSharedAudio({
 		aud: propsToPass,
 		audioId: id,
 		premounting: Boolean(sequenceContext?.premounting),
+		postmounting: Boolean(sequenceContext?.postmounting),
 	});
 
 	useMediaInTimeline({
@@ -221,6 +222,27 @@ const AudioForDevelopmentForwardRefFunction: React.ForwardRefRenderFunction<
 		volume: userPreferredVolume,
 		shouldUseWebAudioApi: useWebAudioApi ?? false,
 	});
+
+	/**
+	 * Effects in React 18 fire twice, and we are looking for a way to only fire it once.
+	 * - useInsertionEffect only fires once. If it's available we are in React 18.
+	 * - useLayoutEffect only fires once in React 17.
+	 *
+	 * Need to import it from React to fix React 17 ESM support.
+	 */
+	const effectToUse = React.useInsertionEffect ?? React.useLayoutEffect;
+
+	// Disconnecting the SharedElementSourceNodes if the Audio tag unmounts to prevent leak.
+	// https://github.com/remotion-dev/remotion/issues/6285
+	// But useInsertionEffect will fire before other effects, meaning the
+	// nodes might still be used. Using rAF to ensure it's after other effects.
+	effectToUse(() => {
+		return () => {
+			requestAnimationFrame(() => {
+				cleanupOnMediaTagUnmount();
+			});
+		};
+	}, [cleanupOnMediaTagUnmount]);
 
 	useImperativeHandle(ref, () => {
 		return audioRef.current as HTMLAudioElement;

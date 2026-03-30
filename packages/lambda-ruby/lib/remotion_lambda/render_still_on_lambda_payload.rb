@@ -7,9 +7,12 @@ def get_render_still_on_lambda_payload(
   download_behavior: nil,
   env_variables: {},
   force_height: nil,
+  force_fps: nil,
+  force_duration_in_frames: nil,
   force_path_style: false,
   force_width: nil,
   api_key: nil,
+  license_key: nil,
   image_format: "jpeg",
   input_props: {},
   jpeg_quality: 80,
@@ -27,8 +30,13 @@ def get_render_still_on_lambda_payload(
   serve_url: "testbed-v6",
   timeout_in_milliseconds: 30000,
   chromium_options: {},
-  frame: 0
+  frame: 0,
+  is_production: nil
 )
+
+if api_key != nil
+  warn "[DEPRECATED] The 'api_key' parameter is deprecated and will be removed in a future version. Please use 'license_key' instead."
+end
 
 payload = {
     composition: composition,
@@ -37,9 +45,11 @@ payload = {
     downloadBehavior: download_behavior,
     envVariables: env_variables,
     forceHeight: force_height,
+    forceFps: force_fps,
+    forceDurationInFrames: force_duration_in_frames,
     forcePathStyle: force_path_style,
     forceWidth: force_width,
-    apiKey: api_key,
+    licenseKey: license_key || api_key,
     imageFormat: image_format,
     inputProps: {
       type: "payload",
@@ -63,6 +73,7 @@ payload = {
     attempt: 1,
     streamed: false,
     frame: frame,
+    isProduction: is_production
   }
   payload
 end

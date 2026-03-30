@@ -1,9 +1,15 @@
 ---
 image: /generated/articles-docs-use-video-texture.png
 id: use-video-texture
-title: useVideoTexture()
+sidebar_label: useVideoTexture()
 crumb: '@remotion/three'
 ---
+
+# ~useVideoTexture()~
+
+:::warning
+Deprecated - we recommend using [`@remotion/media`](/docs/videos/as-threejs-texture) instead.
+:::
 
 Allows you to use a video in React Three Fiber that is synchronized with Remotion's `useCurrentFrame()`.
 
@@ -24,6 +30,7 @@ const MyVideo = () => {
 To convert the video to a video texture, place the `useVideoTexture()` hook in the same component.
 
 ```tsx twoslash
+import React from 'react';
 const videoRef: React.MutableRefObject<HTMLVideoElement | null> = React.useRef(null);
 // ---cut---
 import {useVideoTexture} from '@remotion/three';
@@ -36,6 +43,7 @@ const texture = useVideoTexture(videoRef);
 The return type of it is a `THREE.VideoTexture | null` which you can assign as a `map` to for example `meshBasicMaterial`. We recommend to only render the material when the texture is not `null` to prevent bugs.
 
 ```tsx twoslash
+import React from 'react';
 import {useVideoTexture} from '@remotion/three';
 const videoRef: React.MutableRefObject<HTMLVideoElement | null> = React.useRef(null);
 const videoTexture = useVideoTexture(videoRef);

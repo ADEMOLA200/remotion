@@ -1,3 +1,4 @@
+import path from 'path';
 import {CliInternals} from '@remotion/cli';
 import {ConfigInternals} from '@remotion/cli/config';
 import {AwsProvider, LambdaClientInternals} from '@remotion/lambda-client';
@@ -11,7 +12,6 @@ import {RenderInternals} from '@remotion/renderer';
 import {BrowserSafeApis} from '@remotion/renderer/client';
 import type {ProviderSpecifics} from '@remotion/serverless';
 import {validatePrivacy} from '@remotion/serverless';
-import path from 'path';
 import {NoReactInternals} from 'remotion/no-react';
 import {internalDownloadMedia} from '../../api/download-media';
 import {validateMaxRetries} from '../../shared/validate-retries';
@@ -34,6 +34,15 @@ const {
 	delayRenderTimeoutInMillisecondsOption,
 	binariesDirectoryOption,
 	mediaCacheSizeInBytesOption,
+	darkModeOption,
+	browserExecutableOption,
+	userAgentOption,
+	disableWebSecurityOption,
+	ignoreCertificateErrorsOption,
+	overrideHeightOption,
+	overrideWidthOption,
+	overrideFpsOption,
+	overrideDurationOption,
 } = BrowserSafeApis.options;
 
 const {
@@ -74,21 +83,31 @@ export const stillCommand = async ({
 		quit(1);
 	}
 
-	const {
-		envVariables,
-		inputProps,
-		stillFrame,
-		height,
-		width,
-		browserExecutable,
-		userAgent,
-		disableWebSecurity,
-		ignoreCertificateErrors,
-	} = getCliOptions({
+	const {envVariables, inputProps, stillFrame} = getCliOptions({
 		isStill: true,
 		logLevel,
 		indent: false,
 	});
+
+	const height = overrideHeightOption.getValue({
+		commandLine: parsedCli,
+	}).value;
+	const width = overrideWidthOption.getValue({commandLine: parsedCli}).value;
+	const fps = overrideFpsOption.getValue({commandLine: parsedCli}).value;
+	const durationInFrames = overrideDurationOption.getValue({
+		commandLine: parsedCli,
+	}).value;
+
+	const browserExecutable = browserExecutableOption.getValue({
+		commandLine: parsedCli,
+	}).value;
+	const userAgent = userAgentOption.getValue({commandLine: parsedCli}).value;
+	const disableWebSecurity = disableWebSecurityOption.getValue({
+		commandLine: parsedCli,
+	}).value;
+	const ignoreCertificateErrors = ignoreCertificateErrorsOption.getValue({
+		commandLine: parsedCli,
+	}).value;
 
 	const region = getAwsRegion();
 	let composition = args[1];
@@ -100,13 +119,15 @@ export const stillCommand = async ({
 	const headless = headlessOption.getValue({
 		commandLine: parsedCli,
 	}).value;
-	const chromiumOptions: ChromiumOptions = {
+	const darkMode = darkModeOption.getValue({commandLine: parsedCli}).value;
+	const chromiumOptions: Required<ChromiumOptions> = {
 		disableWebSecurity,
 		enableMultiProcessOnLinux,
 		gl,
 		headless,
 		ignoreCertificateErrors,
 		userAgent,
+		darkMode,
 	};
 
 	const timeoutInMilliseconds = delayRenderTimeoutInMillisecondsOption.getValue(
@@ -176,6 +197,8 @@ export const stillCommand = async ({
 			timeoutInMilliseconds,
 			height,
 			width,
+			fps,
+			durationInFrames,
 			server,
 			offthreadVideoCacheSizeInBytes,
 			offthreadVideoThreads,
@@ -184,6 +207,7 @@ export const stillCommand = async ({
 				indent,
 				logLevel,
 				quiet: CliInternals.quietFlagProvided(),
+				onProgress: () => undefined,
 			}),
 			chromeMode: 'headless-shell',
 			mediaCacheSizeInBytes: mediaCacheSizeInBytes,
@@ -202,15 +226,17 @@ export const stillCommand = async ({
 	const privacy = parsedLambdaCli.privacy ?? DEFAULT_OUTPUT_PRIVACY;
 	validatePrivacy(privacy, true);
 
+	const {stillImageFormatOption} = BrowserSafeApis.options;
+
 	const {format: imageFormat, source: imageFormatReason} =
 		determineFinalStillImageFormat({
 			downloadName,
 			outName: outName ?? null,
-			cliFlag: parsedCli['image-format'] ?? null,
+			configuredImageFormat: stillImageFormatOption.getValue({
+				commandLine: parsedCli,
+			}).value,
 			isLambda: true,
 			fromUi: null,
-			configImageFormat:
-				ConfigInternals.getUserPreferredStillImageFormat() ?? null,
 		});
 
 	Log.info(
@@ -254,6 +280,8 @@ export const stillCommand = async ({
 		scale,
 		forceHeight: height,
 		forceWidth: width,
+		forceFps: fps,
+		forceDurationInFrames: durationInFrames,
 		onInit: ({cloudWatchLogs, lambdaInsightsUrl}) => {
 			Log.verbose(
 				{indent: false, logLevel},
@@ -274,8 +302,8 @@ export const stillCommand = async ({
 		},
 		deleteAfter: deleteAfter ?? null,
 		storageClass: parsedLambdaCli['storage-class'] ?? null,
-		apiKey:
-			parsedLambdaCli[BrowserSafeApis.options.apiKeyOption.cliFlag] ?? null,
+		licenseKey:
+			parsedLambdaCli[BrowserSafeApis.options.licenseKeyOption.cliFlag] ?? null,
 		downloadBehavior: {type: 'play-in-browser'},
 		forceBucketName: parsedLambdaCli['force-bucket-name'] ?? null,
 		forcePathStyle: parsedLambdaCli['force-path-style'] ?? false,
@@ -284,6 +312,9 @@ export const stillCommand = async ({
 		offthreadVideoThreads: null,
 		requestHandler: null,
 		mediaCacheSizeInBytes,
+		isProduction:
+			parsedLambdaCli[BrowserSafeApis.options.isProductionOption.cliFlag] ??
+			true,
 	});
 	Log.info(
 		{indent: false, logLevel},
@@ -331,6 +362,10 @@ export const stillCommand = async ({
 			logLevel,
 			providerSpecifics: providerSpecifics,
 			forcePathStyle: parsedLambdaCli['force-path-style'],
+			signal: new AbortController().signal,
+			customCredentials: null,
+			onProgress: () => undefined,
+			requestHandler: null,
 		});
 		const relativePath = path.relative(process.cwd(), outputPath);
 		Log.info(

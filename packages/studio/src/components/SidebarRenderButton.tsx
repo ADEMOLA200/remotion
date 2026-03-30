@@ -47,7 +47,7 @@ export const SidebarRenderButton: React.FC<{
 
 			e.stopPropagation();
 			setSelectedModal({
-				type: 'render',
+				type: 'server-render',
 				compositionId: composition.id,
 				initialFrame: 0,
 				initialVideoImageFormat: defaults.videoImageFormat,
@@ -97,6 +97,8 @@ export const SidebarRenderButton: React.FC<{
 				initialChromeMode: defaults.chromeMode,
 				initialMediaCacheSizeInBytes: defaults.mediaCacheSizeInBytes,
 				renderDefaults: defaults,
+				initialDarkMode: defaults.darkMode,
+				readOnlyStudio: false,
 			});
 
 			if (isMobileLayout) {

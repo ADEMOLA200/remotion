@@ -6,7 +6,12 @@ import React, {
 	useRef,
 	useState,
 } from 'react';
-import type {LogLevel, LoopVolumeCurveBehavior, VolumeProp} from 'remotion';
+import type {
+	LogLevel,
+	LoopVolumeCurveBehavior,
+	SequenceControls,
+	VolumeProp,
+} from 'remotion';
 import {
 	Html5Video,
 	Internals,
@@ -16,7 +21,9 @@ import {
 } from 'remotion';
 import {getTimeInSeconds} from '../get-time-in-seconds';
 import {MediaPlayer} from '../media-player';
+import {type MediaOnError, callOnErrorAndResolve} from '../on-error';
 import {useLoopDisplay} from '../show-in-timeline';
+import {useCommonEffects} from '../use-common-effects';
 import {useMediaInTimeline} from '../use-media-in-timeline';
 import type {FallbackOffthreadVideoProps} from './props';
 
@@ -54,9 +61,19 @@ type VideoForPreviewProps = {
 	readonly fallbackOffthreadVideoProps: FallbackOffthreadVideoProps;
 	readonly audioStreamIndex: number;
 	readonly debugOverlay: boolean;
+	readonly debugAudioScheduling: boolean;
+	readonly headless: boolean;
+	readonly onError: MediaOnError | undefined;
+	readonly credentials: RequestCredentials | undefined;
 };
 
-const VideoForPreviewAssertedShowing: React.FC<VideoForPreviewProps> = ({
+type VideoForPreviewAssertedShowingProps = VideoForPreviewProps & {
+	readonly controls: SequenceControls | undefined;
+};
+
+const VideoForPreviewAssertedShowing: React.FC<
+	VideoForPreviewAssertedShowingProps
+> = ({
 	src: unpreloadedSrc,
 	style,
 	playbackRate,
@@ -76,6 +93,11 @@ const VideoForPreviewAssertedShowing: React.FC<VideoForPreviewProps> = ({
 	fallbackOffthreadVideoProps,
 	audioStreamIndex,
 	debugOverlay,
+	debugAudioScheduling,
+	headless,
+	onError,
+	credentials,
+	controls,
 }) => {
 	const src = usePreload(unpreloadedSrc);
 
@@ -83,13 +105,16 @@ const VideoForPreviewAssertedShowing: React.FC<VideoForPreviewProps> = ({
 	const videoConfig = useUnsafeVideoConfig();
 	const frame = useCurrentFrame();
 	const mediaPlayerRef = useRef<MediaPlayer | null>(null);
+	const initialTrimBeforeRef = useRef(trimBefore);
+	const initialTrimAfterRef = useRef(trimAfter);
+	const initialOnVideoFrameRef = useRef(onVideoFrame);
 
 	const [mediaPlayerReady, setMediaPlayerReady] = useState(false);
 	const [shouldFallbackToNativeVideo, setShouldFallbackToNativeVideo] =
 		useState(false);
 
 	const [playing] = Timeline.usePlayingState();
-	const timelineContext = useContext(Internals.TimelineContext);
+	const timelineContext = Internals.useTimelineContext();
 	const globalPlaybackRate = timelineContext.playbackRate;
 	const sharedAudioContext = useContext(SharedAudioContext);
 	const buffer = useBufferState();
@@ -110,11 +135,19 @@ const VideoForPreviewAssertedShowing: React.FC<VideoForPreviewProps> = ({
 		mediaVolume,
 	});
 
+	if (!videoConfig) {
+		throw new Error('No video config found');
+	}
+
 	warnAboutTooHighVolume(userPreferredVolume);
 
 	const parentSequence = useContext(SequenceContext);
 	const isPremounting = Boolean(parentSequence?.premounting);
 	const isPostmounting = Boolean(parentSequence?.postmounting);
+	const sequenceOffset =
+		((parentSequence?.cumulatedFrom ?? 0) +
+			(parentSequence?.relativeFrom ?? 0)) /
+		videoConfig.fps;
 
 	const loopDisplay = useLoopDisplay({
 		loop,
@@ -138,13 +171,10 @@ const VideoForPreviewAssertedShowing: React.FC<VideoForPreviewProps> = ({
 		mediaVolume,
 		trimAfter,
 		trimBefore,
+		controls,
 	});
 
 	const isSequenceHidden = hidden[timelineId] ?? false;
-
-	if (!videoConfig) {
-		throw new Error('No video config found');
-	}
 
 	const currentTime = frame / videoConfig.fps;
 
@@ -160,97 +190,108 @@ const VideoForPreviewAssertedShowing: React.FC<VideoForPreviewProps> = ({
 		);
 	}
 
+	const effectiveMuted =
+		isSequenceHidden || muted || mediaMuted || userPreferredVolume <= 0;
+
 	const isPlayerBuffering = Internals.useIsPlayerBuffering(buffering);
+	const initialPlaying = useRef(playing && !isPlayerBuffering);
+	const initialIsPremounting = useRef(isPremounting);
+	const initialIsPostmounting = useRef(isPostmounting);
+	const initialGlobalPlaybackRate = useRef(globalPlaybackRate);
+	const initialPlaybackRate = useRef(playbackRate);
+	const initialMuted = useRef(effectiveMuted);
+	const initialDurationInFrames = useRef(videoConfig.durationInFrames);
+	const initialSequenceOffset = useRef(sequenceOffset);
 
 	useEffect(() => {
-		if (!canvasRef.current) return;
 		if (!sharedAudioContext) return;
 		if (!sharedAudioContext.audioContext) return;
 
+		const {audioContext, audioSyncAnchor, scheduleAudioNode} =
+			sharedAudioContext;
+
 		try {
 			const player = new MediaPlayer({
-				canvas: canvasRef.current!,
+				canvas: canvasRef.current,
 				src: preloadedSrc,
 				logLevel,
-				sharedAudioContext: sharedAudioContext.audioContext,
+				sharedAudioContext: {audioContext, audioSyncAnchor, scheduleAudioNode},
 				loop,
-				trimAfter,
-				trimBefore,
+				trimAfter: initialTrimAfterRef.current,
+				trimBefore: initialTrimBeforeRef.current,
 				fps: videoConfig.fps,
-				playbackRate,
+				playbackRate: initialPlaybackRate.current,
 				audioStreamIndex,
 				debugOverlay,
+				debugAudioScheduling,
 				bufferState: buffer,
-				isPremounting,
-				isPostmounting,
-				globalPlaybackRate,
+				isPremounting: initialIsPremounting.current,
+				isPostmounting: initialIsPostmounting.current,
+				globalPlaybackRate: initialGlobalPlaybackRate.current,
+				durationInFrames: initialDurationInFrames.current,
+				onVideoFrameCallback: initialOnVideoFrameRef.current ?? null,
+				playing: initialPlaying.current,
+				sequenceOffset: initialSequenceOffset.current,
+				credentials,
 			});
 
 			mediaPlayerRef.current = player;
 			player
-				.initialize(currentTimeRef.current)
+				.initialize(currentTimeRef.current, initialMuted.current)
 				.then((result) => {
 					if (result.type === 'disposed') {
 						return;
 					}
 
-					if (result.type === 'unknown-container-format') {
-						if (disallowFallbackToOffthreadVideo) {
-							throw new Error(
-								`Unknown container format ${preloadedSrc}, and 'disallowFallbackToOffthreadVideo' was set.`,
-							);
+					const handleError = (error: Error, fallbackMessage: string) => {
+						const [action, errorToUse] = callOnErrorAndResolve({
+							onError,
+							error,
+							disallowFallback: disallowFallbackToOffthreadVideo,
+							isClientSideRendering: false,
+							clientSideError: error,
+						});
+						if (action === 'fail') {
+							throw errorToUse;
 						}
 
+						// action === 'fallback'
 						Internals.Log.warn(
 							{logLevel, tag: '@remotion/media'},
-							`Unknown container format for ${preloadedSrc} (Supported formats: https://www.remotion.dev/docs/mediabunny/formats), falling back to <OffthreadVideo>`,
+							fallbackMessage,
 						);
 						setShouldFallbackToNativeVideo(true);
+					};
+
+					if (result.type === 'unknown-container-format') {
+						handleError(
+							new Error(`Unknown container format ${preloadedSrc}.`),
+							`Unknown container format for ${preloadedSrc} (Supported formats: https://www.remotion.dev/docs/mediabunny/formats), falling back to <OffthreadVideo>`,
+						);
 						return;
 					}
 
 					if (result.type === 'network-error') {
-						if (disallowFallbackToOffthreadVideo) {
-							throw new Error(
-								`Network error fetching ${preloadedSrc}, and 'disallowFallbackToOffthreadVideo' was set.`,
-							);
-						}
-
-						Internals.Log.warn(
-							{logLevel, tag: '@remotion/media'},
+						handleError(
+							new Error(`Network error fetching ${preloadedSrc}.`),
 							`Network error fetching ${preloadedSrc}, falling back to <OffthreadVideo>`,
 						);
-						setShouldFallbackToNativeVideo(true);
 						return;
 					}
 
 					if (result.type === 'cannot-decode') {
-						if (disallowFallbackToOffthreadVideo) {
-							throw new Error(
-								`Cannot decode ${preloadedSrc}, and 'disallowFallbackToOffthreadVideo' was set.`,
-							);
-						}
-
-						Internals.Log.warn(
-							{logLevel, tag: '@remotion/media'},
+						handleError(
+							new Error(`Cannot decode ${preloadedSrc}.`),
 							`Cannot decode ${preloadedSrc}, falling back to <OffthreadVideo>`,
 						);
-						setShouldFallbackToNativeVideo(true);
 						return;
 					}
 
 					if (result.type === 'no-tracks') {
-						if (disallowFallbackToOffthreadVideo) {
-							throw new Error(
-								`No video or audio tracks found for ${preloadedSrc}, and 'disallowFallbackToOffthreadVideo' was set.`,
-							);
-						}
-
-						Internals.Log.warn(
-							{logLevel, tag: '@remotion/media'},
+						handleError(
+							new Error(`No video or audio tracks found for ${preloadedSrc}.`),
 							`No video or audio tracks found for ${preloadedSrc}, falling back to <OffthreadVideo>`,
 						);
-						setShouldFallbackToNativeVideo(true);
 						return;
 					}
 
@@ -260,18 +301,40 @@ const VideoForPreviewAssertedShowing: React.FC<VideoForPreviewProps> = ({
 					}
 				})
 				.catch((error) => {
+					const [action, errorToUse] = callOnErrorAndResolve({
+						onError,
+						error,
+						disallowFallback: disallowFallbackToOffthreadVideo,
+						isClientSideRendering: false,
+						clientSideError: error,
+					});
+					if (action === 'fail') {
+						throw errorToUse;
+					}
+
 					Internals.Log.error(
 						{logLevel, tag: '@remotion/media'},
 						'[VideoForPreview] Failed to initialize MediaPlayer',
-						error,
+						errorToUse,
 					);
 					setShouldFallbackToNativeVideo(true);
 				});
 		} catch (error) {
+			const [action, errorToUse] = callOnErrorAndResolve({
+				error: error as Error,
+				onError,
+				disallowFallback: disallowFallbackToOffthreadVideo,
+				isClientSideRendering: false,
+				clientSideError: error as Error,
+			});
+			if (action === 'fail') {
+				throw errorToUse;
+			}
+
 			Internals.Log.error(
 				{logLevel, tag: '@remotion/media'},
 				'[VideoForPreview] MediaPlayer initialization failed',
-				error,
+				errorToUse,
 			);
 			setShouldFallbackToNativeVideo(true);
 		}
@@ -290,21 +353,18 @@ const VideoForPreviewAssertedShowing: React.FC<VideoForPreviewProps> = ({
 			setShouldFallbackToNativeVideo(false);
 		};
 	}, [
-		preloadedSrc,
-		logLevel,
-		sharedAudioContext,
-		loop,
-		trimAfter,
-		trimBefore,
-		videoConfig.fps,
-		playbackRate,
-		disallowFallbackToOffthreadVideo,
 		audioStreamIndex,
-		debugOverlay,
 		buffer,
-		isPremounting,
-		isPostmounting,
-		globalPlaybackRate,
+		debugOverlay,
+		debugAudioScheduling,
+		disallowFallbackToOffthreadVideo,
+		logLevel,
+		loop,
+		preloadedSrc,
+		sharedAudioContext,
+		videoConfig.fps,
+		onError,
+		credentials,
 	]);
 
 	const classNameValue = useMemo(() => {
@@ -313,50 +373,33 @@ const VideoForPreviewAssertedShowing: React.FC<VideoForPreviewProps> = ({
 			.join(' ');
 	}, [className]);
 
-	useEffect(() => {
-		const mediaPlayer = mediaPlayerRef.current;
-		if (!mediaPlayer) return;
-
-		if (playing && !isPlayerBuffering) {
-			mediaPlayer.play(currentTimeRef.current);
-		} else {
-			mediaPlayer.pause();
-		}
-	}, [isPlayerBuffering, playing, logLevel, mediaPlayerReady]);
+	useCommonEffects({
+		mediaPlayerRef,
+		mediaPlayerReady,
+		currentTimeRef,
+		playing,
+		isPlayerBuffering,
+		frame,
+		trimBefore,
+		trimAfter,
+		effectiveMuted,
+		userPreferredVolume,
+		playbackRate,
+		globalPlaybackRate,
+		fps: videoConfig.fps,
+		sequenceOffset,
+		loop,
+		debugAudioScheduling,
+		durationInFrames: videoConfig.durationInFrames,
+		isPremounting,
+		isPostmounting,
+		currentTime,
+		logLevel,
+		sharedAudioContext,
+		label: 'VideoForPreview',
+	});
 
 	useLayoutEffect(() => {
-		const mediaPlayer = mediaPlayerRef.current;
-		if (!mediaPlayer || !mediaPlayerReady) return;
-
-		mediaPlayer.seekTo(currentTime).catch(() => {
-			// Might be disposed
-		});
-		Internals.Log.trace(
-			{logLevel, tag: '@remotion/media'},
-			`[VideoForPreview] Updating target time to ${currentTime.toFixed(3)}s`,
-		);
-	}, [currentTime, logLevel, mediaPlayerReady]);
-
-	const effectiveMuted =
-		isSequenceHidden || muted || mediaMuted || userPreferredVolume <= 0;
-
-	useEffect(() => {
-		const mediaPlayer = mediaPlayerRef.current;
-		if (!mediaPlayer || !mediaPlayerReady) return;
-
-		mediaPlayer.setMuted(effectiveMuted);
-	}, [effectiveMuted, mediaPlayerReady]);
-
-	useEffect(() => {
-		const mediaPlayer = mediaPlayerRef.current;
-		if (!mediaPlayer || !mediaPlayerReady) {
-			return;
-		}
-
-		mediaPlayer.setVolume(userPreferredVolume);
-	}, [userPreferredVolume, mediaPlayerReady]);
-
-	useEffect(() => {
 		const mediaPlayer = mediaPlayerRef.current;
 		if (!mediaPlayer || !mediaPlayerReady) {
 			return;
@@ -365,61 +408,7 @@ const VideoForPreviewAssertedShowing: React.FC<VideoForPreviewProps> = ({
 		mediaPlayer.setDebugOverlay(debugOverlay);
 	}, [debugOverlay, mediaPlayerReady]);
 
-	useEffect(() => {
-		const mediaPlayer = mediaPlayerRef.current;
-		if (!mediaPlayer || !mediaPlayerReady) {
-			return;
-		}
-
-		mediaPlayer.setPlaybackRate(playbackRate);
-	}, [playbackRate, mediaPlayerReady]);
-
-	useEffect(() => {
-		const mediaPlayer = mediaPlayerRef.current;
-		if (!mediaPlayer || !mediaPlayerReady) {
-			return;
-		}
-
-		mediaPlayer.setGlobalPlaybackRate(globalPlaybackRate);
-	}, [globalPlaybackRate, mediaPlayerReady]);
-
-	useEffect(() => {
-		const mediaPlayer = mediaPlayerRef.current;
-		if (!mediaPlayer || !mediaPlayerReady) {
-			return;
-		}
-
-		mediaPlayer.setLoop(loop);
-	}, [loop, mediaPlayerReady]);
-
-	useEffect(() => {
-		const mediaPlayer = mediaPlayerRef.current;
-		if (!mediaPlayer || !mediaPlayerReady) {
-			return;
-		}
-
-		mediaPlayer.setIsPremounting(isPremounting);
-	}, [isPremounting, mediaPlayerReady]);
-
-	useEffect(() => {
-		const mediaPlayer = mediaPlayerRef.current;
-		if (!mediaPlayer || !mediaPlayerReady) {
-			return;
-		}
-
-		mediaPlayer.setIsPostmounting(isPostmounting);
-	}, [isPostmounting, mediaPlayerReady]);
-
-	useEffect(() => {
-		const mediaPlayer = mediaPlayerRef.current;
-		if (!mediaPlayer || !mediaPlayerReady) {
-			return;
-		}
-
-		mediaPlayer.setFps(videoConfig.fps);
-	}, [videoConfig.fps, mediaPlayerReady]);
-
-	useEffect(() => {
+	useLayoutEffect(() => {
 		const mediaPlayer = mediaPlayerRef.current;
 		if (!mediaPlayer || !mediaPlayerReady) {
 			return;
@@ -427,24 +416,6 @@ const VideoForPreviewAssertedShowing: React.FC<VideoForPreviewProps> = ({
 
 		mediaPlayer.setVideoFrameCallback(onVideoFrame ?? null);
 	}, [onVideoFrame, mediaPlayerReady]);
-
-	useEffect(() => {
-		const mediaPlayer = mediaPlayerRef.current;
-		if (!mediaPlayer || !mediaPlayerReady) {
-			return;
-		}
-
-		mediaPlayer.setTrimBefore(trimBefore);
-	}, [trimBefore, mediaPlayerReady]);
-
-	useEffect(() => {
-		const mediaPlayer = mediaPlayerRef.current;
-		if (!mediaPlayer || !mediaPlayerReady) {
-			return;
-		}
-
-		mediaPlayer.setTrimAfter(trimAfter);
-	}, [trimAfter, mediaPlayerReady]);
 
 	const actualStyle: React.CSSProperties = useMemo(() => {
 		return {
@@ -476,18 +447,27 @@ const VideoForPreviewAssertedShowing: React.FC<VideoForPreviewProps> = ({
 		);
 	}
 
+	if (headless) {
+		return null;
+	}
+
 	return (
 		<canvas
 			ref={canvasRef}
-			width={videoConfig.width}
-			height={videoConfig.height}
+			// Don't set width and height here.
+			// Width is set in the video iterator manager, if props are being updated, they are being applied again by React.
+			// This will lead to inefficient resizes.
 			style={actualStyle}
 			className={classNameValue}
 		/>
 	);
 };
 
-export const VideoForPreview: React.FC<VideoForPreviewProps> = (props) => {
+export const VideoForPreview: React.FC<
+	VideoForPreviewProps & {
+		readonly controls: SequenceControls | undefined;
+	}
+> = (props) => {
 	const frame = useCurrentFrame();
 	const videoConfig = useVideoConfig();
 	const currentTime = frame / videoConfig.fps;
@@ -511,14 +491,16 @@ export const VideoForPreview: React.FC<VideoForPreviewProps> = (props) => {
 		props.loop,
 		props.playbackRate,
 		props.src,
-		props.trimAfter,
-		props.trimBefore,
 		videoConfig.fps,
+		props.trimBefore,
+		props.trimAfter,
 	]);
 
 	if (!showShow) {
 		return null;
 	}
 
-	return <VideoForPreviewAssertedShowing {...props} />;
+	return (
+		<VideoForPreviewAssertedShowing {...props} controls={props.controls} />
+	);
 };

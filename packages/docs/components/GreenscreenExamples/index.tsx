@@ -44,7 +44,7 @@ export const Greenscreen: React.FC<{
 				<OffthreadVideo
 					style={{opacity: 0}}
 					onVideoFrame={onVideoFrame}
-					src="https://pub-646d808d9cb240cea53bedc76dd3cd0c.r2.dev/just-do-it-short.mp4"
+					src="https://remotion.media/greenscreen.mp4"
 				/>
 			</AbsoluteFill>
 			<AbsoluteFill>
@@ -83,7 +83,7 @@ export const VideoOnCanvas: React.FC = () => {
 					onVideoFrame={onVideoFrame}
 					style={{opacity: 0}}
 					trimBefore={300}
-					src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
+					src="https://remotion.media/BigBuckBunny.mp4"
 				/>
 			</AbsoluteFill>
 			<AbsoluteFill>
@@ -107,6 +107,7 @@ export const VideoCanvasExamples: React.FC<{
 	return (
 		<div>
 			<Player
+				acknowledgeRemotionLicense
 				component={component}
 				compositionWidth={1280}
 				compositionHeight={720}

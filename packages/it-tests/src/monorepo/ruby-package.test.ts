@@ -1,8 +1,8 @@
-import {LambdaClientInternals} from '@remotion/lambda-client';
 import {beforeAll, expect, test} from 'bun:test';
 import {execSync} from 'child_process';
 import fs from 'fs';
 import path from 'path';
+import {LambdaClientInternals} from '@remotion/lambda-client';
 import {VERSION} from 'remotion';
 
 const rubySdk = path.join(__dirname, '..', '..', '..', 'lambda-ruby');
@@ -100,6 +100,8 @@ test('Render Media payload', async () => {
 			forceBucketName: null,
 			forceHeight: null,
 			forceWidth: null,
+			forceDurationInFrames: null,
+			forceFps: null,
 			frameRange: null,
 			framesPerLambda: null,
 			imageFormat: 'jpeg',
@@ -135,10 +137,11 @@ test('Render Media payload', async () => {
 			metadata: {
 				Author: 'Lunar',
 			},
-			apiKey: null,
+			licenseKey: null,
 			storageClass: null,
 			requestHandler: null,
 			mediaCacheSizeInBytes: null,
+			isProduction: null,
 		});
 
 	expect(JSON.parse(output)).toEqual(nativeVersion);
@@ -167,6 +170,8 @@ test('Render Still payload', async () => {
 			forceBucketName: null,
 			forceHeight: null,
 			forceWidth: null,
+			forceDurationInFrames: null,
+			forceFps: null,
 			imageFormat: 'jpeg',
 			jpegQuality: 80,
 			logLevel: 'info',
@@ -180,11 +185,12 @@ test('Render Still payload', async () => {
 			indent: false,
 			onInit: () => undefined,
 			forcePathStyle: false,
-			apiKey: null,
+			licenseKey: null,
 			offthreadVideoThreads: null,
 			storageClass: null,
 			requestHandler: null,
 			mediaCacheSizeInBytes: null,
+			isProduction: null,
 		});
 
 	expect(JSON.parse(output)).toEqual({...nativeVersion, streamed: false});

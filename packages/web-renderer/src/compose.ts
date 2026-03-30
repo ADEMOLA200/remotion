@@ -1,87 +1,91 @@
-import type {Composable} from './composable';
+import type {LogLevel} from 'remotion';
+import type {InternalState} from './internal-state';
+import {createTreeWalkerCleanupAfterChildren} from './tree-walker-cleanup-after-children';
+import {walkOverNode} from './walk-over-node';
+import {skipToNextNonDescendant} from './walk-tree';
 
-type ImgDrawable = {
-	image: HTMLImageElement;
-	width: number;
-	height: number;
-	left: number;
-	top: number;
-};
-
-const svgToImageBitmap = (svg: SVGSVGElement): Promise<ImgDrawable | null> => {
-	const computedStyle = getComputedStyle(svg);
-
-	const {transform: originalTransform} = computedStyle;
-
-	svg.style.transform = 'none';
-	const svgDimensions = svg.getBoundingClientRect();
-	svg.style.transform = originalTransform;
-
-	if (svgDimensions.width === 0 || svgDimensions.height === 0) {
-		return Promise.resolve(null);
+const getFilterFunction = (node: Node) => {
+	if (!(node instanceof Element)) {
+		// Must be a text node!
+		return NodeFilter.FILTER_ACCEPT;
 	}
 
-	const svgData = new XMLSerializer().serializeToString(svg);
+	// SVG does have children, but we process SVG elements in its
+	// entirety
+	if (node.parentElement instanceof SVGSVGElement) {
+		return NodeFilter.FILTER_REJECT;
+	}
 
-	return new Promise<ImgDrawable>((resolve, reject) => {
-		const image = new Image(svgDimensions.width, svgDimensions.height);
-		const url = 'data:image/svg+xml;base64,' + window.btoa(svgData);
+	const computedStyle = getComputedStyle(node);
 
-		image.onload = function () {
-			resolve({
-				image,
-				width: svgDimensions.width,
-				height: svgDimensions.height,
-				left: svgDimensions.left,
-				top: svgDimensions.top,
-			});
-		};
+	if (computedStyle.display === 'none') {
+		return NodeFilter.FILTER_REJECT;
+	}
 
-		image.onerror = () => {
-			reject(new Error('Failed to convert SVG to image'));
-		};
-
-		image.src = url;
-	});
+	return NodeFilter.FILTER_ACCEPT;
 };
 
 export const compose = async ({
-	composables,
-	width,
-	height,
+	element,
+	context,
+	logLevel,
+	parentRect,
+	internalState,
+	onlyBackgroundClipText,
+	scale,
 }: {
-	composables: Composable[];
-	width: number;
-	height: number;
+	element: HTMLElement | SVGElement;
+	context: OffscreenCanvasRenderingContext2D;
+	logLevel: LogLevel;
+	parentRect: DOMRect;
+	internalState: InternalState;
+	onlyBackgroundClipText: boolean;
+	scale: number;
 }) => {
-	const canvas = new OffscreenCanvas(width, height);
-	const context = canvas.getContext('2d');
+	const treeWalker = document.createTreeWalker(
+		element,
+		onlyBackgroundClipText
+			? NodeFilter.SHOW_TEXT
+			: NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT,
+		getFilterFunction,
+	);
 
-	if (!context) {
-		throw new Error('Could not get context');
-	}
-
-	// TODO: Consider z-index
-	for (const composable of composables) {
-		if (composable.type === 'canvas') {
-			const boundingClientRect = composable.element.getBoundingClientRect();
-			context.drawImage(
-				composable.element,
-				boundingClientRect.left,
-				boundingClientRect.top,
-			);
-		} else if (composable.type === 'svg') {
-			// This already takes care of the "transform" of the SVG
-			// but not of the transforms of the parent
-			const imageBitmap = await svgToImageBitmap(composable.element);
-
-			if (imageBitmap) {
-				// transform origin
-				// Don't need to get transform from SVG
-				context.drawImage(imageBitmap.image, imageBitmap.left, imageBitmap.top);
-			}
+	// Skip to the first text node
+	if (onlyBackgroundClipText) {
+		treeWalker.nextNode();
+		if (!treeWalker.currentNode) {
+			return;
 		}
 	}
 
-	return canvas;
+	using treeWalkerClean = createTreeWalkerCleanupAfterChildren(treeWalker);
+	const {checkCleanUpAtBeginningOfIteration, addCleanup} = treeWalkerClean;
+
+	while (true) {
+		checkCleanUpAtBeginningOfIteration();
+
+		const val = await walkOverNode({
+			node: treeWalker.currentNode,
+			context,
+			logLevel,
+			parentRect,
+			internalState,
+			rootElement: element,
+			onlyBackgroundClipText,
+			scale,
+		});
+		if (val.type === 'skip-children') {
+			if (!skipToNextNonDescendant(treeWalker)) {
+				break;
+			}
+		} else {
+			if (val.cleanupAfterChildren) {
+				addCleanup(treeWalker.currentNode, val.cleanupAfterChildren);
+			}
+
+			if (!treeWalker.nextNode()) {
+				break;
+			}
+		}
+	}
 };

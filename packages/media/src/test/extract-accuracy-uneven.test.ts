@@ -1,5 +1,6 @@
 import {assert, expect, test} from 'vitest';
 import {extractAudio} from '../audio-extraction/extract-audio';
+import {getMaxVideoCacheSize} from '../caches';
 
 test('Extract accuracy over 100 frames with playback rate 1.75', async () => {
 	const FPS = 25;
@@ -19,6 +20,8 @@ test('Extract accuracy over 100 frames with playback rate 1.75', async () => {
 			src: 'https://remotion.media/video.mp4',
 			trimBefore: undefined,
 			trimAfter: undefined,
+			maxCacheSize: getMaxVideoCacheSize('info'),
+			credentials: undefined,
 		});
 		if (audio === 'cannot-decode') {
 			throw new Error(`Cannot decode at frame ${i}`);
@@ -26,6 +29,10 @@ test('Extract accuracy over 100 frames with playback rate 1.75', async () => {
 
 		if (audio === 'unknown-container-format') {
 			throw new Error(`Unknown container format at frame ${i}`);
+		}
+
+		if (audio === 'network-error') {
+			throw new Error(`Network error at frame ${i}`);
 		}
 
 		assert(audio);

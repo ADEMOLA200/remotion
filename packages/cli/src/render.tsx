@@ -44,6 +44,25 @@ const {
 	audioLatencyHintOption,
 	imageSequencePatternOption,
 	mediaCacheSizeInBytesOption,
+	darkModeOption,
+	askAIOption,
+	experimentalClientSideRenderingOption,
+	experimentalVisualModeOption,
+	keyboardShortcutsOption,
+	rspackOption,
+	pixelFormatOption,
+	browserExecutableOption,
+	everyNthFrameOption,
+	proResProfileOption,
+	userAgentOption,
+	disableWebSecurityOption,
+	ignoreCertificateErrorsOption,
+	concurrencyOption,
+	overrideHeightOption,
+	overrideWidthOption,
+	overrideFpsOption,
+	overrideDurationOption,
+	bundleCacheOption,
 } = BrowserSafeApis.options;
 
 export const render = async (
@@ -84,27 +103,50 @@ export const render = async (
 	}
 
 	const {
-		concurrency,
 		frameRange,
 		shouldOutputImageSequence,
 		inputProps,
 		envVariables,
-		browserExecutable,
-		everyNthFrame,
-		userAgent,
-		disableWebSecurity,
-		ignoreCertificateErrors,
-		height,
-		width,
 		ffmpegOverride,
-		proResProfile,
-		pixelFormat,
 	} = getCliOptions({
 		isStill: false,
 		logLevel,
 		indent: false,
 	});
 
+	const concurrency = concurrencyOption.getValue({
+		commandLine: parsedCli,
+	}).value;
+	const height = overrideHeightOption.getValue({
+		commandLine: parsedCli,
+	}).value;
+	const width = overrideWidthOption.getValue({
+		commandLine: parsedCli,
+	}).value;
+	const fps = overrideFpsOption.getValue({commandLine: parsedCli}).value;
+	const durationInFrames = overrideDurationOption.getValue({
+		commandLine: parsedCli,
+	}).value;
+
+	const pixelFormat = pixelFormatOption.getValue({
+		commandLine: parsedCli,
+	}).value;
+	const browserExecutable = browserExecutableOption.getValue({
+		commandLine: parsedCli,
+	}).value;
+	const everyNthFrame = everyNthFrameOption.getValue({
+		commandLine: parsedCli,
+	}).value;
+	const proResProfile = proResProfileOption.getValue({
+		commandLine: parsedCli,
+	}).value;
+	const userAgent = userAgentOption.getValue({commandLine: parsedCli}).value;
+	const disableWebSecurity = disableWebSecurityOption.getValue({
+		commandLine: parsedCli,
+	}).value;
+	const ignoreCertificateErrors = ignoreCertificateErrorsOption.getValue({
+		commandLine: parsedCli,
+	}).value;
 	const x264Preset = x264Option.getValue({commandLine: parsedCli}).value;
 	const audioBitrate = audioBitrateOption.getValue({
 		commandLine: parsedCli,
@@ -177,14 +219,21 @@ export const render = async (
 	const metadata = metadataOption.getValue({commandLine: parsedCli}).value;
 	const publicPath = publicPathOption.getValue({commandLine: parsedCli}).value;
 	const chromeMode = chromeModeOption.getValue({commandLine: parsedCli}).value;
+	const darkMode = darkModeOption.getValue({commandLine: parsedCli}).value;
+	const askAIEnabled = askAIOption.getValue({commandLine: parsedCli}).value;
+	const keyboardShortcutsEnabled = keyboardShortcutsOption.getValue({
+		commandLine: parsedCli,
+	}).value;
+	const rspack = rspackOption.getValue({commandLine: parsedCli}).value;
 
-	const chromiumOptions: ChromiumOptions = {
+	const chromiumOptions: Required<ChromiumOptions> = {
 		disableWebSecurity,
 		enableMultiProcessOnLinux,
 		gl,
 		headless,
 		ignoreCertificateErrors,
 		userAgent,
+		darkMode,
 	};
 
 	const audioCodec = audioCodecOption.getValue({commandLine: parsedCli}).value;
@@ -199,6 +248,16 @@ export const render = async (
 		commandLine: parsedCli,
 	}).value;
 	const mediaCacheSizeInBytes = mediaCacheSizeInBytesOption.getValue({
+		commandLine: parsedCli,
+	}).value;
+	const shouldCache = bundleCacheOption.getValue({
+		commandLine: parsedCli,
+	}).value;
+	const experimentalClientSideRenderingEnabled =
+		experimentalClientSideRenderingOption.getValue({
+			commandLine: parsedCli,
+		}).value;
+	const experimentalVisualModeEnabled = experimentalVisualModeOption.getValue({
 		commandLine: parsedCli,
 	}).value;
 
@@ -224,6 +283,8 @@ export const render = async (
 		port: getRendererPortFromConfigFileAndCliFlag(),
 		height,
 		width,
+		fps,
+		durationInFrames,
 		remainingArgs,
 		compositionIdFromUi: null,
 		entryPointReason,
@@ -269,5 +330,11 @@ export const render = async (
 		offthreadVideoThreads,
 		audioLatencyHint,
 		imageSequencePattern,
+		askAIEnabled,
+		experimentalClientSideRenderingEnabled,
+		experimentalVisualModeEnabled,
+		keyboardShortcutsEnabled,
+		rspack,
+		shouldCache,
 	});
 };

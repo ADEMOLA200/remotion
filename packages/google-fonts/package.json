@@ -3,14 +3,15 @@
 		"url": "https://github.com/remotion-dev/remotion/tree/main/packages/google-fonts"
 	},
 	"name": "@remotion/google-fonts",
-	"version": "4.0.373",
+	"version": "4.0.441",
 	"description": "Use Google Fonts in Remotion",
 	"main": "dist/cjs/index.js",
 	"module": "dist/esm/index.mjs",
 	"scripts": {
-		"make": "tsc -d && bun --env-file=../.env.bundle bundle.ts",
+		"make": "tsgo -d && bun --env-file=../.env.bundle bundle.ts",
 		"generate": "bun --env-file=.env scripts/update-font-db.ts",
-		"formatting": "prettier --experimental-cli src --check"
+		"formatting": "oxfmt src --check",
+		"format": "oxfmt src"
 	},
 	"license": "SEE LICENSE IN LICENSE.md",
 	"dependencies": {
@@ -20,7 +21,7 @@
 		"@types/css-font-loading-module": "0.0.14",
 		"@types/prettier": "^2.7.1",
 		"postcss": "8.4.47",
-		"prettier": "catalog:"
+		"@typescript/native-preview": "catalog:"
 	},
 	"types": "dist/cjs/index.d.ts",
 	"typesVersions": {
@@ -199,11 +200,17 @@
 			"AlumniSansSC": [
 				"dist/cjs/AlumniSansSC.d.ts"
 			],
+			"Alyamama": [
+				"dist/cjs/Alyamama.d.ts"
+			],
 			"Amarante": [
 				"dist/cjs/Amarante.d.ts"
 			],
 			"Amaranth": [
 				"dist/cjs/Amaranth.d.ts"
+			],
+			"Amarna": [
+				"dist/cjs/Amarna.d.ts"
 			],
 			"AmaticSC": [
 				"dist/cjs/AmaticSC.d.ts"
@@ -448,14 +455,14 @@
 			"B612Mono": [
 				"dist/cjs/B612Mono.d.ts"
 			],
-			"BBHSansBartle": [
-				"dist/cjs/BBHSansBartle.d.ts"
+			"BBHBartle": [
+				"dist/cjs/BBHBartle.d.ts"
 			],
-			"BBHSansBogle": [
-				"dist/cjs/BBHSansBogle.d.ts"
+			"BBHBogle": [
+				"dist/cjs/BBHBogle.d.ts"
 			],
-			"BBHSansHegarty": [
-				"dist/cjs/BBHSansHegarty.d.ts"
+			"BBHHegarty": [
+				"dist/cjs/BBHHegarty.d.ts"
 			],
 			"BIZUDGothic": [
 				"dist/cjs/BIZUDGothic.d.ts"
@@ -616,6 +623,18 @@
 			"Besley": [
 				"dist/cjs/Besley.d.ts"
 			],
+			"BetaniaPatmos": [
+				"dist/cjs/BetaniaPatmos.d.ts"
+			],
+			"BetaniaPatmosGDL": [
+				"dist/cjs/BetaniaPatmosGDL.d.ts"
+			],
+			"BetaniaPatmosIn": [
+				"dist/cjs/BetaniaPatmosIn.d.ts"
+			],
+			"BetaniaPatmosInGDL": [
+				"dist/cjs/BetaniaPatmosInGDL.d.ts"
+			],
 			"BethEllen": [
 				"dist/cjs/BethEllen.d.ts"
 			],
@@ -756,6 +775,15 @@
 			],
 			"BowlbyOneSC": [
 				"dist/cjs/BowlbyOneSC.d.ts"
+			],
+			"BpmfHuninn": [
+				"dist/cjs/BpmfHuninn.d.ts"
+			],
+			"BpmfIansui": [
+				"dist/cjs/BpmfIansui.d.ts"
+			],
+			"BpmfZihiKaiStd": [
+				"dist/cjs/BpmfZihiKaiStd.d.ts"
 			],
 			"BraahOne": [
 				"dist/cjs/BraahOne.d.ts"
@@ -922,6 +950,9 @@
 			"Caudex": [
 				"dist/cjs/Caudex.d.ts"
 			],
+			"Cause": [
+				"dist/cjs/Cause.d.ts"
+			],
 			"Caveat": [
 				"dist/cjs/Caveat.d.ts"
 			],
@@ -990,15 +1021,6 @@
 			],
 			"Chilanka": [
 				"dist/cjs/Chilanka.d.ts"
-			],
-			"ChironGoRoundTC": [
-				"dist/cjs/ChironGoRoundTC.d.ts"
-			],
-			"ChironHeiHK": [
-				"dist/cjs/ChironHeiHK.d.ts"
-			],
-			"ChironSungHK": [
-				"dist/cjs/ChironSungHK.d.ts"
 			],
 			"Chivo": [
 				"dist/cjs/Chivo.d.ts"
@@ -1197,6 +1219,9 @@
 			],
 			"DarumadropOne": [
 				"dist/cjs/DarumadropOne.d.ts"
+			],
+			"Datatype": [
+				"dist/cjs/Datatype.d.ts"
 			],
 			"DavidLibre": [
 				"dist/cjs/DavidLibre.d.ts"
@@ -1684,6 +1709,9 @@
 			"Geologica": [
 				"dist/cjs/Geologica.d.ts"
 			],
+			"Geom": [
+				"dist/cjs/Geom.d.ts"
+			],
 			"Georama": [
 				"dist/cjs/Georama.d.ts"
 			],
@@ -1744,8 +1772,14 @@
 			"GolosText": [
 				"dist/cjs/GolosText.d.ts"
 			],
+			"GoogleSans": [
+				"dist/cjs/GoogleSans.d.ts"
+			],
 			"GoogleSansCode": [
 				"dist/cjs/GoogleSansCode.d.ts"
+			],
+			"GoogleSansFlex": [
+				"dist/cjs/GoogleSansFlex.d.ts"
 			],
 			"Gorditas": [
 				"dist/cjs/Gorditas.d.ts"
@@ -1818,6 +1852,9 @@
 			],
 			"Gurajada": [
 				"dist/cjs/Gurajada.d.ts"
+			],
+			"GveretLevin": [
+				"dist/cjs/GveretLevin.d.ts"
 			],
 			"Gwendolyn": [
 				"dist/cjs/Gwendolyn.d.ts"
@@ -2008,6 +2045,9 @@
 			"Iceland": [
 				"dist/cjs/Iceland.d.ts"
 			],
+			"Idiqlat": [
+				"dist/cjs/Idiqlat.d.ts"
+			],
 			"Imbue": [
 				"dist/cjs/Imbue.d.ts"
 			],
@@ -2061,6 +2101,12 @@
 			],
 			"InterTight": [
 				"dist/cjs/InterTight.d.ts"
+			],
+			"IosevkaCharon": [
+				"dist/cjs/IosevkaCharon.d.ts"
+			],
+			"IosevkaCharonMono": [
+				"dist/cjs/IosevkaCharonMono.d.ts"
 			],
 			"IrishGrover": [
 				"dist/cjs/IrishGrover.d.ts"
@@ -2278,6 +2324,9 @@
 			"KeaniaOne": [
 				"dist/cjs/KeaniaOne.d.ts"
 			],
+			"Kedebideri": [
+				"dist/cjs/Kedebideri.d.ts"
+			],
 			"KellySlab": [
 				"dist/cjs/KellySlab.d.ts"
 			],
@@ -2373,6 +2422,9 @@
 			],
 			"Kurale": [
 				"dist/cjs/Kurale.d.ts"
+			],
+			"LINESeedJP": [
+				"dist/cjs/LINESeedJP.d.ts"
 			],
 			"LXGWMarkerGothic": [
 				"dist/cjs/LXGWMarkerGothic.d.ts"
@@ -2523,6 +2575,9 @@
 			],
 			"LifeSavers": [
 				"dist/cjs/LifeSavers.d.ts"
+			],
+			"Lilex": [
+				"dist/cjs/Lilex.d.ts"
 			],
 			"LilitaOne": [
 				"dist/cjs/LilitaOne.d.ts"
@@ -4183,6 +4238,9 @@
 			"RampartOne": [
 				"dist/cjs/RampartOne.d.ts"
 			],
+			"Ramsina": [
+				"dist/cjs/Ramsina.d.ts"
+			],
 			"Ranchers": [
 				"dist/cjs/Ranchers.d.ts"
 			],
@@ -4444,6 +4502,9 @@
 			"Rye": [
 				"dist/cjs/Rye.d.ts"
 			],
+			"SNPro": [
+				"dist/cjs/SNPro.d.ts"
+			],
 			"STIXTwoText": [
 				"dist/cjs/STIXTwoText.d.ts"
 			],
@@ -4537,6 +4598,9 @@
 			"Schoolbell": [
 				"dist/cjs/Schoolbell.d.ts"
 			],
+			"ScienceGothic": [
+				"dist/cjs/ScienceGothic.d.ts"
+			],
 			"ScopeOne": [
 				"dist/cjs/ScopeOne.d.ts"
 			],
@@ -4557,6 +4621,9 @@
 			],
 			"SedgwickAveDisplay": [
 				"dist/cjs/SedgwickAveDisplay.d.ts"
+			],
+			"Sekuya": [
+				"dist/cjs/Sekuya.d.ts"
 			],
 			"Sen": [
 				"dist/cjs/Sen.d.ts"

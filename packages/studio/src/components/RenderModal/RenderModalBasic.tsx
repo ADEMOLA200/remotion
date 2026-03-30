@@ -1,26 +1,25 @@
 import type {Codec, LogLevel} from '@remotion/renderer';
 import {BrowserSafeApis} from '@remotion/renderer/client';
 import {NoReactAPIs} from '@remotion/renderer/pure';
-import type {ChangeEvent} from 'react';
 import React, {useCallback, useMemo} from 'react';
 import type {_InternalTypes, VideoConfig} from 'remotion';
 import {labelProResProfile} from '../../helpers/prores-labels';
 import {useFileExistence} from '../../helpers/use-file-existence';
 import {Checkmark} from '../../icons/Checkmark';
-import {Checkbox} from '../Checkbox';
+import {Spacing} from '../layout';
 import type {ComboboxValue} from '../NewComposition/ComboBox';
 import {Combobox} from '../NewComposition/ComboBox';
 import {InputDragger} from '../NewComposition/InputDragger';
 import {RightAlignInput} from '../NewComposition/RemInput';
 import type {SegmentedControlItem} from '../SegmentedControl';
 import {SegmentedControl} from '../SegmentedControl';
-import {Spacing} from '../layout';
 import {FrameRangeSetting} from './FrameRangeSetting';
+import {humanReadableCodec} from './human-readable-codec';
+import {humanReadableLogLevel} from './human-readable-loglevel';
+import {input, label, optionRow, rightRow} from './layout';
 import {OptionExplainerBubble} from './OptionExplainerBubble';
 import type {RenderType} from './RenderModalAdvanced';
 import {RenderModalOutputName} from './RenderModalOutputName';
-import {humanReadableCodec} from './human-readable-codec';
-import {input, label, optionRow, rightRow} from './layout';
 
 const container: React.CSSProperties = {
 	flex: 1,
@@ -47,6 +46,7 @@ export const RenderModalBasic: React.FC<{
 	readonly validationMessage: string | null;
 	readonly setVerboseLogging: React.Dispatch<React.SetStateAction<LogLevel>>;
 	readonly logLevel: LogLevel;
+	readonly showOutputName: boolean;
 }> = ({
 	renderMode,
 	imageFormatOptions,
@@ -66,6 +66,7 @@ export const RenderModalBasic: React.FC<{
 	validationMessage,
 	setVerboseLogging,
 	logLevel,
+	showOutputName,
 }) => {
 	const existence = useFileExistence(outName);
 	const videoCodecOptions = useMemo((): ComboboxValue[] => {
@@ -135,12 +136,23 @@ export const RenderModalBasic: React.FC<{
 		[setOutName],
 	);
 
-	const onVerboseLoggingChanged = useCallback(
-		(e: ChangeEvent<HTMLInputElement>) => {
-			setVerboseLogging(e.target.checked ? 'verbose' : 'info');
-		},
-		[setVerboseLogging],
-	);
+	const logLevelOptions = useMemo((): ComboboxValue[] => {
+		return (['trace', 'verbose', 'info', 'warn', 'error'] as const).map(
+			(level): ComboboxValue => {
+				return {
+					label: humanReadableLogLevel(level),
+					onClick: () => setVerboseLogging(level),
+					leftItem: logLevel === level ? <Checkmark /> : null,
+					id: level,
+					keyHint: null,
+					quickSwitcherLabel: null,
+					subMenu: null,
+					type: 'item',
+					value: level,
+				};
+			},
+		);
+	}, [logLevel, setVerboseLogging]);
 
 	return (
 		<div style={container}>
@@ -210,24 +222,26 @@ export const RenderModalBasic: React.FC<{
 					startFrame={startFrame}
 				/>
 			)}
-			<RenderModalOutputName
-				existence={existence}
-				inputStyle={input}
-				outName={outName}
-				onValueChange={onValueChange}
-				validationMessage={validationMessage}
-				label={renderMode === 'sequence' ? 'Folder name' : 'Output name'}
-			/>
+			{showOutputName ? (
+				<RenderModalOutputName
+					existence={existence}
+					inputStyle={input}
+					outName={outName}
+					onValueChange={onValueChange}
+					validationMessage={validationMessage}
+					label={renderMode === 'sequence' ? 'Folder name' : 'Output name'}
+				/>
+			) : null}
 			<div style={optionRow}>
 				<div style={label}>
-					Verbose logging <Spacing x={0.5} />
+					Log Level <Spacing x={0.5} />
 					<OptionExplainerBubble id="logLevelOption" />
 				</div>
 				<div style={rightRow}>
-					<Checkbox
-						checked={logLevel === 'verbose'}
-						onChange={onVerboseLoggingChanged}
-						name="verbose-logging"
+					<Combobox
+						values={logLevelOptions}
+						selectedId={logLevel}
+						title="Log Level"
 					/>
 				</div>
 			</div>

@@ -1,6 +1,6 @@
 import type {AudioSampleSink} from 'mediabunny';
 import {Internals, type LogLevel} from 'remotion';
-import {getMaxVideoCacheSize, getTotalCacheStats} from '../caches';
+import {getTotalCacheStats} from '../caches';
 import type {RememberActualMatroskaTimestamps} from '../video-extraction/remember-actual-matroska-timestamps';
 import type {AudioSampleIterator} from './audio-iterator';
 import {makeAudioIterator} from './audio-iterator';
@@ -85,6 +85,7 @@ export const makeAudioManager = () => {
 		isMatroska,
 		actualMatroskaTimestamps,
 		logLevel,
+		maxCacheSize,
 	}: {
 		src: string;
 		timeInSeconds: number;
@@ -92,10 +93,26 @@ export const makeAudioManager = () => {
 		isMatroska: boolean;
 		actualMatroskaTimestamps: RememberActualMatroskaTimestamps;
 		logLevel: LogLevel;
+		maxCacheSize: number;
 	}) => {
-		const maxCacheSize = getMaxVideoCacheSize(logLevel);
-		while ((await getTotalCacheStats()).totalSize > maxCacheSize) {
+		let attempts = 0;
+		const maxAttempts = 3;
+		while (
+			(await getTotalCacheStats()).totalSize > maxCacheSize &&
+			attempts < maxAttempts
+		) {
 			deleteOldestIterator();
+			attempts++;
+		}
+
+		if (
+			(await getTotalCacheStats()).totalSize > maxCacheSize &&
+			attempts >= maxAttempts
+		) {
+			Internals.Log.warn(
+				{logLevel, tag: '@remotion/media'},
+				`Audio cache: Exceeded max cache size after ${maxAttempts} attempts. Still ${(await getTotalCacheStats()).totalSize} bytes used, target was ${maxCacheSize} bytes.`,
+			);
 		}
 
 		for (const iterator of iterators) {
@@ -157,6 +174,7 @@ export const makeAudioManager = () => {
 			isMatroska,
 			actualMatroskaTimestamps,
 			logLevel,
+			maxCacheSize,
 		}: {
 			src: string;
 			timeInSeconds: number;
@@ -164,6 +182,7 @@ export const makeAudioManager = () => {
 			isMatroska: boolean;
 			actualMatroskaTimestamps: RememberActualMatroskaTimestamps;
 			logLevel: LogLevel;
+			maxCacheSize: number;
 		}) => {
 			queue = queue.then(() =>
 				getIterator({
@@ -173,6 +192,7 @@ export const makeAudioManager = () => {
 					isMatroska,
 					actualMatroskaTimestamps,
 					logLevel,
+					maxCacheSize,
 				}),
 			);
 			return queue as Promise<AudioSampleIterator>;

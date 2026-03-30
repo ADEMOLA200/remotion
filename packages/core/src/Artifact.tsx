@@ -1,7 +1,7 @@
 import type React from 'react';
-import {useContext, useEffect, useState} from 'react';
-import {RenderAssetManager} from './RenderAssetManager';
+import {useContext, useLayoutEffect, useState} from 'react';
 import type {DownloadBehavior} from './download-behavior';
+import {RenderAssetManager} from './RenderAssetManager';
 import {useCurrentFrame} from './use-current-frame';
 import {useRemotionEnvironment} from './use-remotion-environment';
 
@@ -25,7 +25,7 @@ export const Artifact: React.FC<{
 		return String(Math.random());
 	});
 
-	useEffect(() => {
+	useLayoutEffect(() => {
 		if (!env.isRendering) {
 			return;
 		}

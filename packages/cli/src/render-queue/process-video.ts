@@ -7,7 +7,16 @@ import {getCliOptions} from '../get-cli-options';
 import {parsedCli} from '../parsed-cli';
 import {renderVideoFlow} from '../render-flows/render';
 
-const {publicDirOption} = BrowserSafeApis.options;
+const {
+	publicDirOption,
+	askAIOption,
+	experimentalClientSideRenderingOption,
+	experimentalVisualModeOption,
+	keyboardShortcutsOption,
+	rspackOption,
+	browserExecutableOption,
+	bundleCacheOption,
+} = BrowserSafeApis.options;
 
 export const processVideoJob = async ({
 	job,
@@ -31,13 +40,25 @@ export const processVideoJob = async ({
 	const publicDir = publicDirOption.getValue({
 		commandLine: parsedCli,
 	}).value;
+	const askAIEnabled = askAIOption.getValue({commandLine: parsedCli}).value;
+	const keyboardShortcutsEnabled = keyboardShortcutsOption.getValue({
+		commandLine: parsedCli,
+	}).value;
+	const shouldCache = bundleCacheOption.getValue({
+		commandLine: parsedCli,
+	}).value;
 
-	const {browserExecutable, ffmpegOverride} = getCliOptions({
+	const {ffmpegOverride} = getCliOptions({
 		isStill: true,
 		logLevel,
 		indent: true,
 	});
+	const browserExecutable = browserExecutableOption.getValue({
+		commandLine: parsedCli,
+	}).value;
+	const rspack = rspackOption.getValue({commandLine: parsedCli}).value;
 	const fullEntryPoint = convertEntryPointToServeUrl(entryPoint);
+
 	await renderVideoFlow({
 		remotionRoot,
 		browser: 'chrome',
@@ -46,6 +67,9 @@ export const processVideoJob = async ({
 		entryPointReason: 'same as Studio',
 		envVariables: job.envVariables,
 		height: null,
+		width: null,
+		fps: null,
+		durationInFrames: null,
 		fullEntryPoint,
 		serializedInputPropsWithCustomSchema:
 			job.serializedInputPropsWithCustomSchema,
@@ -56,7 +80,6 @@ export const processVideoJob = async ({
 		jpegQuality: job.jpegQuality ?? undefined,
 		remainingArgs: [],
 		scale: job.scale,
-		width: null,
 		compositionIdFromUi: job.compositionId,
 		logLevel: job.logLevel,
 		onProgress,
@@ -103,5 +126,15 @@ export const processVideoJob = async ({
 		mediaCacheSizeInBytes: job.mediaCacheSizeInBytes,
 		audioLatencyHint: null,
 		imageSequencePattern: null,
+		askAIEnabled,
+		experimentalClientSideRenderingEnabled:
+			experimentalClientSideRenderingOption.getValue({commandLine: parsedCli})
+				.value,
+		experimentalVisualModeEnabled: experimentalVisualModeOption.getValue({
+			commandLine: parsedCli,
+		}).value,
+		keyboardShortcutsEnabled,
+		rspack,
+		shouldCache,
 	});
 };

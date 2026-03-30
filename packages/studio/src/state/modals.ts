@@ -12,6 +12,14 @@ import type {
 } from '@remotion/renderer';
 import type {HardwareAccelerationOption} from '@remotion/renderer/client';
 import type {PackageManager, RenderDefaults} from '@remotion/studio-shared';
+import type {
+	RenderStillOnWebImageFormat,
+	WebRendererAudioCodec,
+	WebRendererContainer,
+	WebRendererHardwareAcceleration,
+	WebRendererQuality,
+	WebRendererVideoCodec,
+} from '@remotion/web-renderer';
 import type React from 'react';
 import {createContext} from 'react';
 import type {_InternalTypes} from 'remotion';
@@ -20,8 +28,34 @@ import type {QuickSwitcherMode} from '../components/QuickSwitcher/NoResults';
 import type {RenderType} from '../components/RenderModal/RenderModalAdvanced';
 import type {Bug, UpdateInfo} from '../components/UpdateCheck';
 
+export type WebRenderModalState = {
+	type: 'web-render';
+	initialFrame: number;
+	compositionId: string;
+	defaultProps: Record<string, unknown>;
+	inFrameMark: number | null;
+	outFrameMark: number | null;
+	initialLogLevel: LogLevel;
+	initialStillImageFormat: RenderStillOnWebImageFormat;
+	initialScale: number;
+	initialDelayRenderTimeout: number;
+	initialDefaultOutName: string | null;
+	initialContainer: WebRendererContainer | null;
+	initialVideoCodec: WebRendererVideoCodec | null;
+	initialAudioCodec: WebRendererAudioCodec | null;
+	initialAudioBitrate: WebRendererQuality | null;
+	initialVideoBitrate: WebRendererQuality | null;
+	initialHardwareAcceleration: WebRendererHardwareAcceleration | null;
+	initialKeyframeIntervalInSeconds: number | null;
+	initialTransparent: boolean | null;
+	initialMuted: boolean | null;
+	initialLicenseKey: string | null;
+	initialMediaCacheSizeInBytes: number | null;
+};
+
 export type RenderModalState = {
-	type: 'render';
+	type: 'server-render';
+	readOnlyStudio: boolean;
 	compositionId: string;
 	initialFrame: number;
 	initialStillImageFormat: StillImageFormat;
@@ -45,6 +79,7 @@ export type RenderModalState = {
 	initialOpenGlRenderer: OpenGlRenderer | null;
 	initialIgnoreCertificateErrors: boolean;
 	initialHeadless: boolean;
+	initialDarkMode: boolean;
 	initialMediaCacheSizeInBytes: number | null;
 	initialOffthreadVideoCacheSizeInBytes: number | null;
 	initialOffthreadVideoThreads: number | null;
@@ -88,6 +123,7 @@ export type ModalState =
 			type: 'input-props-override';
 	  }
 	| RenderModalState
+	| WebRenderModalState
 	| {
 			type: 'render-progress';
 			jobId: string;

@@ -1,5 +1,5 @@
-import {cleanup, render} from '@testing-library/react';
 import {afterEach, expect, test} from 'bun:test';
+import {cleanup, render} from '@testing-library/react';
 import {Html5Audio} from '../audio/index.js';
 import {WrapSequenceContext} from './wrap-sequence-context.js';
 
@@ -7,7 +7,7 @@ afterEach(() => {
 	cleanup();
 });
 
-test.only('It should render Audio without startFrom / endAt props', () => {
+test('It should render Audio without startFrom / endAt props', () => {
 	expect(() =>
 		render(
 			<WrapSequenceContext>

@@ -5,15 +5,13 @@ id: get-input-props
 crumb: 'API'
 ---
 
-_Available from v2.0_.
+<AvailableFrom v="2.0" />
 
 Using this method, you can retrieve inputs that you pass in from the command line using [`--props`](/docs/cli), or the [`inputProps`](/docs/ssr) parameter if you are using the Node.JS APIs ([`renderMedia()`](/docs/renderer/render-media), [`renderMediaOnLambda()`](/docs/lambda/rendermediaonlambda)).
 
 This method is useful if you want to retrieve the input props in the [root component](/docs/terminology/root-file).
 
-:::info
-This method is not available when inside a Remotion Player. Instead, get the props as React props from the component you passed as the `component` prop to the player.
-:::
+This method is not available when inside a [`<Player>`](/docs/player) or [when client-side rendering](/docs/miscellaneous/render-in-browser). Instead, get the props as React props from the component you passed as the `component` prop to the player.
 
 ## You might not need this API
 
@@ -68,6 +66,10 @@ export const Root: React.FC = () => {
 ```
 
 In this example, the props also get passed to the component of the composition with the id `my-composition`.
+
+## Compatibility
+
+<CompatibilityTable chrome firefox safari nodejs={'No-op, returns {}'} bun={'No-op, returns {}'} serverlessFunctions={'No-op, returns {}'} clientSideRendering={'No-op, returns {}'} serverSideRendering player={'No-op, returns {}'} studio />
 
 ## See also
 

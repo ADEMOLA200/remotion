@@ -1,13 +1,10 @@
-/* eslint-disable @typescript-eslint/no-use-before-define */
-import type {EmittedArtifact, LogOptions} from '@remotion/renderer';
-import {RenderInternals} from '@remotion/renderer';
-
-import {validateCodec, VERSION} from '@remotion/serverless-client';
 import {existsSync, mkdirSync, rmSync} from 'fs';
 import {type EventEmitter} from 'node:events';
 import {join} from 'path';
-import type {InsideFunctionSpecifics} from '../provider-implementation';
-
+/* eslint-disable @typescript-eslint/no-use-before-define */
+import type {EmittedArtifact, LogOptions} from '@remotion/renderer';
+import {RenderInternals} from '@remotion/renderer';
+import {validateCodec, VERSION} from '@remotion/serverless-client';
 import type {
 	CloudProvider,
 	PostRenderData,
@@ -38,6 +35,7 @@ import {mergeChunksAndFinishRender} from '../merge-chunks';
 import type {OverallProgressHelper} from '../overall-render-progress';
 import {makeOverallRenderProgress} from '../overall-render-progress';
 import {planFrameRanges} from '../plan-frame-ranges';
+import type {InsideFunctionSpecifics} from '../provider-implementation';
 import {removeOutnameCredentials} from '../remove-outname-credentials';
 import {streamRendererFunctionWithRetry} from '../stream-renderer';
 import {validateComposition} from '../validate-composition';
@@ -71,10 +69,20 @@ const innerLaunchHandler = async <Provider extends CloudProvider>({
 
 	const startedDate = Date.now();
 
+	const chromiumParams = {...(params.chromiumOptions ?? {})};
+
+	if (params.chromiumOptions?.gl === 'angle') {
+		RenderInternals.Log.warn(
+			{indent: false, logLevel: params.logLevel},
+			'gl=angle is not supported in Lambda. Changing to gl=swangle instead.',
+		);
+		chromiumParams.gl = 'swangle';
+	}
+
 	const browserInstance = insideFunctionSpecifics.getBrowserInstance({
 		logLevel: params.logLevel,
 		indent: false,
-		chromiumOptions: params.chromiumOptions,
+		chromiumOptions: chromiumParams,
 		providerSpecifics,
 		insideFunctionSpecifics,
 	});
@@ -131,10 +139,12 @@ const innerLaunchHandler = async <Provider extends CloudProvider>({
 		serializedInputPropsWithCustomSchema,
 		envVariables: params.envVariables ?? {},
 		timeoutInMilliseconds: validateCompositionTimeout,
-		chromiumOptions: params.chromiumOptions,
+		chromiumOptions: params.chromiumOptions ?? {},
 		port: null,
 		forceHeight: params.forceHeight,
 		forceWidth: params.forceWidth,
+		forceFps: params.forceFps ?? null,
+		forceDurationInFrames: params.forceDurationInFrames ?? null,
 		logLevel: params.logLevel,
 		server: undefined,
 		offthreadVideoCacheSizeInBytes: params.offthreadVideoCacheSizeInBytes,
@@ -232,6 +242,7 @@ const innerLaunchHandler = async <Provider extends CloudProvider>({
 		forcePathStyle: params.forcePathStyle,
 		skipPutAcl: false,
 		requestHandler: null,
+		logLevel: params.logLevel,
 	});
 
 	registerCleanupTask(() => {
@@ -277,7 +288,7 @@ const innerLaunchHandler = async <Provider extends CloudProvider>({
 			logLevel: params.logLevel ?? 'info',
 			attempt: 1,
 			timeoutInMilliseconds: params.timeoutInMilliseconds,
-			chromiumOptions: params.chromiumOptions,
+			chromiumOptions: params.chromiumOptions ?? {},
 			scale: params.scale,
 			everyNthFrame: params.everyNthFrame,
 			concurrencyPerLambda: params.concurrencyPerFunction,
@@ -466,7 +477,7 @@ const innerLaunchHandler = async <Provider extends CloudProvider>({
 					willRetry: false,
 					totalAttempts: 1,
 				});
-				overallProgress.upload();
+				overallProgress.upload('artifactWriteError');
 				RenderInternals.Log.error(
 					{indent: false, logLevel: params.logLevel},
 					'Failed to write artifact to S3',
@@ -671,7 +682,7 @@ export const launchHandler = async <Provider extends CloudProvider>({
 				willRetry: false,
 				totalAttempts: 1,
 			});
-			overallProgress.upload();
+			overallProgress.upload('timeoutWebhookError');
 		}
 	};
 
@@ -714,7 +725,12 @@ export const launchHandler = async <Provider extends CloudProvider>({
 		});
 		clearTimeout(webhookDueToTimeout);
 
-		sendTelemetryEvent(params.apiKey ?? null, params.logLevel);
+		sendTelemetryEvent({
+			licenseKey: params.licenseKey ?? null,
+			logLevel: params.logLevel,
+			isStill: false,
+			isProduction: params.isProduction ?? true,
+		});
 
 		if (!params.webhook || webhookInvoked) {
 			return;
@@ -759,7 +775,7 @@ export const launchHandler = async <Provider extends CloudProvider>({
 				willRetry: false,
 				totalAttempts: 1,
 			});
-			overallProgress.upload();
+			overallProgress.upload('successWebhookError');
 
 			RenderInternals.Log.error(
 				{indent: false, logLevel: params.logLevel},
@@ -798,7 +814,7 @@ export const launchHandler = async <Provider extends CloudProvider>({
 			willRetry: false,
 			message: (err as Error).message,
 		});
-		await overallProgress.upload();
+		await overallProgress.upload('fatalError');
 
 		runCleanupTasks();
 
@@ -848,7 +864,7 @@ export const launchHandler = async <Provider extends CloudProvider>({
 					willRetry: false,
 					totalAttempts: 1,
 				});
-				overallProgress.upload();
+				overallProgress.upload('errorWebhookError');
 
 				RenderInternals.Log.error(
 					{indent: false, logLevel: params.logLevel},

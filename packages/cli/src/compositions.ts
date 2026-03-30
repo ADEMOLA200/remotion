@@ -25,6 +25,17 @@ const {
 	chromeModeOption,
 	audioLatencyHintOption,
 	mediaCacheSizeInBytesOption,
+	darkModeOption,
+	askAIOption,
+	experimentalClientSideRenderingOption,
+	experimentalVisualModeOption,
+	keyboardShortcutsOption,
+	rspackOption,
+	browserExecutableOption,
+	userAgentOption,
+	disableWebSecurityOption,
+	ignoreCertificateErrorsOption,
+	bundleCacheOption,
 } = BrowserSafeApis.options;
 
 export const listCompositionsCommand = async (
@@ -63,30 +74,22 @@ export const listCompositionsCommand = async (
 		reason,
 	);
 
-	const {
-		browserExecutable,
-		envVariables,
-		inputProps,
-		ignoreCertificateErrors,
-		userAgent,
-		disableWebSecurity,
-	} = getCliOptions({
+	const {envVariables, inputProps} = getCliOptions({
 		isStill: false,
 		logLevel,
 		indent: false,
 	});
 
-	const chromiumOptions: ChromiumOptions = {
-		disableWebSecurity,
-		enableMultiProcessOnLinux: enableMultiprocessOnLinuxOption.getValue({
-			commandLine: parsedCli,
-		}).value,
-		gl: glOption.getValue({commandLine: parsedCli}).value,
-		headless: headlessOption.getValue({commandLine: parsedCli}).value,
-		ignoreCertificateErrors,
-		userAgent,
-	};
-
+	const browserExecutable = browserExecutableOption.getValue({
+		commandLine: parsedCli,
+	}).value;
+	const userAgent = userAgentOption.getValue({commandLine: parsedCli}).value;
+	const disableWebSecurity = disableWebSecurityOption.getValue({
+		commandLine: parsedCli,
+	}).value;
+	const ignoreCertificateErrors = ignoreCertificateErrorsOption.getValue({
+		commandLine: parsedCli,
+	}).value;
 	const publicPath = publicPathOption.getValue({commandLine: parsedCli}).value;
 	const timeoutInMilliseconds = delayRenderTimeoutInMillisecondsOption.getValue(
 		{
@@ -96,6 +99,7 @@ export const listCompositionsCommand = async (
 	const binariesDirectory = binariesDirectoryOption.getValue({
 		commandLine: parsedCli,
 	}).value;
+	const darkMode = darkModeOption.getValue({commandLine: parsedCli}).value;
 	const offthreadVideoCacheSizeInBytes =
 		offthreadVideoCacheSizeInBytesOption.getValue({
 			commandLine: parsedCli,
@@ -113,6 +117,41 @@ export const listCompositionsCommand = async (
 	const mediaCacheSizeInBytes = mediaCacheSizeInBytesOption.getValue({
 		commandLine: parsedCli,
 	}).value;
+	const askAIEnabled = askAIOption.getValue({commandLine: parsedCli}).value;
+
+	const chromiumOptions: Required<ChromiumOptions> = {
+		disableWebSecurity,
+		enableMultiProcessOnLinux: enableMultiprocessOnLinuxOption.getValue({
+			commandLine: parsedCli,
+		}).value,
+		gl: glOption.getValue({commandLine: parsedCli}).value,
+		headless: headlessOption.getValue({commandLine: parsedCli}).value,
+		ignoreCertificateErrors,
+		userAgent,
+		darkMode,
+	};
+
+	const experimentalClientSideRenderingEnabled =
+		experimentalClientSideRenderingOption.getValue({
+			commandLine: parsedCli,
+		}).value;
+	const experimentalVisualModeEnabled = experimentalVisualModeOption.getValue({
+		commandLine: parsedCli,
+	}).value;
+	const keyboardShortcutsEnabled = keyboardShortcutsOption.getValue({
+		commandLine: parsedCli,
+	}).value;
+	const rspack = rspackOption.getValue({commandLine: parsedCli}).value;
+	const shouldCache = bundleCacheOption.getValue({
+		commandLine: parsedCli,
+	}).value;
+
+	if (experimentalClientSideRenderingEnabled) {
+		Log.warn(
+			{indent: false, logLevel},
+			'Enabling WIP client-side rendering. Please see caveats on https://www.remotion.dev/docs/client-side-rendering/.',
+		);
+	}
 
 	const {urlOrBundle: bundled, cleanup: cleanupBundle} =
 		await bundleOnCliOrTakeServeUrl({
@@ -136,6 +175,12 @@ export const listCompositionsCommand = async (
 			maxTimelineTracks: null,
 			publicPath,
 			audioLatencyHint,
+			experimentalClientSideRenderingEnabled,
+			experimentalVisualModeEnabled,
+			askAIEnabled,
+			keyboardShortcutsEnabled,
+			rspack,
+			shouldCache,
 		});
 
 	registerCleanupJob(`Cleanup bundle`, () => cleanupBundle());
@@ -165,6 +210,7 @@ export const listCompositionsCommand = async (
 			indent: false,
 			logLevel,
 			quiet: quietFlagProvided(),
+			onProgress: () => undefined,
 		}),
 		chromeMode,
 		mediaCacheSizeInBytes,

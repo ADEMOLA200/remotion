@@ -28,13 +28,11 @@ export type Template = {
 		| 'javascript'
 		| 'blank'
 		| 'next'
-		| 'next-tailwind'
+		| 'next-no-tailwind'
 		| 'next-pages-dir'
 		| 'react-router'
 		| 'three'
 		| 'still'
-		| 'tts'
-		| 'google-tts'
 		| 'audiogram'
 		| 'music-visualization'
 		| 'prompt-to-video'
@@ -44,13 +42,18 @@ export type Template = {
 		| 'tiktok'
 		| 'code-hike'
 		| 'render-server'
-		| 'recorder';
+		| 'recorder'
+		| 'prompt-to-motion-graphics'
+		| 'electron'
+		| 'vercel';
 	defaultBranch: string;
 	featuredOnHomePage: string | null;
 	previewURL: string | null;
+	previewLabel: string | null;
 	templateInMonorepo: string;
 	allowEnableTailwind: boolean;
 	contributedBy: string | null;
+	showStackblitz: boolean;
 } & DynamicTemplate;
 
 type Truthy<T> = T extends false | '' | 0 | null | undefined ? never : T;
@@ -61,13 +64,38 @@ function truthy<T>(value: T): value is Truthy<T> {
 
 export const FEATURED_TEMPLATES: Template[] = [
 	{
+		homePageLabel: 'Blank',
+		shortName: 'Blank',
+		description: 'Nothing except an empty canvas',
+		org: 'remotion-dev',
+		repoName: 'template-empty',
+		longerDescription:
+			'A template containing nothing but an empty canvas. Recommended if you already used Remotion or plan to write your code with AI.',
+		promoVideo: {
+			muxId: 'JD00x15y859GjqO7C9hpILkrSddGzd55K4lfj02dv8gU4',
+			width: 1280,
+			height: 720,
+		},
+		cliId: 'blank' as const,
+		type: 'video' as const,
+		defaultBranch: 'main',
+		featuredOnHomePage: 'Blank',
+		previewURL: 'https://template-empty.vercel.app/?/MyComp',
+		previewLabel: null,
+		templateInMonorepo: 'template-blank',
+		allowEnableTailwind: true,
+		contributedBy: null,
+		showStackblitz: true,
+	},
+
+	{
 		homePageLabel: 'Hello World',
 		shortName: 'Hello World',
 		org: 'remotion-dev',
 		repoName: 'template-helloworld',
-		description: 'A "Hello World" starter template',
+		description: 'A playground with a simple animation',
 		longerDescription:
-			'A basic template with TypeScript, Prettier and ESLint preconfigured. Our recommended choice for beginners.',
+			'A basic template with TypeScript, Prettier and ESLint preconfigured.',
 		promoVideo: {
 			muxId: 'vKvV6aa7GXGlR01cmpc6J8Zz4Gkj9d2hBSnVYoef00900I',
 			height: 1080,
@@ -78,15 +106,17 @@ export const FEATURED_TEMPLATES: Template[] = [
 		defaultBranch: 'main',
 		featuredOnHomePage: 'Hello World',
 		previewURL: 'https://remotion-helloworld.vercel.app/?/HelloWorld',
+		previewLabel: null,
 		templateInMonorepo: 'template-helloworld',
 		allowEnableTailwind: true,
 		contributedBy: null,
+		showStackblitz: true,
 	},
 	{
-		homePageLabel: 'Next.js (App dir)',
-		shortName: 'Next.js (App dir)',
+		homePageLabel: 'Next.js',
+		shortName: 'Next.js',
 		org: 'remotion-dev',
-		repoName: 'template-next-app-dir',
+		repoName: 'template-next-app-dir-tailwind',
 		description: 'SaaS template for video generation apps',
 		longerDescription:
 			'A SaaS starter kit which has the Remotion Player and rendering via Remotion Lambda built-in. Our recommended choice for people who want to build an app that can generate videos.',
@@ -100,15 +130,41 @@ export const FEATURED_TEMPLATES: Template[] = [
 		defaultBranch: 'main',
 		featuredOnHomePage: 'Next.js',
 		previewURL: 'https://next.remotion.dev',
-		templateInMonorepo: 'template-next-app',
+		templateInMonorepo: 'template-next-app-tailwind',
+		previewLabel: 'Live Demo',
 		allowEnableTailwind: false,
 		contributedBy: null,
+		showStackblitz: true,
 	},
 	{
-		homePageLabel: 'Next.js (App dir + TailwindCSS)',
-		shortName: 'Next.js (App dir + TailwindCSS)',
+		homePageLabel: 'Next.js (Vercel Sandbox)',
+		shortName: 'Next.js (Vercel Sandbox)',
 		org: 'remotion-dev',
-		repoName: 'template-next-app-dir-tailwind',
+		repoName: 'template-vercel',
+		description: 'Render videos on-demand using Vercel Sandbox',
+		longerDescription:
+			'A template for rendering videos on-demand using Vercel Sandbox. Spawns ephemeral Linux VMs to render videos and stores them in Vercel Blob storage.',
+		cliId: 'vercel' as const,
+		promoVideo: {
+			width: 1280,
+			height: 720,
+			muxId: 'RufnZIJZh6L1MAaeG02jnXuM9pK96tNuHRxmXHbWqCBI',
+		},
+		type: 'video' as const,
+		defaultBranch: 'main',
+		featuredOnHomePage: null,
+		previewURL: 'https://template-vercel.remotion.dev',
+		templateInMonorepo: 'template-vercel',
+		allowEnableTailwind: false,
+		contributedBy: null,
+		showStackblitz: false,
+		previewLabel: 'Live Demo',
+	},
+	{
+		homePageLabel: 'Next.js (No Tailwind)',
+		shortName: 'Next.js (No Tailwind)',
+		org: 'remotion-dev',
+		repoName: 'template-next-app-dir',
 		description: 'SaaS template for video generation apps',
 		longerDescription:
 			'A SaaS starter kit which has the Remotion Player and rendering via Remotion Lambda built-in. Our recommended choice for people who want to build an app that can generate videos.',
@@ -117,14 +173,16 @@ export const FEATURED_TEMPLATES: Template[] = [
 			height: 720,
 			muxId: 'RufnZIJZh6L1MAaeG02jnXuM9pK96tNuHRxmXHbWqCBI',
 		},
-		cliId: 'next-tailwind' as const,
+		cliId: 'next-no-tailwind' as const,
 		type: 'video' as const,
 		defaultBranch: 'main',
 		featuredOnHomePage: null,
 		previewURL: 'https://next.remotion.dev',
-		templateInMonorepo: 'template-next-app-tailwind',
+		templateInMonorepo: 'template-next-app',
+		previewLabel: 'Live Demo',
 		allowEnableTailwind: false,
 		contributedBy: null,
+		showStackblitz: true,
 	},
 	{
 		homePageLabel: 'Next.js (Pages dir)',
@@ -144,33 +202,13 @@ export const FEATURED_TEMPLATES: Template[] = [
 		defaultBranch: 'main',
 		featuredOnHomePage: null,
 		previewURL: 'https://next.remotion.dev',
+		previewLabel: 'Live Demo',
 		templateInMonorepo: 'template-next-pages',
 		allowEnableTailwind: false,
 		contributedBy: null,
+		showStackblitz: true,
 	},
 
-	{
-		homePageLabel: 'Blank',
-		shortName: 'Blank',
-		description: 'Nothing except an empty canvas',
-		org: 'remotion-dev',
-		repoName: 'template-empty',
-		longerDescription:
-			'A template containing nothing but an empty canvas. Recommended for people who already worked with Remotion.',
-		promoVideo: {
-			muxId: 'JD00x15y859GjqO7C9hpILkrSddGzd55K4lfj02dv8gU4',
-			width: 1280,
-			height: 720,
-		},
-		cliId: 'blank' as const,
-		type: 'video' as const,
-		defaultBranch: 'main',
-		featuredOnHomePage: 'Blank',
-		previewURL: 'https://template-empty.vercel.app/?/MyComp',
-		templateInMonorepo: 'template-blank',
-		allowEnableTailwind: true,
-		contributedBy: null,
-	},
 	{
 		homePageLabel: 'Recorder',
 		shortName: 'Recorder',
@@ -189,9 +227,35 @@ export const FEATURED_TEMPLATES: Template[] = [
 		defaultBranch: 'main',
 		featuredOnHomePage: null,
 		previewURL: null,
+		previewLabel: null,
 		templateInMonorepo: 'template-recorder',
 		allowEnableTailwind: false,
 		contributedBy: null,
+		showStackblitz: true,
+	},
+	{
+		homePageLabel: 'Prompt to Motion Graphics SaaS Starter Kit',
+		shortName: 'Prompt to Motion Graphics SaaS Starter Kit',
+		org: 'remotion-dev',
+		repoName: 'template-prompt-to-motion-graphics-saas',
+		description: 'SaaS template for AI-powered animation generation',
+		longerDescription:
+			'A SaaS template for "Prompt to Motion Graphics" products. Generates Remotion code, streams it to the frontend, and compiles and previews it in the browser. See the <a href="/docs/ai/ai-saas-template">documentation page</a> for more details.',
+		promoBanner: {
+			width: 2880,
+			height: 1512,
+			src: '/img/prompt-to-motion-graphics.png',
+		},
+		cliId: 'prompt-to-motion-graphics' as const,
+		type: 'image' as const,
+		defaultBranch: 'main',
+		featuredOnHomePage: null,
+		previewURL: null,
+		previewLabel: 'Live Demo',
+		templateInMonorepo: 'template-prompt-to-motion-graphics',
+		allowEnableTailwind: false,
+		contributedBy: 'ASchwad',
+		showStackblitz: false,
 	},
 	{
 		homePageLabel: 'JavaScript',
@@ -212,9 +276,11 @@ export const FEATURED_TEMPLATES: Template[] = [
 		featuredOnHomePage: null,
 		previewURL:
 			'https://template-helloworld-javascript.vercel.app/?/HelloWorld',
+		previewLabel: null,
 		templateInMonorepo: 'template-javascript',
 		allowEnableTailwind: true,
 		contributedBy: null,
+		showStackblitz: true,
 	},
 	{
 		homePageLabel: 'Render Server (Express.js)',
@@ -234,9 +300,35 @@ export const FEATURED_TEMPLATES: Template[] = [
 		defaultBranch: 'main',
 		featuredOnHomePage: null,
 		previewURL: null,
+		previewLabel: null,
 		templateInMonorepo: 'template-render-server',
 		allowEnableTailwind: false,
 		contributedBy: null,
+		showStackblitz: true,
+	},
+	{
+		homePageLabel: 'Electron',
+		shortName: 'Electron',
+		org: 'remotion-dev',
+		repoName: 'template-electron',
+		description: 'Render Remotion videos from a desktop app',
+		longerDescription:
+			'An Electron Forge + Vite starter template that renders Remotion videos from the Electron main process.',
+		promoVideo: {
+			muxId: 'EvaWtUbbZ5zuYQ5EZFcZ501fg4JPtdVXXt9K02Rf62xcM',
+			width: 1920,
+			height: 1080,
+		},
+		cliId: 'electron' as const,
+		type: 'video' as const,
+		defaultBranch: 'main',
+		featuredOnHomePage: null,
+		previewURL: null,
+		previewLabel: null,
+		templateInMonorepo: 'template-electron',
+		allowEnableTailwind: false,
+		contributedBy: null,
+		showStackblitz: false,
 	},
 	{
 		homePageLabel: 'React Router 7',
@@ -256,9 +348,11 @@ export const FEATURED_TEMPLATES: Template[] = [
 		defaultBranch: 'main',
 		featuredOnHomePage: 'React Router',
 		previewURL: null,
+		previewLabel: null,
 		templateInMonorepo: 'template-react-router',
 		allowEnableTailwind: false,
 		contributedBy: null,
+		showStackblitz: true,
 	},
 	{
 		homePageLabel: '3D',
@@ -278,9 +372,11 @@ export const FEATURED_TEMPLATES: Template[] = [
 		defaultBranch: 'main',
 		featuredOnHomePage: null,
 		previewURL: 'https://template-three-remotion.vercel.app/',
+		previewLabel: null,
 		templateInMonorepo: 'template-three',
 		allowEnableTailwind: false,
 		contributedBy: null,
+		showStackblitz: true,
 	},
 	{
 		homePageLabel: 'Stills',
@@ -300,53 +396,11 @@ export const FEATURED_TEMPLATES: Template[] = [
 		defaultBranch: 'main',
 		featuredOnHomePage: null,
 		previewURL: 'https://template-still.vercel.app/?/PreviewCard',
+		previewLabel: null,
 		templateInMonorepo: 'template-still',
 		allowEnableTailwind: false,
 		contributedBy: null,
-	},
-	{
-		homePageLabel: 'Text-To-Speech (Azure)',
-		shortName: 'TTS (Azure)',
-		org: 'FelippeChemello',
-		repoName: 'Remotion-TTS-Example',
-		description: 'Turns text into speech and makes a video',
-		longerDescription:
-			'A template that turns text into a spoken video. Integrates with Azure Cloud for Speech synthesis.',
-		promoVideo: {
-			muxId: '8vJJ01lNuFmQCx7n59VILevqQGxRuQHp9a7VBR7B4C8k',
-			width: 1920,
-			height: 1080,
-		},
-		cliId: 'tts' as const,
-		type: 'video' as const,
-		defaultBranch: 'master',
-		featuredOnHomePage: null,
-		previewURL: null,
-		templateInMonorepo: 'template-tts-azure',
-		allowEnableTailwind: false,
-		contributedBy: null,
-	},
-	{
-		homePageLabel: 'Text-To-Speech (Google)',
-		shortName: 'TTS (Google)',
-		org: 'thecmdrunner',
-		repoName: 'remotion-gtts-template',
-		description: 'Turns text into speech and makes a video',
-		longerDescription:
-			'A template that turns text into a spoken video. Integrates with Firebase for Storage, and Google Cloud for Speech synthesis.',
-		promoVideo: {
-			muxId: '82dzhGhv3bl3p8LW009cFGd8oltqt6UvxTWdP27202BAY',
-			width: 1920,
-			height: 1080,
-		},
-		cliId: 'google-tts' as const,
-		type: 'video' as const,
-		defaultBranch: 'master',
-		featuredOnHomePage: null,
-		previewURL: null,
-		templateInMonorepo: 'template-tts-google',
-		allowEnableTailwind: false,
-		contributedBy: null,
+		showStackblitz: true,
 	},
 	{
 		homePageLabel: 'Audiogram',
@@ -366,9 +420,11 @@ export const FEATURED_TEMPLATES: Template[] = [
 		defaultBranch: 'main',
 		featuredOnHomePage: null,
 		previewURL: 'https://template-audiogram-1nrh.vercel.app',
+		previewLabel: null,
 		templateInMonorepo: 'template-audiogram',
 		allowEnableTailwind: true,
 		contributedBy: null,
+		showStackblitz: true,
 	},
 	{
 		homePageLabel: 'Music Visualization',
@@ -388,9 +444,11 @@ export const FEATURED_TEMPLATES: Template[] = [
 		defaultBranch: 'main',
 		featuredOnHomePage: null,
 		previewURL: null,
+		previewLabel: null,
 		templateInMonorepo: 'template-music-visualization',
 		allowEnableTailwind: true,
 		contributedBy: null,
+		showStackblitz: true,
 	},
 	{
 		homePageLabel: 'Prompt to Video',
@@ -410,9 +468,11 @@ export const FEATURED_TEMPLATES: Template[] = [
 		defaultBranch: 'main',
 		featuredOnHomePage: null,
 		previewURL: null,
+		previewLabel: null,
 		templateInMonorepo: 'template-prompt-to-video',
 		allowEnableTailwind: true,
 		contributedBy: 'webmonch',
+		showStackblitz: true,
 	},
 	{
 		homePageLabel: 'Skia',
@@ -431,9 +491,11 @@ export const FEATURED_TEMPLATES: Template[] = [
 		defaultBranch: 'main',
 		featuredOnHomePage: null,
 		previewURL: null,
+		previewLabel: null,
 		templateInMonorepo: 'template-skia',
 		allowEnableTailwind: false,
 		contributedBy: null,
+		showStackblitz: true,
 	},
 	{
 		homePageLabel: 'Overlay',
@@ -458,9 +520,11 @@ export const FEATURED_TEMPLATES: Template[] = [
 		defaultBranch: 'main',
 		featuredOnHomePage: null,
 		previewURL: null,
+		previewLabel: null,
 		templateInMonorepo: 'template-overlay',
 		allowEnableTailwind: true,
 		contributedBy: null,
+		showStackblitz: true,
 	},
 	{
 		homePageLabel: 'Code Hike',
@@ -483,9 +547,11 @@ export const FEATURED_TEMPLATES: Template[] = [
 		defaultBranch: 'main',
 		featuredOnHomePage: null,
 		previewURL: 'https://template-code-hike.vercel.app/',
+		previewLabel: null,
 		templateInMonorepo: 'template-code-hike',
 		allowEnableTailwind: false,
 		contributedBy: null,
+		showStackblitz: true,
 	},
 	{
 		homePageLabel: 'Stargazer',
@@ -505,9 +571,11 @@ export const FEATURED_TEMPLATES: Template[] = [
 		defaultBranch: 'main',
 		featuredOnHomePage: null,
 		previewURL: null,
+		previewLabel: null,
 		templateInMonorepo: 'template-stargazer',
 		allowEnableTailwind: true,
-		contributedBy: null,
+		contributedBy: 'pomber',
+		showStackblitz: true,
 	},
 	{
 		homePageLabel: 'TikTok',
@@ -527,9 +595,11 @@ export const FEATURED_TEMPLATES: Template[] = [
 		defaultBranch: 'main',
 		featuredOnHomePage: null,
 		previewURL: null,
+		previewLabel: null,
 		templateInMonorepo: 'template-tiktok',
 		allowEnableTailwind: true,
 		contributedBy: null,
+		showStackblitz: true,
 	},
 ].filter(truthy);
 

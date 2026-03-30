@@ -7,8 +7,6 @@ import React, {
 	useRef,
 	useState,
 } from 'react';
-import {SequenceContext} from '../SequenceContext.js';
-import {SequenceVisibilityToggleContext} from '../SequenceManager.js';
 import type {IsExact} from '../audio/props.js';
 import {SharedAudioContext} from '../audio/shared-audio-tags.js';
 import {makeSharedElementSourceNode} from '../audio/shared-element-source-node.js';
@@ -17,6 +15,8 @@ import {getCrossOriginValue} from '../get-cross-origin-value.js';
 import {useLogLevel, useMountTime} from '../log-level-context.js';
 import {playbackLogging} from '../playback-logging.js';
 import {usePreload} from '../prefetch.js';
+import {SequenceContext} from '../SequenceContext.js';
+import {SequenceVisibilityToggleContext} from '../SequenceManager.js';
 import {useVolume} from '../use-amplification.js';
 import {useMediaInTimeline} from '../use-media-in-timeline.js';
 import {useMediaPlayback} from '../use-media-playback.js';
@@ -69,6 +69,27 @@ const VideoForDevelopmentRefForwardingFunction: React.ForwardRefRenderFunction<
 			ref: videoRef,
 		});
 	}, [context.audioContext]);
+
+	/**
+	 * Effects in React 18 fire twice, and we are looking for a way to only fire it once.
+	 * - useInsertionEffect only fires once. If it's available we are in React 18.
+	 * - useLayoutEffect only fires once in React 17.
+	 *
+	 * Need to import it from React to fix React 17 ESM support.
+	 */
+	const effectToUse = React.useInsertionEffect ?? React.useLayoutEffect;
+
+	// Disconnecting the SharedElementSourceNodes if the tag unmounts to prevent leak.
+	// https://github.com/remotion-dev/remotion/issues/6285
+	// But useInsertionEffect will fire before other effects, meaning the
+	// nodes might still be used. Using rAF to ensure it's after other effects.
+	effectToUse(() => {
+		return () => {
+			requestAnimationFrame(() => {
+				sharedSource?.cleanup();
+			});
+		};
+	}, [sharedSource]);
 
 	const {
 		volume,
@@ -312,6 +333,7 @@ const VideoForDevelopmentRefForwardingFunction: React.ForwardRefRenderFunction<
 	const crossOriginValue = getCrossOriginValue({
 		crossOrigin,
 		requestsVideoFrame: Boolean(onVideoFrame),
+		isClientSideRendering: false,
 	});
 
 	return (

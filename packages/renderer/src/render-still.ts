@@ -1,5 +1,6 @@
 import fs, {statSync} from 'node:fs';
 import path from 'node:path';
+import {LicensingInternals} from '@remotion/licensing';
 import type {_InternalTypes} from 'remotion';
 import type {VideoConfig} from 'remotion/no-react';
 import {NoReactInternals} from 'remotion/no-react';
@@ -8,10 +9,10 @@ import {DEFAULT_BROWSER} from './browser';
 import type {BrowserExecutable} from './browser-executable';
 import type {BrowserLog} from './browser-log';
 import type {HeadlessBrowser} from './browser/Browser';
-import type {OnLog} from './browser/BrowserPage';
-import {DEFAULT_TIMEOUT} from './browser/TimeoutSettings';
 import {defaultBrowserDownloadProgress} from './browser/browser-download-progress-bar';
+import type {OnLog} from './browser/BrowserPage';
 import type {SourceMapGetter} from './browser/source-map-getter';
+import {DEFAULT_TIMEOUT} from './browser/TimeoutSettings';
 import type {Codec} from './codec';
 import {collectAssets} from './collect-assets';
 import {convertToPositiveFrameIndex} from './convert-to-positive-frame-index';
@@ -30,6 +31,7 @@ import {Log} from './logger';
 import type {CancelSignal} from './make-cancel-signal';
 import {cancelErrorMessages} from './make-cancel-signal';
 import {getAvailableMemory} from './memory/get-available-memory';
+import {mimeLookup} from './mime-types';
 import type {ChromiumOptions} from './open-browser';
 import {internalOpenBrowser} from './open-browser';
 import type {ToOptions} from './options/option';
@@ -75,7 +77,8 @@ type InternalRenderStillOptions = {
 	port: number | null;
 	onArtifact: OnArtifact | null;
 	onLog: OnLog;
-} & ToOptions<typeof optionsMap.renderStill>;
+	isProduction: boolean | null;
+} & ToOptions<Omit<typeof optionsMap.renderStill, 'apiKey'>>;
 
 export type RenderStillOptions = {
 	port?: number | null;
@@ -107,10 +110,16 @@ export type RenderStillOptions = {
 	 */
 	quality?: never;
 	onArtifact?: OnArtifact;
-} & Partial<ToOptions<typeof optionsMap.renderStill>>;
+	isProduction?: boolean;
+} & Partial<ToOptions<typeof optionsMap.renderStill>> & {
+		/**
+		 * @deprecated Use `licenseKey` instead
+		 */
+		apiKey?: string | null;
+	};
 
 type CleanupFn = () => Promise<unknown>;
-type RenderStillReturnValue = {buffer: Buffer | null};
+type RenderStillReturnValue = {buffer: Buffer | null; contentType: string};
 
 const innerRenderStill = async ({
 	composition,
@@ -275,6 +284,7 @@ const innerRenderStill = async ({
 		isMainTab: true,
 		mediaCacheSizeInBytes,
 		initialMemoryAvailable: getAvailableMemory(logLevel),
+		darkMode: chromiumOptions.darkMode ?? false,
 	});
 
 	await puppeteerEvaluateWithCatch({
@@ -375,7 +385,11 @@ const innerRenderStill = async ({
 
 	await cleanup();
 
-	return {buffer: output ? null : buffer};
+	return {
+		buffer: output ? null : buffer,
+		contentType:
+			mimeLookup('file.' + imageFormat) || 'application/octet-stream',
+	};
 };
 
 const internalRenderStillRaw = (
@@ -416,7 +430,31 @@ const internalRenderStillRaw = (
 				});
 			})
 
-			.then((res) => resolve(res))
+			.then((res) => {
+				if (options.licenseKey === null) {
+					resolve(res);
+					return;
+				}
+
+				LicensingInternals.internalRegisterUsageEvent({
+					licenseKey: options.licenseKey,
+					event: 'cloud-render',
+					host: null,
+					succeeded: true,
+					isStill: true,
+					isProduction: options.isProduction ?? true,
+				})
+					.then(() => {
+						Log.verbose(options, 'Usage event sent successfully');
+					})
+					.catch((err) => {
+						Log.error(options, 'Failed to send usage event');
+						Log.error(options, err);
+					})
+					.finally(() => {
+						resolve(res);
+					});
+			})
 			.catch((err) => reject(err))
 			.finally(() => {
 				cleanup.forEach((c) => {
@@ -478,6 +516,9 @@ export const renderStill = (
 		chromeMode,
 		offthreadVideoThreads,
 		mediaCacheSizeInBytes,
+		apiKey,
+		licenseKey,
+		isProduction,
 	} = options;
 
 	if (typeof jpegQuality !== 'undefined' && imageFormat !== 'jpeg') {
@@ -544,6 +585,8 @@ export const renderStill = (
 		chromeMode: chromeMode ?? 'headless-shell',
 		offthreadVideoThreads: offthreadVideoThreads ?? null,
 		mediaCacheSizeInBytes: mediaCacheSizeInBytes ?? null,
+		licenseKey: licenseKey ?? apiKey ?? null,
 		onLog: defaultOnLog,
+		isProduction: isProduction ?? null,
 	});
 };

@@ -44,6 +44,9 @@ const firstEncodingStepOnly = ({
 		// transparent WebM generation doesn't work
 		pixelFormat === 'yuva420p' ? ['-auto-alt-ref', '0'] : null,
 		x264Preset ? ['-preset', x264Preset] : null,
+		// Apply a fixed a timescale across all environments:
+		// https://discord.com/channels/809501355504959528/817306238811111454/1437471619089170613
+		['-video_track_timescale', '90000'],
 		validateQualitySettings({
 			crf,
 			videoBitrate,
@@ -112,7 +115,8 @@ export const generateFfmpegArgs = ({
 		`Encoder: ${encoderName}, hardware accelerated: ${hardwareAccelerated}`,
 	);
 
-	const resolvedColorSpace = colorSpace ?? DEFAULT_COLOR_SPACE;
+	const resolvedColorSpace: ColorSpace =
+		codec === 'gif' ? 'bt601' : (colorSpace ?? DEFAULT_COLOR_SPACE);
 
 	const colorSpaceOptions: string[][] =
 		resolvedColorSpace === 'bt709'

@@ -1,4 +1,5 @@
-import {HOST} from './register-usage-point';
+import type {EitherApiKeyOrLicenseKey} from './register-usage-event';
+import {HOST} from './register-usage-event';
 
 export type EventCount = {
 	billable: number;
@@ -19,20 +20,27 @@ export type GetUsageApiResponse =
 
 export type GetUsageResponse = {
 	cloudRenders: EventCount;
+	webRenders: EventCount;
+	/**
+	 * @deprecated Use `webRenders` instead
+	 */
 	webcodecConversions: EventCount;
 };
 
 export const getUsage = async ({
-	apiKey,
 	since,
+	...apiOrLicenseKey
 }: {
-	apiKey: string;
 	since?: number | null;
-}): Promise<GetUsageResponse> => {
+} & EitherApiKeyOrLicenseKey): Promise<GetUsageResponse> => {
+	const apiKey = 'apiKey' in apiOrLicenseKey ? apiOrLicenseKey.apiKey : null;
+	const licenseKey =
+		'licenseKey' in apiOrLicenseKey ? apiOrLicenseKey.licenseKey : null;
+
 	const res = await fetch(`${HOST}/api/track/get-usage`, {
 		method: 'POST',
 		body: JSON.stringify({
-			apiKey,
+			apiKey: licenseKey ?? apiKey,
 			since: since ?? null,
 		}),
 		headers: {
@@ -44,6 +52,7 @@ export const getUsage = async ({
 	if (json.success) {
 		return {
 			cloudRenders: json.cloudRenders,
+			webRenders: json.webcodecConversions,
 			webcodecConversions: json.webcodecConversions,
 		};
 	}

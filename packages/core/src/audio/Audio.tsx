@@ -1,12 +1,12 @@
 /* eslint-disable @typescript-eslint/no-use-before-define */
 import React, {forwardRef, useCallback, useContext} from 'react';
-import {Sequence} from '../Sequence.js';
 import {getAbsoluteSrc} from '../absolute-src.js';
 import {calculateMediaDuration} from '../calculate-media-duration.js';
 import {cancelRender} from '../cancel-render.js';
 import {addSequenceStackTraces} from '../enable-sequence-stack-traces.js';
 import {Loop} from '../loop/index.js';
 import {usePreload} from '../prefetch.js';
+import {Sequence} from '../Sequence.js';
 import {useRemotionEnvironment} from '../use-remotion-environment.js';
 import {useVideoConfig} from '../use-video-config.js';
 import {validateMediaProps} from '../validate-media-props.js';
@@ -46,6 +46,12 @@ const AudioRefForwardingFunction: React.ForwardRefRenderFunction<
 	const {loop, ...propsOtherThanLoop} = props;
 	const {fps} = useVideoConfig();
 	const environment = useRemotionEnvironment();
+
+	if (environment.isClientSideRendering) {
+		throw new Error(
+			'<Html5Audio> is not supported in @remotion/web-renderer. Use <Audio> from @remotion/media instead. See https://remotion.dev/docs/client-side-rendering/limitations',
+		);
+	}
 
 	const {durations, setDurations} = useContext(DurationsContext);
 	if (typeof props.src !== 'string') {

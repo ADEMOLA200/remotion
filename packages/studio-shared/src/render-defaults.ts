@@ -48,12 +48,15 @@ export type RenderDefaults = {
 	headless: boolean;
 	colorSpace: ColorSpace;
 	multiProcessOnLinux: boolean;
+	darkMode: boolean;
 	beepOnFinish: boolean;
 	repro: boolean;
 	forSeamlessAacConcatenation: boolean;
 	metadata: Record<string, string> | null;
 	hardwareAcceleration: HardwareAccelerationOption;
 	chromeMode: ChromeMode;
+	publicLicenseKey: string | null;
+	outputLocation: string | null;
 };
 
 declare global {

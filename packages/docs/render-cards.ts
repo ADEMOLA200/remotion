@@ -1,9 +1,9 @@
-import {bundle} from '@remotion/bundler';
-import {getCompositions, renderStill} from '@remotion/renderer';
 import {execSync} from 'child_process';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
+import {bundle} from '@remotion/bundler';
+import {getCompositions, renderStill} from '@remotion/renderer';
 import {readDir} from './get-pages.mjs';
 
 const data: {
@@ -30,9 +30,11 @@ const findId = (split, page) => {
 };
 
 const findTitle = (split) => {
-	const title = split
-		.find((s) => s.startsWith('title: '))
-		.replace(/^title:\s/, '');
+	const found = split.find((s) => s.startsWith('title: '));
+	if (!found) {
+		return null;
+	}
+	const title = found.replace(/^title:\s/, '');
 	if (title.startsWith('"') || title.startsWith("'")) {
 		return title.substr(1, title.length - 2);
 	}
@@ -103,6 +105,11 @@ for (const page of pages) {
 	const noAi = findNoAi(split);
 	const crumb = findCrumb(split);
 
+	if (!title) {
+		console.log('No title for', page, '- skipping');
+		continue;
+	}
+
 	const relativePath = page
 		.replace(process.cwd() + path.sep, '')
 		.replaceAll(path.sep, path.posix.sep);
@@ -135,6 +142,27 @@ for (const page of pages) {
 		).replace(/^\//, ''),
 	});
 }
+
+data.push(
+	{
+		id: 'prompts-gallery',
+		title: 'Prompt Showcase',
+		relativePath: 'src/pages/prompts/index.tsx',
+		compId: 'articles-prompts-gallery',
+		crumb: null,
+		noAi: false,
+		slug: 'prompts',
+	},
+	{
+		id: 'prompts-submit',
+		title: 'Share your video',
+		relativePath: 'src/pages/prompts/submit.tsx',
+		compId: 'articles-prompts-submit',
+		crumb: 'Prompts',
+		noAi: false,
+		slug: 'prompts/submit',
+	},
+);
 
 fs.writeFileSync(
 	path.join(process.cwd(), 'src', 'data', 'articles.ts'),
@@ -177,13 +205,18 @@ for (const entry of data) {
 		continue;
 	}
 
-	const out = path.join(process.cwd(), entry.relativePath);
 	await renderStill({
 		composition,
 		output,
 		serveUrl,
 	});
+	console.log('Rendered', composition.id);
 
+	if (entry.relativePath.endsWith('.tsx')) {
+		continue;
+	}
+
+	const out = path.join(process.cwd(), entry.relativePath);
 	const fileContents = fs.readFileSync(out, 'utf-8');
 	const lines = fileContents
 		.split(os.EOL)
@@ -200,5 +233,4 @@ for (const entry of data) {
 	].join(os.EOL);
 
 	fs.writeFileSync(out, newLines);
-	console.log('Rendered', composition.id);
 }

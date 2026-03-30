@@ -28,9 +28,9 @@ import {EditorZoomGesturesContext} from '../state/editor-zoom-gestures';
 import EditorGuides from './EditorGuides';
 import {EditorRulers} from './EditorRuler';
 import {useIsRulerVisible} from './EditorRuler/use-is-ruler-visible';
+import {SPACING_UNIT} from './layout';
 import {VideoPreview} from './Preview';
 import {ResetZoomButton} from './ResetZoomButton';
-import {SPACING_UNIT} from './layout';
 
 const container: React.CSSProperties = {
 	flex: 1,
@@ -65,7 +65,9 @@ export const Canvas: React.FC<{
 
 	const contentDimensions = useMemo(() => {
 		if (
-			(canvasContent.type === 'asset' || canvasContent.type === 'output') &&
+			(canvasContent.type === 'asset' ||
+				canvasContent.type === 'output' ||
+				canvasContent.type === 'output-blob') &&
 			assetResolution &&
 			assetResolution.type === 'found'
 		) {

@@ -1,6 +1,8 @@
 import type {LogLevel, LoopVolumeCurveBehavior, VolumeProp} from 'remotion';
+import type {MediaOnError} from '../on-error';
 
 export type FallbackHtml5AudioProps = {
+	crossOrigin?: '' | 'anonymous' | 'use-credentials' | undefined;
 	onError?: (err: Error) => void;
 	useWebAudioApi?: boolean;
 	acceptableTimeShiftInSeconds?: number;
@@ -31,4 +33,7 @@ export type AudioProps = {
 	toneFrequency?: number;
 	delayRenderRetries?: number;
 	delayRenderTimeoutInMilliseconds?: number;
+	debugAudioScheduling?: boolean;
+	onError?: MediaOnError;
+	credentials?: RequestCredentials;
 };

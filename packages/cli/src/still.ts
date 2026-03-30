@@ -26,6 +26,21 @@ const {
 	offthreadVideoThreadsOption,
 	audioLatencyHintOption,
 	mediaCacheSizeInBytesOption,
+	darkModeOption,
+	askAIOption,
+	experimentalClientSideRenderingOption,
+	experimentalVisualModeOption,
+	keyboardShortcutsOption,
+	rspackOption,
+	browserExecutableOption,
+	userAgentOption,
+	disableWebSecurityOption,
+	ignoreCertificateErrorsOption,
+	overrideHeightOption,
+	overrideWidthOption,
+	overrideFpsOption,
+	overrideDurationOption,
+	bundleCacheOption,
 } = BrowserSafeApis.options;
 
 export const still = async (
@@ -65,22 +80,33 @@ export const still = async (
 		process.exit(1);
 	}
 
-	const {
-		browserExecutable,
-		envVariables,
-		height,
-		inputProps,
-		stillFrame,
-		width,
-		disableWebSecurity,
-		ignoreCertificateErrors,
-		userAgent,
-	} = getCliOptions({
+	const {envVariables, inputProps, stillFrame} = getCliOptions({
 		isStill: true,
 		logLevel,
 		indent: false,
 	});
 
+	const height = overrideHeightOption.getValue({
+		commandLine: parsedCli,
+	}).value;
+	const width = overrideWidthOption.getValue({
+		commandLine: parsedCli,
+	}).value;
+	const fps = overrideFpsOption.getValue({commandLine: parsedCli}).value;
+	const durationInFrames = overrideDurationOption.getValue({
+		commandLine: parsedCli,
+	}).value;
+
+	const browserExecutable = browserExecutableOption.getValue({
+		commandLine: parsedCli,
+	}).value;
+	const userAgent = userAgentOption.getValue({commandLine: parsedCli}).value;
+	const disableWebSecurity = disableWebSecurityOption.getValue({
+		commandLine: parsedCli,
+	}).value;
+	const ignoreCertificateErrors = ignoreCertificateErrorsOption.getValue({
+		commandLine: parsedCli,
+	}).value;
 	const jpegQuality = jpegQualityOption.getValue({
 		commandLine: parsedCli,
 	}).value;
@@ -126,14 +152,24 @@ export const still = async (
 	const audioLatencyHint = audioLatencyHintOption.getValue({
 		commandLine: parsedCli,
 	}).value;
+	const darkMode = darkModeOption.getValue({commandLine: parsedCli}).value;
+	const askAIEnabled = askAIOption.getValue({commandLine: parsedCli}).value;
+	const keyboardShortcutsEnabled = keyboardShortcutsOption.getValue({
+		commandLine: parsedCli,
+	}).value;
+	const rspack = rspackOption.getValue({commandLine: parsedCli}).value;
+	const shouldCache = bundleCacheOption.getValue({
+		commandLine: parsedCli,
+	}).value;
 
-	const chromiumOptions: ChromiumOptions = {
+	const chromiumOptions: Required<ChromiumOptions> = {
 		disableWebSecurity,
 		enableMultiProcessOnLinux,
 		gl,
 		headless,
 		ignoreCertificateErrors,
 		userAgent,
+		darkMode,
 	};
 
 	await renderStillFlow({
@@ -146,6 +182,9 @@ export const still = async (
 		chromiumOptions,
 		envVariables,
 		height,
+		width,
+		fps,
+		durationInFrames,
 		serializedInputPropsWithCustomSchema:
 			NoReactInternals.serializeJSONWithSpecialTypes({
 				data: inputProps,
@@ -159,7 +198,6 @@ export const still = async (
 		jpegQuality,
 		scale,
 		stillFrame,
-		width,
 		compositionIdFromUi: null,
 		imageFormatFromUi: null,
 		logLevel,
@@ -177,5 +215,15 @@ export const still = async (
 		chromeMode,
 		audioLatencyHint,
 		mediaCacheSizeInBytes,
+		askAIEnabled,
+		experimentalClientSideRenderingEnabled:
+			experimentalClientSideRenderingOption.getValue({commandLine: parsedCli})
+				.value,
+		experimentalVisualModeEnabled: experimentalVisualModeOption.getValue({
+			commandLine: parsedCli,
+		}).value,
+		keyboardShortcutsEnabled,
+		rspack,
+		shouldCache,
 	});
 };

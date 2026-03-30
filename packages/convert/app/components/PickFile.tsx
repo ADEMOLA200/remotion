@@ -25,6 +25,7 @@ export const PickFile: React.FC<{
 	const onDrop = useCallback(
 		(event: React.DragEvent<HTMLDivElement>) => {
 			event.preventDefault();
+			event.stopPropagation();
 			const file = event.dataTransfer.files[0];
 			if (file) {
 				setSrc({type: 'file', file});
@@ -35,6 +36,7 @@ export const PickFile: React.FC<{
 
 	const onDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
 		event.preventDefault();
+		event.stopPropagation();
 	}, []);
 
 	return (
@@ -45,7 +47,7 @@ export const PickFile: React.FC<{
 		>
 			<div className="bg-[#F9FAFC] w-full">
 				<div className="h-10" />
-				<TextMarkLogo />
+				<TextMarkLogo text="Remotion Convert" />
 				<div className="h-5" />
 				<div className="w-full pb-4">
 					<h1 className="text-center text-3xl font-brand font-black max-w-[600px] m-auto text-balance px-4">

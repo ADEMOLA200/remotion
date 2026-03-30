@@ -1,4 +1,5 @@
 import {RenderInternals} from '@remotion/renderer';
+import {BrowserSafeApis} from '@remotion/renderer/client';
 import {StudioServerInternals} from '@remotion/studio-server';
 import minimist from 'minimist';
 import {addCommand} from './add';
@@ -39,6 +40,7 @@ import {
 } from './progress-bar';
 import {render} from './render';
 import {shouldUseNonOverlayingLogger} from './should-use-non-overlaying-logger';
+import {skillsCommand} from './skills';
 import {still} from './still';
 import {studioCommand} from './studio';
 import {upgradeCommand} from './upgrade';
@@ -48,15 +50,17 @@ import {
 	versionsCommand,
 } from './versions';
 
+const {packageManagerOption, versionFlagOption} = BrowserSafeApis.options;
+
 export const cli = async () => {
 	const [command, ...args] = parsedCli._;
-	if (parsedCli.help) {
-		printHelp('info');
-		process.exit(0);
-	}
+
+	const packageManager = packageManagerOption.getValue({
+		commandLine: parsedCli,
+	}).value;
 
 	const remotionRoot = RenderInternals.findRemotionRoot();
-	if (command !== VERSIONS_COMMAND) {
+	if (command !== VERSIONS_COMMAND && !parsedCli.help) {
 		await validateVersionsBeforeCommand(remotionRoot, 'info');
 	}
 
@@ -114,8 +118,10 @@ export const cli = async () => {
 		} else if (command === 'upgrade') {
 			await upgradeCommand({
 				remotionRoot,
-				packageManager: parsedCli['package-manager'],
-				version: parsedCli.version,
+				packageManager: packageManager ?? undefined,
+				version:
+					versionFlagOption.getValue({commandLine: parsedCli}).value ??
+					undefined,
 				logLevel,
 				args,
 			});
@@ -133,11 +139,13 @@ export const cli = async () => {
 
 			await addCommand({
 				remotionRoot,
-				packageManager: parsedCli['package-manager'],
+				packageManager: packageManager ?? undefined,
 				packageNames,
 				logLevel,
 				args: additionalArgs,
 			});
+		} else if (command === 'skills') {
+			await skillsCommand(args, logLevel);
 		} else if (command === VERSIONS_COMMAND) {
 			await versionsCommand(remotionRoot, logLevel);
 		} else if (command === BROWSER_COMMAND) {
@@ -147,6 +155,8 @@ export const cli = async () => {
 		} else if (command === 'help') {
 			printHelp(logLevel);
 			process.exit(0);
+		} else if (parsedCli.help) {
+			printHelp(logLevel);
 		} else {
 			if (command) {
 				Log.error({indent: false, logLevel}, `Command ${command} not found.`);

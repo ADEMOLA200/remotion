@@ -2,11 +2,19 @@ import {BrowserSafeApis} from '@remotion/renderer/client';
 import type {JobProgressCallback, RenderJob} from '@remotion/studio-server';
 import {getRendererPortFromConfigFile} from '../config/preview-server';
 import {convertEntryPointToServeUrl} from '../convert-entry-point-to-serve-url';
-import {getCliOptions} from '../get-cli-options';
 import {parsedCli} from '../parsed-cli';
 import {renderStillFlow} from '../render-flows/still';
 
-const {publicDirOption} = BrowserSafeApis.options;
+const {
+	publicDirOption,
+	askAIOption,
+	experimentalClientSideRenderingOption,
+	experimentalVisualModeOption,
+	keyboardShortcutsOption,
+	rspackOption,
+	browserExecutableOption,
+	bundleCacheOption,
+} = BrowserSafeApis.options;
 
 export const processStill = async ({
 	job,
@@ -25,15 +33,28 @@ export const processStill = async ({
 		throw new Error('Expected still job');
 	}
 
-	const {browserExecutable} = getCliOptions({
-		isStill: true,
-		logLevel: job.logLevel,
-		indent: true,
-	});
+	const browserExecutable = browserExecutableOption.getValue({
+		commandLine: parsedCli,
+	}).value;
 
 	const publicDir = publicDirOption.getValue({
 		commandLine: parsedCli,
 	}).value;
+	const askAIEnabled = askAIOption.getValue({commandLine: parsedCli}).value;
+	const experimentalClientSideRenderingEnabled =
+		experimentalClientSideRenderingOption.getValue({
+			commandLine: parsedCli,
+		}).value;
+	const experimentalVisualModeEnabled = experimentalVisualModeOption.getValue({
+		commandLine: parsedCli,
+	}).value;
+	const keyboardShortcutsEnabled = keyboardShortcutsOption.getValue({
+		commandLine: parsedCli,
+	}).value;
+	const shouldCache = bundleCacheOption.getValue({
+		commandLine: parsedCli,
+	}).value;
+	const rspack = rspackOption.getValue({commandLine: parsedCli}).value;
 
 	const fullEntryPoint = convertEntryPointToServeUrl(entryPoint);
 
@@ -45,6 +66,9 @@ export const processStill = async ({
 		entryPointReason: 'same as Studio',
 		envVariables: job.envVariables,
 		height: null,
+		width: null,
+		fps: null,
+		durationInFrames: null,
 		fullEntryPoint,
 		serializedInputPropsWithCustomSchema:
 			job.serializedInputPropsWithCustomSchema,
@@ -56,7 +80,6 @@ export const processStill = async ({
 		remainingArgs: [],
 		scale: job.scale,
 		stillFrame: job.frame,
-		width: null,
 		compositionIdFromUi: job.compositionId,
 		imageFormatFromUi: job.imageFormat,
 		logLevel: job.logLevel,
@@ -72,5 +95,11 @@ export const processStill = async ({
 		chromeMode: job.chromeMode,
 		audioLatencyHint: null,
 		mediaCacheSizeInBytes: job.mediaCacheSizeInBytes,
+		askAIEnabled,
+		experimentalClientSideRenderingEnabled,
+		experimentalVisualModeEnabled,
+		keyboardShortcutsEnabled,
+		rspack,
+		shouldCache,
 	});
 };

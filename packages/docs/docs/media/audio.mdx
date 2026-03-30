@@ -9,7 +9,7 @@ This is documentation for the new `<Audio>` tag.
 Not to be confused with the older [`<Html5Audio>` / `<Audio>`](/docs/html5-audio) tag from `remotion`.
 :::
 
-This component imports and displays a video, similar to [`<Html5Audio />`](/docs/html5-audio) from `remotion` but during rendering, extracts the exact audio using [Mediabunny](/docs/mediabunny) instead of FFmpeg.
+This component imports and plays audio, similar to [`<Html5Audio />`](/docs/html5-audio) from `remotion` but during rendering, extracts the exact audio using [Mediabunny](/docs/mediabunny) instead of FFmpeg.
 
 ## Example
 
@@ -113,11 +113,38 @@ export const MyVideo = () => {
 
 A name and that will be shown as the label of the sequence in the timeline of the Remotion Studio. This property is purely for helping you keep track of items in the timeline.
 
-### `onError?`
+### `onError?`<AvailableFrom v="4.0.404" />
 
-**Currently not supported!**
+Handle errors that occur during audio processing. The callback receives an `Error` and should return either `'fallback'` or `'fail'`.
 
-### `playbackRate?`<AvailableFrom v="4.0.354" />
+- Return `'fallback'` to fall back to [`<Html5Audio>`](/docs/html5-audio) (default behavior)
+- Return `'fail'` to fail the render immediately
+
+```tsx twoslash
+import {Audio} from '@remotion/media';
+
+export const MyVideo = () => {
+  return (
+    <Audio
+      src={'https://remotion.media/audio.mp3'}
+      onError={(error) => {
+        console.log('Audio error:', error.message);
+
+        // Return 'fail' to fail the render, or 'fallback' to use <Html5Audio>
+        return 'fallback';
+      }}
+    />
+  );
+};
+```
+
+:::note
+
+- In client-side rendering, the render will always fail regardless of the return value.
+- If you return `'fallback'`, the component will fall back to [`<Html5Audio>`](/docs/html5-audio) which may have its own error handling via [`fallbackHtml5AudioProps.onError`](#onerror-1).
+  :::
+
+### `playbackRate?`
 
 Controls the speed of the audio. `1` is the default and means regular speed, `0.5` slows down the audio so it's twice as long and `2` speeds up the audio so it's twice as fast.
 
@@ -152,7 +179,7 @@ export const MyComposition = () => {
 };
 ```
 
-### `loopVolumeCurveBehavior?`<AvailableFrom v="4.0.354" />
+### `loopVolumeCurveBehavior?`
 
 Controls the `frame` which is returned when using the [`volume`](#volume) callback function and adding the [`loop`](#loop) attribute.
 
@@ -200,6 +227,27 @@ export const MyComposition = () => {
 };
 ```
 
+### `credentials?`<AvailableFrom v="4.0.437" />
+
+Controls the [`credentials`](https://developer.mozilla.org/en-US/docs/Web/API/Request/credentials) option of the `fetch()` requests made to retrieve the audio data.
+
+Accepts `"omit"`, `"same-origin"` (default behavior of `fetch()`) or `"include"`.
+Set to `"include"` if you need to send cookies or authentication headers to a cross-origin audio URL.
+
+```tsx twoslash
+import {AbsoluteFill} from 'remotion';
+import {Audio} from '@remotion/media';
+
+// ---cut---
+export const MyComposition = () => {
+  return (
+    <AbsoluteFill>
+      <Audio credentials="include" src="https://example.com/protected-audio.mp3" />
+    </AbsoluteFill>
+  );
+};
+```
+
 ### `toneFrequency?`
 
 Accepts a number between `0.01` and `2`, where `1` represents the original pitch. Values less than `1` will decrease the pitch, while values greater than `1` will increase it.
@@ -209,13 +257,18 @@ A `toneFrequency` of 0.5 would lower the pitch by half, and a `toneFrequency` of
 The value must stay the same across the entire time the video tag is mounted.
 
 :::warning
-Only works during rendering.  
+Only works in server-side rendering.  
+Does not currently work in preview or in [client-side rendering](/docs/client-side-rendering/).
 :::
 
 ### `fallbackHtml5AudioProps?`
 
 When a [fallback to `<Html5Audio>` from `remotion`](/docs/media/fallback) happens, this prop allows you to pass props to the fallback `<Html5Audio>` component.  
 Only props that are not supported by `<Audio>` from `@remotion/media` need to be specified here - props that apply for both tags will automatically be forwarded and do not need to be specified here.
+
+:::note
+This prop has no effect when using [`@remotion/web-renderer`](/docs/web-renderer) for client-side rendering, as fallback is not possible. See [Fallback is not possible in client-side rendering](/docs/media/fallback#fallback-is-not-possible-in-client-side-rendering).
+:::
 
 #### `onError?`
 
@@ -233,11 +286,23 @@ Maps to [`<Html5Audio />` -> `acceptableTimeShiftInSeconds`](/docs/html5-audio#a
 
 Maps to [`<Html5Audio />` -> `pauseWhenBuffering`](/docs/html5-audio#pausewhenbuffering)
 
-### `disallowFallbackToHtml5Audio?`<AvailableFrom v="3.0.356" />
+#### `crossOrigin?`
 
-By default, if the video cannot be embedded using this tag, [a fallback to `<Html5Audio>` from `remotion`](/docs/media/fallback) will be attempted.
+Maps to [`<Html5Audio />` -> `crossOrigin`](/docs/html5-audio#crossorigin)
+
+### `disallowFallbackToHtml5Audio?`
+
+By default, if the audio cannot be embedded using this tag, [a fallback to `<Html5Audio>` from `remotion`](/docs/media/fallback) will be attempted.
 
 Pass this prop to disable the fallback and fail the render instead.
+
+:::note
+When using [`@remotion/web-renderer`](/docs/web-renderer) for client-side rendering, fallback is not possible and the render will always fail if the audio cannot be embedded. See [Fallback is not possible in client-side rendering](/docs/media/fallback#fallback-is-not-possible-in-client-side-rendering).
+:::
+
+### `debugAudioScheduling?`
+
+Logs audio scheduling information to the console. This is useful for debugging audio playback timing issues.
 
 ## See also
 

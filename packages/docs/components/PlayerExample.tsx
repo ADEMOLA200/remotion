@@ -44,10 +44,12 @@ export const PlayerExample: React.FC<{
 		<div ref={containerRef}>
 			<Player
 				ref={playerRef}
+				acknowledgeRemotionLicense
 				component={ColorDemo}
 				compositionWidth={1280}
 				compositionHeight={720}
 				controls
+				clickToPlay={false}
 				spaceKeyToPlayOrPause={false}
 				durationInFrames={350}
 				fps={30}

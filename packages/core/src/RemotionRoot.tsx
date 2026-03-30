@@ -1,34 +1,27 @@
-import React, {useEffect, useMemo, useState} from 'react';
-import {EditorPropsProvider} from './EditorProps.js';
-import {RenderAssetManagerProvider} from './RenderAssetManager.js';
-import {ResolveCompositionConfig} from './ResolveCompositionConfig.js';
-import {SequenceManagerProvider} from './SequenceManager.js';
-import {TimelineContextProvider} from './TimelineContext.js';
+import React, {useMemo} from 'react';
 import {SharedAudioContextProvider} from './audio/shared-audio-tags.js';
 import {BufferingProvider} from './buffering.js';
+import {EditorPropsProvider} from './EditorProps.js';
 import type {LoggingContextValue} from './log-level-context.js';
 import {LogLevelContext} from './log-level-context.js';
 import type {LogLevel} from './log.js';
-import type {TNonceContext, TSetNonceContext} from './nonce.js';
-import {NonceContext, SetNonceContext} from './nonce.js';
+import type {TNonceContext} from './nonce.js';
+import {NonceContext} from './nonce.js';
 import {PrefetchProvider} from './prefetch-state.js';
+import {SequenceManagerProvider} from './SequenceManager.js';
+import {TimelineContextProvider} from './TimelineContext.js';
 import {MediaEnabledProvider} from './use-media-enabled.js';
 import {DurationsContextProvider} from './video/duration-state.js';
 
-declare const __webpack_module__: {
-	hot: {
-		addStatusHandler(callback: (status: string) => void): void;
-	};
-};
-
-export const RemotionRoot: React.FC<{
+export const RemotionRootContexts: React.FC<{
 	readonly children: React.ReactNode;
 	readonly numberOfAudioTags: number;
 	readonly logLevel: LogLevel;
 	readonly audioLatencyHint: AudioContextLatencyCategory;
-	readonly videoEnabled: boolean | null;
-	readonly audioEnabled: boolean | null;
+	readonly videoEnabled: boolean;
+	readonly audioEnabled: boolean;
 	readonly frameState: Record<string, number> | null;
+	readonly visualModeEnabled: boolean;
 }> = ({
 	children,
 	numberOfAudioTags,
@@ -37,37 +30,13 @@ export const RemotionRoot: React.FC<{
 	videoEnabled,
 	audioEnabled,
 	frameState,
+	visualModeEnabled,
 }) => {
-	const [fastRefreshes, setFastRefreshes] = useState(0);
-	const [manualRefreshes, setManualRefreshes] = useState(0);
-
 	const nonceContext = useMemo((): TNonceContext => {
 		let counter = 0;
 		return {
 			getNonce: () => counter++,
-			fastRefreshes,
-			manualRefreshes,
 		};
-	}, [fastRefreshes, manualRefreshes]);
-
-	const setNonceContext = useMemo((): TSetNonceContext => {
-		return {
-			increaseManualRefreshes: () => {
-				setManualRefreshes((i) => i + 1);
-			},
-		};
-	}, []);
-
-	useEffect(() => {
-		if (typeof __webpack_module__ !== 'undefined') {
-			if (__webpack_module__.hot) {
-				__webpack_module__.hot.addStatusHandler((status) => {
-					if (status === 'idle') {
-						setFastRefreshes((i) => i + 1);
-					}
-				});
-			}
-		}
 	}, []);
 
 	const logging: LoggingContextValue = useMemo(() => {
@@ -77,33 +46,28 @@ export const RemotionRoot: React.FC<{
 	return (
 		<LogLevelContext.Provider value={logging}>
 			<NonceContext.Provider value={nonceContext}>
-				<SetNonceContext.Provider value={setNonceContext}>
-					<TimelineContextProvider frameState={frameState}>
-						<MediaEnabledProvider
-							videoEnabled={videoEnabled}
-							audioEnabled={audioEnabled}
-						>
-							<EditorPropsProvider>
-								<PrefetchProvider>
-									<SequenceManagerProvider>
-										<RenderAssetManagerProvider>
-											<ResolveCompositionConfig>
-												<SharedAudioContextProvider
-													numberOfAudioTags={numberOfAudioTags}
-													audioLatencyHint={audioLatencyHint}
-												>
-													<DurationsContextProvider>
-														<BufferingProvider>{children}</BufferingProvider>
-													</DurationsContextProvider>
-												</SharedAudioContextProvider>
-											</ResolveCompositionConfig>
-										</RenderAssetManagerProvider>
-									</SequenceManagerProvider>
-								</PrefetchProvider>
-							</EditorPropsProvider>
-						</MediaEnabledProvider>
-					</TimelineContextProvider>
-				</SetNonceContext.Provider>
+				<TimelineContextProvider frameState={frameState}>
+					<MediaEnabledProvider
+						videoEnabled={videoEnabled}
+						audioEnabled={audioEnabled}
+					>
+						<EditorPropsProvider>
+							<PrefetchProvider>
+								<SequenceManagerProvider visualModeEnabled={visualModeEnabled}>
+									<SharedAudioContextProvider
+										numberOfAudioTags={numberOfAudioTags}
+										audioLatencyHint={audioLatencyHint}
+										audioEnabled={audioEnabled}
+									>
+										<DurationsContextProvider>
+											<BufferingProvider>{children}</BufferingProvider>
+										</DurationsContextProvider>
+									</SharedAudioContextProvider>
+								</SequenceManagerProvider>
+							</PrefetchProvider>
+						</EditorPropsProvider>
+					</MediaEnabledProvider>
+				</TimelineContextProvider>
 			</NonceContext.Provider>
 		</LogLevelContext.Provider>
 	);

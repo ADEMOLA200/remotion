@@ -1,6 +1,6 @@
-import {$} from 'bun';
 import {existsSync, lstatSync, readdirSync, readFileSync} from 'node:fs';
 import path from 'node:path';
+import {$} from 'bun';
 import limit from 'p-limit';
 import {FEATURED_TEMPLATES} from './packages/create-video/src/templates';
 
@@ -33,7 +33,7 @@ for (const dir of dirs) {
 
 	promises.push(
 		p(() => {
-			return $`bun publish`.cwd(packagePath);
+			return $`bun publish --tolerate-republish`.cwd(packagePath);
 		}),
 	);
 }

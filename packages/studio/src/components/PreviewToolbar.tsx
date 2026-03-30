@@ -7,24 +7,24 @@ import {
 	useIsVideoComposition,
 } from '../helpers/is-current-selected-still';
 import {useMobileLayout} from '../helpers/mobile-layout';
-import {SHOW_BROWSER_RENDERING} from '../helpers/show-browser-rendering';
 import {TIMELINE_PADDING} from '../helpers/timeline-layout';
 import {loadLoopOption} from '../state/loop';
 import {CheckboardToggle} from './CheckboardToggle';
 import {FpsCounter} from './FpsCounter';
 import {FullScreenToggle} from './FullscreenToggle';
+import {Flex, Spacing} from './layout';
 import {LoopToggle} from './LoopToggle';
 import {MuteToggle} from './MuteToggle';
-import {PlayPause} from './PlayPause';
 import {PlaybackKeyboardShortcutsManager} from './PlaybackKeyboardShortcutsManager';
 import {PlaybackRatePersistor} from './PlaybackRatePersistor';
 import {PlaybackRateSelector} from './PlaybackRateSelector';
+import {PlayPause} from './PlayPause';
 import {RenderButton} from './RenderButton';
 import {SizeSelector} from './SizeSelector';
 import {TimelineZoomControls} from './Timeline/TimelineZoomControls';
 import {TimelineInOutPointToggle} from './TimelineInOutToggle';
-import {TriggerWebRender} from './WebRender/TriggerWebRender';
-import {Flex, Spacing} from './layout';
+
+const TOOLBAR_HEIGHT = 56;
 
 const container: React.CSSProperties = {
 	display: 'flex',
@@ -35,6 +35,7 @@ const container: React.CSSProperties = {
 	alignItems: 'center',
 	flexDirection: 'row',
 	background: BACKGROUND,
+	height: TOOLBAR_HEIGHT,
 };
 
 const mobileContainer: React.CSSProperties = {
@@ -81,10 +82,11 @@ export const PreviewToolbar: React.FC<{
 	readonly readOnlyStudio: boolean;
 	readonly bufferStateDelayInMilliseconds: number;
 }> = ({readOnlyStudio, bufferStateDelayInMilliseconds}) => {
-	const {playbackRate, setPlaybackRate} = useContext(Internals.TimelineContext);
+	const {playbackRate, setPlaybackRate} = Internals.useTimelineContext();
 
 	const {mediaMuted} = useContext(Internals.MediaVolumeContext);
 	const {setMediaMuted} = useContext(Internals.SetMediaVolumeContext);
+	const {canvasContent} = useContext(Internals.CompositionManager);
 	const isVideoComposition = useIsVideoComposition();
 	const previewToolbarRef = useRef<HTMLDivElement | null>(null);
 	const leftScrollIndicatorRef = useRef<HTMLDivElement | null>(null);
@@ -192,10 +194,9 @@ export const PreviewToolbar: React.FC<{
 					<Spacing x={2} />
 				</>
 			) : null}
-
-			<CheckboardToggle />
+			{canvasContent?.type === 'composition' ? <CheckboardToggle /> : null}
 			<Spacing x={1} />
-			{isFullscreenSupported && <FullScreenToggle />}
+			{canvasContent && isFullscreenSupported ? <FullScreenToggle /> : null}
 			<Flex />
 			{isMobileLayout && (
 				<>
@@ -213,8 +214,7 @@ export const PreviewToolbar: React.FC<{
 				<Flex />
 				{!isMobileLayout && <FpsCounter playbackSpeed={playbackRate} />}
 				<Spacing x={2} />
-				{SHOW_BROWSER_RENDERING ? <TriggerWebRender /> : null}
-				{readOnlyStudio ? null : <RenderButton />}
+				<RenderButton readOnlyStudio={readOnlyStudio} />
 				<Spacing x={1.5} />
 			</div>
 			<PlaybackKeyboardShortcutsManager setPlaybackRate={setPlaybackRate} />

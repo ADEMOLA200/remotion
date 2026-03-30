@@ -46,7 +46,9 @@ class RenderParams
     protected $webhook = null;
     protected $forceHeight = null;
     protected $forceWidth = null;
-    protected $apiKey = null;
+    protected $forceFps = null;
+    protected $forceDurationInFrames = null;
+    protected $licenseKey = null;
     protected $offthreadVideoCacheSizeInBytes = null;
     protected $mediaCacheSizeInBytes = null;
     protected $offthreadVideoThreads = null;
@@ -58,6 +60,7 @@ class RenderParams
     protected $deleteAfter = null;
     protected $forcePathStyle = false;
     protected $storageClass = null;
+    protected $isProduction = null;
 
     public function __construct(
         ?array  $data = null,
@@ -89,7 +92,9 @@ class RenderParams
         ?string $webhook = null,
         ?int    $forceHeight = null,
         ?int    $forceWidth = null,
-        ?int    $apiKey = null,
+        ?int    $forceFps = null,
+        ?int    $forceDurationInFrames = null,
+        ?string $licenseKey = null,
         ?int    $offthreadVideoCacheSizeInBytes = null,
         ?int    $mediaCacheSizeInBytes = null,
         ?int    $offthreadVideoThreads = null,
@@ -105,7 +110,8 @@ class RenderParams
         ?string $maxRate = null,
         ?bool   $preferLossless = false,
         ?bool   $forcePathStyle = false,
-        ?array  $metadata = null
+        ?array  $metadata = null,
+        ?bool   $isProduction = null
     )
     {
         if ($chromiumOptions === null) {
@@ -144,7 +150,9 @@ class RenderParams
         $this->webhook = $webhook;
         $this->forceHeight = $forceHeight;
         $this->forceWidth = $forceWidth;
-        $this->apiKey = $apiKey;
+        $this->forceFps = $forceFps;
+        $this->forceDurationInFrames = $forceDurationInFrames;
+        $this->licenseKey = $licenseKey;
         $this->offthreadVideoCacheSizeInBytes = $offthreadVideoCacheSizeInBytes;
         $this->mediaCacheSizeInBytes = $mediaCacheSizeInBytes;
         $this->offthreadVideoThreads = $offthreadVideoThreads;
@@ -158,6 +166,7 @@ class RenderParams
         $this->deleteAfter = $deleteAfter;
         $this->preferLossless = $preferLossless;
         $this->forcePathStyle = $forcePathStyle;
+        $this->isProduction = $isProduction;
     }
 
     private array $inputProps = array();
@@ -198,7 +207,9 @@ class RenderParams
             'webhook' => $this->getWebhook(),
             'forceHeight' => $this->getForceHeight(),
             'forceWidth' => $this->getForceWidth(),
-            'apiKey' => $this->getApiKey(),
+            'forceFps' => $this->getForceFps(),
+            'forceDurationInFrames' => $this->getForceDurationInFrames(),
+            'licenseKey' => $this->getLicenseKey(),
             'offthreadVideoCacheSizeInBytes' => $this->getOffthreadVideoCacheSizeInBytes(),
             'mediaCacheSizeInBytes' => $this->getMediaCacheSizeInBytes(),
             'offthreadVideoThreads' => $this->getOffthreadVideoThreads(),
@@ -208,6 +219,7 @@ class RenderParams
             'x264Preset' => $this->getX264Preset(),
             'deleteAfter' => $this->getDeleteAfter(),
             'forcePathStyle' => $this->getForcePathStyle(),
+            'isProduction' => $this->getIsProduction(),
             'type' => 'start'
         ];
 
@@ -751,9 +763,19 @@ class RenderParams
         $this->forceWidth = $forceWidth;
     }
 
-    public function setApiKey($apiKey)
+    public function setForceFps($forceFps)
     {
-        $this->apiKey = $apiKey;
+        $this->forceFps = $forceFps;
+    }
+
+    public function setForceDurationInFrames($forceDurationInFrames)
+    {
+        $this->forceDurationInFrames = $forceDurationInFrames;
+    }
+
+    public function setLicenseKey($licenseKey)
+    {
+        $this->licenseKey = $licenseKey;
     }
 
     public function setOffthreadVideoCacheSizeInBytes($offthreadVideoCacheSizeInBytes)
@@ -826,9 +848,19 @@ class RenderParams
         return $this->forceWidth;
     }
 
-    public function getApiKey()
+    public function getForceFps()
     {
-        return $this->apiKey;
+        return $this->forceFps;
+    }
+
+    public function getForceDurationInFrames()
+    {
+        return $this->forceDurationInFrames;
+    }
+
+    public function getLicenseKey()
+    {
+        return $this->licenseKey;
     }
 
     public function getOffthreadVideoCacheSizeInBytes()
@@ -981,6 +1013,17 @@ class RenderParams
     public function setDeleteAfter($deleteAfter)
     {
         $this->deleteAfter = $deleteAfter;
+        return $this;
+    }
+
+    public function getIsProduction()
+    {
+        return $this->isProduction;
+    }
+
+    public function setIsProduction($isProduction)
+    {
+        $this->isProduction = $isProduction;
         return $this;
     }
 }

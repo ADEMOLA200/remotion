@@ -1,5 +1,5 @@
-import {ServerlessRoutines} from '@remotion/serverless-client';
 import {expect, test} from 'bun:test';
+import {ServerlessRoutines} from '@remotion/serverless-client';
 import {makeLambdaRenderMediaPayload} from '../make-lambda-payload';
 
 test('Should include concurrency field in payload', async () => {
@@ -40,6 +40,8 @@ test('Should include concurrency field in payload', async () => {
 		webhook: null,
 		forceHeight: null,
 		forceWidth: null,
+		forceFps: null,
+		forceDurationInFrames: null,
 		rendererFunctionName: null,
 		forceBucketName: null,
 		audioCodec: null,
@@ -48,13 +50,14 @@ test('Should include concurrency field in payload', async () => {
 		indent: false,
 		forcePathStyle: false,
 		metadata: null,
-		apiKey: null,
+		licenseKey: null,
 		offthreadVideoCacheSizeInBytes: null,
 		mediaCacheSizeInBytes: null,
 		offthreadVideoThreads: null,
 		storageClass: null,
 		requestHandler: null,
 		preferLossless: false,
+		isProduction: null,
 	});
 
 	expect(payload.type).toBe(ServerlessRoutines.start);
@@ -99,6 +102,8 @@ test('Should handle null concurrency', async () => {
 		webhook: null,
 		forceHeight: null,
 		forceWidth: null,
+		forceFps: null,
+		forceDurationInFrames: null,
 		rendererFunctionName: null,
 		forceBucketName: null,
 		audioCodec: null,
@@ -107,13 +112,14 @@ test('Should handle null concurrency', async () => {
 		indent: false,
 		forcePathStyle: false,
 		metadata: null,
-		apiKey: null,
+		licenseKey: null,
 		offthreadVideoCacheSizeInBytes: null,
 		mediaCacheSizeInBytes: null,
 		offthreadVideoThreads: null,
 		storageClass: null,
 		requestHandler: null,
 		preferLossless: false,
+		isProduction: null,
 	});
 
 	expect(payload.type).toBe(ServerlessRoutines.start);

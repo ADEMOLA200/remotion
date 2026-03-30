@@ -1,6 +1,7 @@
 import React, {useContext, useMemo} from 'react';
 import type {SequenceContextType} from './SequenceContext.js';
 import {SequenceContext} from './SequenceContext.js';
+import {useTimelineContext} from './timeline-position-state.js';
 import type {TimelineContextValue} from './TimelineContext.js';
 import {TimelineContext} from './TimelineContext.js';
 import {useCurrentFrame} from './use-current-frame.js';
@@ -58,7 +59,7 @@ export const Freeze: React.FC<FreezeProps> = ({
 		}
 	}, [active, frame]);
 
-	const timelineContext = useContext(TimelineContext);
+	const timelineContext = useTimelineContext();
 	const sequenceContext = useContext(SequenceContext);
 
 	const relativeFrom = sequenceContext?.relativeFrom ?? 0;
@@ -91,7 +92,6 @@ export const Freeze: React.FC<FreezeProps> = ({
 
 		return {
 			...sequenceContext,
-			relativeFrom: 0,
 			cumulatedFrom: 0,
 		};
 	}, [sequenceContext, isActive]);

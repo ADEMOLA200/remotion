@@ -1,15 +1,14 @@
+import path from 'node:path';
 import chalk from 'chalk';
 import execa from 'execa';
-import path from 'node:path';
-import {
-	addPostcssConfig,
-	addTailwindRootCss,
-	addTailwindToConfig,
-} from './add-tailwind';
+import {addTailwindRootCss, addTailwindToConfig} from './add-tailwind';
 import {createYarnYmlFile} from './add-yarn2-support';
+import {askSkills} from './ask-skills';
 import {askTailwind} from './ask-tailwind';
 import {createPublicFolder} from './create-public-folder';
 import {degit} from './degit';
+import {makeHyperlink} from './hyperlinks/make-link';
+import {installSkills} from './install-skills';
 import {getLatestRemotionVersion} from './latest-remotion-version';
 import {Log} from './log';
 import {openInEditorFlow} from './open-in-editor-flow';
@@ -22,9 +21,15 @@ import {
 	getRenderCommand,
 	selectPackageManager,
 } from './pkg-managers';
+import prompts from './prompts';
 import {resolveProjectRoot} from './resolve-project-root';
-import {getDirectoryArgument, selectTemplate} from './select-template';
-import {yesOrNo} from './yesno';
+import {
+	getDirectoryArgument,
+	isNoTailwindFlagSelected,
+	isTmpFlagSelected,
+	isYesFlagSelected,
+	selectTemplate,
+} from './select-template';
 
 const gitExists = (commandToCheck: string, argsToCheck: string[]) => {
 	try {
@@ -86,9 +91,15 @@ export const init = async () => {
 	// Get directory argument if provided
 	const directoryArgument = getDirectoryArgument();
 
+	if (isYesFlagSelected() && !directoryArgument && !isTmpFlagSelected()) {
+		Log.error(
+			'A directory name must be specified when using --yes. Example: --yes --blank my-video',
+		);
+		process.exit(1);
+	}
+
 	// Select template first
 	const selectedTemplate = await selectTemplate();
-	Log.info(`Selected ${chalk.blue(selectedTemplate.shortName)}.`);
 
 	// If Editor Starter (paid) is selected, show purchase link and exit
 	if (selectedTemplate.cliId === 'editor-starter') {
@@ -107,7 +118,6 @@ export const init = async () => {
 		directoryArgument,
 		selectedTemplate,
 	});
-	Log.info();
 
 	const result = await checkGitAvailability(projectRoot, 'git', ['--version']);
 
@@ -118,14 +128,29 @@ export const init = async () => {
 		process.exit(1);
 	}
 
-	if (result.type === 'is-git-repo') {
-		const should = await yesOrNo({
-			defaultValue: false,
-			question: `You are already inside a Git repo (${path.resolve(
+	const isInsideGitRepo = result.type === 'is-git-repo';
+
+	if (isInsideGitRepo) {
+		if (isYesFlagSelected()) {
+			Log.error(
+				`You are already inside a Git repo (${path.resolve(
+					result.location,
+				)}). Cannot use --yes inside an existing Git repository.`,
+			);
+			process.exit(1);
+		}
+
+		const {shouldContinue} = await prompts({
+			type: 'toggle',
+			name: 'shouldContinue',
+			message: `You are already inside a Git repo (${path.resolve(
 				result.location,
-			)}).\nThis might lead to a Git Submodule being created. Do you want to continue? (y/N):`,
+			)}).\nA new project will be created without initializing a new Git repository. Do you want to continue?`,
+			initial: false,
+			active: 'Yes',
+			inactive: 'No',
 		});
-		if (!should) {
+		if (!shouldContinue) {
 			process.exit(1);
 		}
 	}
@@ -133,8 +158,12 @@ export const init = async () => {
 	const latestRemotionVersionPromise = getLatestRemotionVersion();
 
 	const shouldOverrideTailwind = selectedTemplate.allowEnableTailwind
-		? await askTailwind()
+		? isYesFlagSelected()
+			? !isNoTailwindFlagSelected()
+			: await askTailwind()
 		: false;
+
+	const shouldInstallSkills = isYesFlagSelected() ? false : await askSkills();
 
 	const pkgManager = selectPackageManager();
 	const pkgManagerVersion = await getPackageManagerVersionOrNull(pkgManager);
@@ -148,7 +177,6 @@ export const init = async () => {
 		patchReadmeMd(projectRoot, pkgManager, selectedTemplate);
 		if (shouldOverrideTailwind) {
 			addTailwindToConfig(projectRoot);
-			addPostcssConfig(projectRoot);
 			addTailwindRootCss(projectRoot);
 		}
 
@@ -174,7 +202,13 @@ export const init = async () => {
 		projectRoot,
 	});
 
-	await getGitStatus(projectRoot);
+	if (!isInsideGitRepo) {
+		await getGitStatus(projectRoot);
+	}
+
+	if (shouldInstallSkills) {
+		await installSkills(projectRoot);
+	}
 
 	const relativeToCurrent = path.relative(process.cwd(), projectRoot);
 	const cdToFolder = relativeToCurrent.startsWith('.')
@@ -186,18 +220,52 @@ export const init = async () => {
 	Log.info();
 
 	Log.info('Get started by running:');
-	Log.info(' ' + chalk.blue(`cd ${cdToFolder}`));
+	if (cdToFolder !== '') {
+		Log.info(' ' + chalk.blue(`cd ${cdToFolder}`));
+	}
+
 	Log.info(' ' + chalk.blue(getInstallCommand(pkgManager)));
 	Log.info(' ' + chalk.blue(getDevCommand(pkgManager, selectedTemplate)));
 	Log.info('');
 	Log.info('To render a video, run:');
 	Log.info(' ' + chalk.blue(getRenderCommand(pkgManager)));
 	Log.info('');
-	Log.info();
-	await openInEditorFlow(projectRoot);
+	Log.info('Links to get you started:');
 	Log.info(
-		'Docs to get you started:',
-		chalk.underline('https://www.remotion.dev/docs/the-fundamentals'),
+		' ' +
+			chalk.blue(
+				makeHyperlink({
+					text: 'remotion.dev/docs',
+					url: 'https://www.remotion.dev/docs',
+					fallback: 'https://www.remotion.dev/docs',
+				}),
+			),
 	);
-	Log.info('Enjoy Remotion!');
+	Log.info(
+		' ' +
+			chalk.blue(
+				makeHyperlink({
+					text: 'remotion.dev/prompts',
+					url: 'https://www.remotion.dev/prompts',
+					fallback: 'https://www.remotion.dev/prompts',
+				}),
+			),
+	);
+	Log.info();
+	Log.info('Remotion is free for teams of up to 3.');
+	Log.info(
+		'Adopting Remotion in your company? Visit ' +
+			chalk.blue(
+				makeHyperlink({
+					text: 'remotion.pro/license',
+					url: 'https://remotion.pro/license',
+					fallback: 'https://www.remotion.pro/license',
+				}),
+			),
+	);
+	Log.info();
+
+	if (!isYesFlagSelected()) {
+		await openInEditorFlow(projectRoot);
+	}
 };

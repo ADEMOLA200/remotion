@@ -1,16 +1,15 @@
-import type {AudioHTMLAttributes} from 'react';
+import {type AudioHTMLAttributes} from 'react';
 import React, {
 	createContext,
 	createRef,
 	useCallback,
 	useContext,
-	useEffect,
 	useMemo,
 	useRef,
 	useState,
 } from 'react';
-import {CompositionManager} from '../CompositionManagerContext.js';
 import {useLogLevel, useMountTime} from '../log-level-context.js';
+import {Log} from '../log.js';
 import {playAndHandleNotAllowedError} from '../play-and-handle-not-allowed-error.js';
 import {useRemotionEnvironment} from '../use-remotion-environment.js';
 import type {SharedElementSourceNode} from './shared-element-source-node.js';
@@ -36,16 +35,39 @@ type AudioElem = {
 	audioId: string;
 	mediaElementSourceNode: SharedElementSourceNode | null;
 	premounting: boolean;
+	postmounting: boolean;
+	audioMounted: boolean;
+	cleanupOnMediaTagUnmount: () => void;
 };
 
 const EMPTY_AUDIO =
 	'data:audio/mp3;base64,/+MYxAAJcAV8AAgAABn//////+/gQ5BAMA+D4Pg+BAQBAEAwD4Pg+D4EBAEAQDAPg++hYBH///hUFQVBUFREDQNHmf///////+MYxBUGkAGIMAAAAP/29Xt6lUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV/+MYxDUAAANIAAAAAFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV';
+
+export type ScheduleAudioNodeResult =
+	| {
+			type: 'started';
+			scheduledTime: number;
+	  }
+	| {
+			type: 'not-started';
+	  };
+
+export type ScheduleAudioNodeOptions = {
+	readonly node: AudioBufferSourceNode;
+	readonly targetTime: number;
+	readonly mediaTimestamp: number;
+	readonly currentTime: number;
+	readonly sequenceEndTime: number;
+	readonly sequenceStartTime: number;
+	readonly debugAudioScheduling: boolean;
+};
 
 type SharedContext = {
 	registerAudio: (options: {
 		aud: AudioHTMLAttributes<HTMLAudioElement>;
 		audioId: string;
 		premounting: boolean;
+		postmounting: boolean;
 	}) => AudioElem;
 	unregisterAudio: (id: number) => void;
 	updateAudio: (options: {
@@ -53,10 +75,15 @@ type SharedContext = {
 		aud: AudioHTMLAttributes<HTMLAudioElement>;
 		audioId: string;
 		premounting: boolean;
+		postmounting: boolean;
 	}) => void;
 	playAllAudios: () => void;
 	numberOfAudioTags: number;
 	audioContext: AudioContext | null;
+	audioSyncAnchor: {value: number};
+	scheduleAudioNode: (
+		options: ScheduleAudioNodeOptions,
+	) => ScheduleAudioNodeResult;
 };
 
 const compareProps = (
@@ -116,7 +143,8 @@ export const SharedAudioContextProvider: React.FC<{
 	readonly numberOfAudioTags: number;
 	readonly children: React.ReactNode;
 	readonly audioLatencyHint: AudioContextLatencyCategory;
-}> = ({children, numberOfAudioTags, audioLatencyHint}) => {
+	readonly audioEnabled: boolean;
+}> = ({children, numberOfAudioTags, audioLatencyHint, audioEnabled}) => {
 	const audios = useRef<AudioElem[]>([]);
 	const [initialNumberOfAudioTags] = useState(numberOfAudioTags);
 
@@ -126,15 +154,131 @@ export const SharedAudioContextProvider: React.FC<{
 		);
 	}
 
-	const compositionManager = useContext(CompositionManager);
-	const component = compositionManager.compositions.find((c) =>
-		compositionManager.canvasContent?.type === 'composition'
-			? c.id === compositionManager.canvasContent.compositionId
-			: null,
-	);
-
 	const logLevel = useLogLevel();
-	const audioContext = useSingletonAudioContext(logLevel, audioLatencyHint);
+	const audioContext = useSingletonAudioContext({
+		logLevel,
+		latencyHint: audioLatencyHint,
+		audioEnabled,
+	});
+
+	const audioSyncAnchor = useMemo(() => ({value: 0}), []);
+
+	const prevEndTimes = useRef<{
+		scheduledEndTime: number | null;
+		mediaEndTime: number | null;
+	}>({scheduledEndTime: null, mediaEndTime: null});
+
+	const scheduleAudioNode = useMemo(() => {
+		return ({
+			node,
+			mediaTimestamp,
+			targetTime,
+			currentTime,
+			sequenceEndTime,
+			sequenceStartTime,
+			debugAudioScheduling,
+		}: ScheduleAudioNodeOptions): ScheduleAudioNodeResult => {
+			if (!audioContext) {
+				throw new Error('Audio context not found');
+			}
+
+			const bufferDuration = node.buffer?.duration ?? 0;
+
+			const unclampedMediaEndTime = mediaTimestamp + bufferDuration;
+
+			const needsTrimEnd = unclampedMediaEndTime > sequenceEndTime;
+			const needsTrimStart = mediaTimestamp < sequenceStartTime;
+
+			const offsetBecauseOfTrim = needsTrimStart
+				? sequenceStartTime - mediaTimestamp
+				: 0;
+			const offsetBecauseOfTooLate = targetTime < 0 ? -targetTime : 0;
+			const offset = offsetBecauseOfTrim + offsetBecauseOfTooLate;
+
+			const duration = needsTrimEnd
+				? bufferDuration -
+					Math.max(0, unclampedMediaEndTime - sequenceEndTime) -
+					offset
+				: bufferDuration - offset;
+
+			const scheduledTime = targetTime + currentTime + offset;
+			if (offset < 0) {
+				throw new Error(
+					'offset < 0: ' +
+						JSON.stringify({
+							offset,
+							targetTime,
+							currentTime,
+							offsetBecauseOfTrim,
+							offsetBecauseOfTooLate,
+						}),
+				);
+			}
+
+			if (duration > 0) {
+				node.start(scheduledTime, offset, duration);
+			}
+
+			const scheduledEndTime =
+				scheduledTime + duration / node.playbackRate.value;
+
+			const mediaTime = mediaTimestamp + offset;
+
+			const mediaEndTime = mediaTime + duration;
+
+			const latency = audioContext.baseLatency + audioContext.outputLatency;
+			const timeDiff = scheduledTime - currentTime - latency;
+			const prev = prevEndTimes.current;
+			const scheduledMismatch =
+				prev.scheduledEndTime !== null &&
+				Math.abs(scheduledTime - prev.scheduledEndTime) > 0.001;
+			const mediaMismatch =
+				prev.mediaEndTime !== null &&
+				Math.abs(mediaTime - prev.mediaEndTime) > 0.001;
+
+			if (debugAudioScheduling) {
+				Log.info(
+					{logLevel, tag: 'audio-scheduling'},
+					'scheduled %c%s%c %s %c%s%c %s %c%s%c %s %s %s',
+					scheduledMismatch ? 'color: red; font-weight: bold' : '',
+					scheduledTime.toFixed(4),
+					'',
+					scheduledEndTime.toFixed(4),
+					mediaMismatch ? 'color: red; font-weight: bold' : '',
+					mediaTime.toFixed(4),
+					'',
+					mediaEndTime.toFixed(4),
+					duration < 0
+						? 'color: red; font-weight: bold'
+						: timeDiff < 0
+							? 'color: red; font-weight: bold'
+							: 'color: blue; font-weight: bold',
+					duration < 0
+						? 'missed ' + Math.abs(offset).toFixed(2) + 's'
+						: Math.abs(timeDiff).toFixed(2) +
+								(timeDiff < 0 ? ' delay' : ' ahead'),
+					'',
+					'current=' + currentTime.toFixed(4),
+					'offset=' + offset.toFixed(4),
+					'latency=' + latency.toFixed(4),
+					'state=' + audioContext.state,
+				);
+			}
+
+			prev.scheduledEndTime = scheduledEndTime;
+			prev.mediaEndTime = mediaEndTime;
+
+			return duration > 0
+				? {
+						type: 'started',
+						scheduledTime,
+					}
+				: {
+						type: 'not-started',
+					};
+		};
+	}, [audioContext, logLevel]);
+
 	const refs = useMemo(() => {
 		return new Array(numberOfAudioTags).fill(true).map((): Ref => {
 			const ref = createRef<HTMLAudioElement>();
@@ -150,6 +294,29 @@ export const SharedAudioContextProvider: React.FC<{
 			};
 		});
 	}, [audioContext, numberOfAudioTags]);
+
+	/**
+	 * Effects in React 18 fire twice, and we are looking for a way to only fire it once.
+	 * - useInsertionEffect only fires once. If it's available we are in React 18.
+	 * - useLayoutEffect only fires once in React 17.
+	 *
+	 * Need to import it from React to fix React 17 ESM support.
+	 */
+	const effectToUse = React.useInsertionEffect ?? React.useLayoutEffect;
+
+	// Disconnecting the SharedElementSourceNodes if the Player unmounts to prevent leak.
+	// https://github.com/remotion-dev/remotion/issues/6285
+	// But useInsertionEffect will fire before other effects, meaning the
+	// nodes might still be used. Using rAF to ensure it's after other effects.
+	effectToUse(() => {
+		return () => {
+			requestAnimationFrame(() => {
+				refs.forEach(({mediaElementSourceNode}) => {
+					mediaElementSourceNode?.cleanup();
+				});
+			});
+		};
+	}, [refs]);
 
 	const takenAudios = useRef<(false | number)[]>(
 		new Array(numberOfAudioTags).fill(false),
@@ -189,8 +356,9 @@ export const SharedAudioContextProvider: React.FC<{
 			aud: AudioHTMLAttributes<HTMLAudioElement>;
 			audioId: string;
 			premounting: boolean;
+			postmounting: boolean;
 		}) => {
-			const {aud, audioId, premounting} = options;
+			const {aud, audioId, premounting, postmounting} = options;
 			const found = audios.current?.find((a) => a.audioId === audioId);
 			if (found) {
 				return found;
@@ -217,6 +385,11 @@ export const SharedAudioContextProvider: React.FC<{
 				audioId,
 				mediaElementSourceNode,
 				premounting,
+				audioMounted: Boolean(ref.current),
+				postmounting,
+				cleanupOnMediaTagUnmount: () => {
+					// Don't disconnect here, only when the Player unmounts.
+				},
 			};
 			audios.current?.push(newElem);
 			rerenderAudios();
@@ -249,31 +422,43 @@ export const SharedAudioContextProvider: React.FC<{
 			audioId,
 			id,
 			premounting,
+			postmounting,
 		}: {
 			id: number;
 			aud: AudioHTMLAttributes<HTMLAudioElement>;
 			audioId: string;
 			premounting: boolean;
+			postmounting: boolean;
 		}) => {
 			let changed = false;
 
 			audios.current = audios.current?.map((prevA): AudioElem => {
+				const audioMounted = Boolean(prevA.el.current);
+				if (prevA.audioMounted !== audioMounted) {
+					changed = true;
+				}
+
 				if (prevA.id === id) {
 					const isTheSame =
 						compareProps(
 							aud as Record<string, unknown>,
 							prevA.props as Record<string, unknown>,
-						) && prevA.premounting === premounting;
+						) &&
+						prevA.premounting === premounting &&
+						prevA.postmounting === postmounting;
 					if (isTheSame) {
 						return prevA;
 					}
 
 					changed = true;
+
 					return {
 						...prevA,
 						props: aud,
 						premounting,
+						postmounting,
 						audioId,
+						audioMounted,
 					};
 				}
 
@@ -319,6 +504,8 @@ export const SharedAudioContextProvider: React.FC<{
 			playAllAudios,
 			numberOfAudioTags,
 			audioContext,
+			audioSyncAnchor,
+			scheduleAudioNode,
 		};
 	}, [
 		numberOfAudioTags,
@@ -327,27 +514,9 @@ export const SharedAudioContextProvider: React.FC<{
 		unregisterAudio,
 		updateAudio,
 		audioContext,
+		audioSyncAnchor,
+		scheduleAudioNode,
 	]);
-
-	// Fixing a bug: In React, if a component is unmounted using useInsertionEffect, then
-	// the cleanup function does sometimes not work properly. That is why when we
-	// are changing the composition, we reset the audio state.
-
-	// TODO: Possibly this does not save the problem completely, since the
-	// if an audio tag that is inside a sequence will also not be removed
-	// from the shared audios.
-
-	const resetAudio = useCallback(() => {
-		takenAudios.current = new Array(numberOfAudioTags).fill(false);
-		audios.current = [];
-		rerenderAudios();
-	}, [numberOfAudioTags, rerenderAudios]);
-
-	useEffect(() => {
-		return () => {
-			resetAudio();
-		};
-	}, [component, resetAudio]);
 
 	return (
 		<SharedAudioContext.Provider value={value}>
@@ -368,10 +537,12 @@ export const useSharedAudio = ({
 	aud,
 	audioId,
 	premounting,
+	postmounting,
 }: {
 	aud: AudioHTMLAttributes<HTMLAudioElement>;
 	audioId: string;
 	premounting: boolean;
+	postmounting: boolean;
 }) => {
 	const ctx = useContext(SharedAudioContext);
 
@@ -380,9 +551,10 @@ export const useSharedAudio = ({
 	 */
 	const [elem] = useState((): AudioElem => {
 		if (ctx && ctx.numberOfAudioTags > 0) {
-			return ctx.registerAudio({aud, audioId, premounting});
+			return ctx.registerAudio({aud, audioId, premounting, postmounting});
 		}
 
+		// numberOfSharedAudioTags is 0
 		const el = React.createRef<HTMLAudioElement>();
 		const mediaElementSourceNode = ctx?.audioContext
 			? makeSharedElementSourceNode({
@@ -398,6 +570,11 @@ export const useSharedAudio = ({
 			audioId,
 			mediaElementSourceNode,
 			premounting,
+			audioMounted: Boolean(el.current),
+			postmounting,
+			cleanupOnMediaTagUnmount: () => {
+				mediaElementSourceNode?.cleanup();
+			},
 		};
 	});
 
@@ -413,9 +590,9 @@ export const useSharedAudio = ({
 	if (typeof document !== 'undefined') {
 		effectToUse(() => {
 			if (ctx && ctx.numberOfAudioTags > 0) {
-				ctx.updateAudio({id: elem.id, aud, audioId, premounting});
+				ctx.updateAudio({id: elem.id, aud, audioId, premounting, postmounting});
 			}
-		}, [aud, ctx, elem.id, audioId, premounting]);
+		}, [aud, ctx, elem.id, audioId, premounting, postmounting]);
 
 		effectToUse(() => {
 			return () => {

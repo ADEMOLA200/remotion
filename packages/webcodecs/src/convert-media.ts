@@ -5,13 +5,14 @@
 
 import type {
 	MediaParserAudioTrack,
-	MediaParserInternalTypes,
 	MediaParserLogLevel,
 	MediaParserOnAudioTrack,
 	MediaParserVideoTrack,
 	Options,
+	ParseMediaCallbacks,
 	ParseMediaFields,
 	ParseMediaOptions,
+	WriterInterface,
 } from '@remotion/media-parser';
 import {
 	defaultSelectM3uAssociatedPlaylists,
@@ -20,7 +21,6 @@ import {
 	MediaParserInternals,
 	type MediaParserOnVideoTrack,
 } from '@remotion/media-parser';
-
 import {webReader} from '@remotion/media-parser/web';
 import {autoSelectWriter} from './auto-select-writer';
 import {calculateProgress} from './calculate-progress';
@@ -37,13 +37,11 @@ import {
 	availableVideoCodecs,
 	type ConvertMediaVideoCodec,
 } from './get-available-video-codecs';
-import {Log} from './log';
 import {makeAudioTrackHandler} from './on-audio-track';
 import {type ConvertMediaOnAudioTrackHandler} from './on-audio-track-handler';
 import {makeVideoTrackHandler} from './on-video-track';
 import {type ConvertMediaOnVideoTrackHandler} from './on-video-track-handler';
 import type {ResizeOperation} from './resizing/mode';
-import {sendUsageEvent} from './send-telemetry-event';
 import {throttledStateUpdate} from './throttled-state-update';
 import {
 	webcodecsController,
@@ -96,7 +94,6 @@ export const convertMedia = async function <
 	writer,
 	progressIntervalInMs,
 	rotate,
-	apiKey,
 	resize,
 	onAudioCodec,
 	onContainer,
@@ -149,14 +146,13 @@ export const convertMedia = async function <
 	expectedFrameRate?: number | null;
 	reader?: ParseMediaOptions<F>['reader'];
 	logLevel?: MediaParserLogLevel;
-	writer?: MediaParserInternalTypes['WriterInterface'];
+	writer?: WriterInterface;
 	progressIntervalInMs?: number;
 	rotate?: number;
 	resize?: ResizeOperation;
-	apiKey?: string | null;
 	fields?: F;
 	seekingHints?: ParseMediaOptions<F>['seekingHints'];
-} & MediaParserInternalTypes['ParseMediaCallbacks']): Promise<ConvertMediaResult> {
+} & ParseMediaCallbacks): Promise<ConvertMediaResult> {
 	if (controller._internals._mediaParserController._internals.signal.aborted) {
 		return Promise.reject(new MediaParserAbortError('Aborted'));
 	}
@@ -356,17 +352,8 @@ export const convertMedia = async function <
 				finalState: throttledState.get(),
 			});
 		})
-		.then(() => {
-			sendUsageEvent({succeeded: true, apiKey: apiKey ?? null}).catch((err) => {
-				Log.error('Failed to send usage event', err);
-			});
-		})
+		.then(() => {})
 		.catch((err) => {
-			sendUsageEvent({succeeded: false, apiKey: apiKey ?? null}).catch(
-				(err2) => {
-					Log.error('Failed to send usage event', err2);
-				},
-			);
 			reject(err);
 		})
 		.finally(() => {

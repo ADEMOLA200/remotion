@@ -1,7 +1,7 @@
 import {execSync} from 'child_process';
 import dotenv from 'dotenv';
 
-dotenv.config();
+dotenv.config({quiet: true});
 
 const functionName = execSync(
 	`bunx remotion lambda functions ls -q --compatible-only`,
@@ -11,7 +11,7 @@ const functionName = execSync(
 	.split(' ')[0];
 
 console.log('=== Python(render media) ===');
-execSync(`python testclient_render_media.py`, {
+execSync(`uv run testclient_render_media.py`, {
 	env: {
 		// eslint-disable-next-line no-undef
 		...process.env,

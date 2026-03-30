@@ -31,7 +31,7 @@ export const usePlayer = (): UsePlayerMethods => {
 	const setFrame = Internals.Timeline.useTimelineSetFrame();
 	const setTimelinePosition = Internals.Timeline.useTimelineSetFrame();
 	const audioContext = useContext(Internals.SharedAudioContext);
-	const {audioAndVideoTags} = useContext(Internals.TimelineContext);
+	const {audioAndVideoTags} = Internals.useTimelineContext();
 
 	const frameRef = useRef<number>(frame);
 	frameRef.current = frame;
@@ -205,6 +205,18 @@ export const usePlayer = (): UsePlayerMethods => {
 		[imperativePlaying, pause, play],
 	);
 
+	const isPlaying = useCallback(() => {
+		return imperativePlaying.current;
+	}, [imperativePlaying]);
+
+	const getCurrentFrame = useCallback(() => {
+		return frameRef.current;
+	}, [frameRef]);
+
+	const isBuffering = useCallback(() => {
+		return buffering.current;
+	}, [buffering]);
+
 	const returnValue: UsePlayerMethods = useMemo(() => {
 		return {
 			frameBack,
@@ -216,28 +228,29 @@ export const usePlayer = (): UsePlayerMethods => {
 			pause,
 			seek,
 			isFirstFrame,
-			getCurrentFrame: () => frameRef.current,
-			isPlaying: () => imperativePlaying.current,
-			isBuffering: () => buffering.current,
+			getCurrentFrame,
+			isPlaying,
+			isBuffering,
 			pauseAndReturnToPlayStart,
 			hasPlayed,
 			toggle,
 		};
 	}, [
-		buffering,
 		emitter,
 		frameBack,
 		frameForward,
 		hasPlayed,
-		imperativePlaying,
 		isFirstFrame,
 		isLastFrame,
+		getCurrentFrame,
 		pause,
 		pauseAndReturnToPlayStart,
 		play,
 		playing,
 		seek,
 		toggle,
+		isPlaying,
+		isBuffering,
 	]);
 
 	return returnValue;

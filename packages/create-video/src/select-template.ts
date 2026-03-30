@@ -9,14 +9,21 @@ const ALL_TEMPLATES = [...FEATURED_TEMPLATES, ...PAID_TEMPLATES];
 
 type Options = {
 	tmp: boolean;
+	yes: boolean;
+	'no-tailwind': boolean;
 };
 
 const parsed = minimist<Options>(process.argv.slice(2), {
-	boolean: [...ALL_TEMPLATES.map((f) => f.cliId), 'tmp'],
+	boolean: [...ALL_TEMPLATES.map((f) => f.cliId), 'tmp', 'yes', 'no-tailwind'],
 	string: ['_'],
+	alias: {y: 'yes'},
 });
 
 export const isTmpFlagSelected = () => parsed.tmp;
+
+export const isYesFlagSelected = () => parsed.yes;
+
+export const isNoTailwindFlagSelected = () => parsed['no-tailwind'];
 
 export const getPositionalArguments = () => parsed._;
 
@@ -25,19 +32,24 @@ export const getDirectoryArgument = (): string | null => {
 	return positionalArgs.length > 0 ? positionalArgs[0] || null : null;
 };
 
-export const selectTemplate = async () => {
-	const isFlagSelected = ALL_TEMPLATES.find((f) => {
-		return parsed[f.cliId];
-	});
+export const isFlagSelected = ALL_TEMPLATES.find((f) => {
+	return parsed[f.cliId];
+});
 
+export const selectTemplate = async () => {
 	if (isFlagSelected) {
 		return isFlagSelected;
+	}
+
+	if (isYesFlagSelected()) {
+		throw new Error(
+			'A template must be specified when using --yes. Example: --yes --blank',
+		);
 	}
 
 	return (await selectAsync({
 		message: 'Choose a template:',
 		optionsPerPage: 20,
-
 		choices: ALL_TEMPLATES.map((template) => {
 			return {
 				value: template,

@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import {type GitSource, type WebpackOverrideFn} from '@remotion/bundler';
 import type {AwsRegion, RequestHandler} from '@remotion/lambda-client';
 import {LambdaClientInternals, type AwsProvider} from '@remotion/lambda-client';
@@ -14,7 +15,6 @@ import type {
 	UploadDirProgress,
 } from '@remotion/serverless';
 import {validateBucketName, validatePrivacy} from '@remotion/serverless';
-import fs from 'node:fs';
 import {awsFullClientSpecifics} from '../functions/full-client-implementation';
 import {getS3DiffOperations} from '../shared/get-s3-operations';
 import {validateSiteName} from '../shared/validate-site-name';
@@ -37,6 +37,11 @@ type OptionalParameters = {
 		publicDir?: string | null;
 		rootDir?: string;
 		bypassBucketNameValidation?: boolean;
+		keyboardShortcutsEnabled?: boolean;
+		askAIEnabled?: boolean;
+		experimentalClientSideRenderingEnabled?: boolean;
+		experimentalVisualModeEnabled?: boolean;
+		rspack?: boolean;
 	};
 	privacy: 'public' | 'no-acl';
 	gitSource: GitSource | null;
@@ -128,6 +133,15 @@ const mandatoryDeploySite = async ({
 			onPublicDirCopyProgress: () => undefined,
 			onSymlinkDetected: () => undefined,
 			outDir: null,
+			askAIEnabled: options?.askAIEnabled ?? true,
+			audioLatencyHint: null,
+			experimentalClientSideRenderingEnabled:
+				options?.experimentalClientSideRenderingEnabled ?? false,
+			experimentalVisualModeEnabled:
+				options?.experimentalVisualModeEnabled ?? false,
+			keyboardShortcutsEnabled: options?.keyboardShortcutsEnabled ?? true,
+			renderDefaults: null,
+			rspack: options?.rspack ?? false,
 		}),
 	]);
 
@@ -205,7 +219,15 @@ const mandatoryDeploySite = async ({
 	};
 };
 
-export const internalDeploySite = wrapWithErrorHandling(mandatoryDeploySite);
+export type InternalDeploySiteInput = MandatoryParameters &
+	OptionalParameters & {
+		providerSpecifics: ProviderSpecifics<AwsProvider>;
+		fullClientSpecifics: FullClientSpecifics<AwsProvider>;
+	};
+
+export const internalDeploySite: (
+	input: InternalDeploySiteInput,
+) => DeploySiteOutput = wrapWithErrorHandling(mandatoryDeploySite);
 
 /*
  * @description Deploys a Remotion project to a GCP storage bucket to prepare it for rendering on Cloud Run.

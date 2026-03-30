@@ -3,9 +3,9 @@ import {NoReactInternals} from 'remotion/no-react';
 import type {BrowserExecutable} from './browser-executable';
 import type {BrowserLog} from './browser-log';
 import type {HeadlessBrowser} from './browser/Browser';
+import {defaultBrowserDownloadProgress} from './browser/browser-download-progress-bar';
 import type {OnLog, Page} from './browser/BrowserPage';
 import {DEFAULT_TIMEOUT} from './browser/TimeoutSettings';
-import {defaultBrowserDownloadProgress} from './browser/browser-download-progress-bar';
 import {defaultOnLog} from './default-on-log';
 import {handleJavascriptException} from './error-handling/handle-javascript-exception';
 import {findRemotionRoot} from './find-closest-package-json';
@@ -54,6 +54,7 @@ type InnerGetCompositionsParams = {
 	page: Page;
 	proxyPort: number;
 	indent: boolean;
+	darkMode: boolean;
 } & ToOptions<typeof optionsMap.getCompositions>;
 
 const innerGetCompositions = async ({
@@ -66,6 +67,7 @@ const innerGetCompositions = async ({
 	indent,
 	logLevel,
 	mediaCacheSizeInBytes,
+	darkMode,
 }: InnerGetCompositionsParams): Promise<VideoConfig[]> => {
 	validatePuppeteerTimeout(timeoutInMilliseconds);
 
@@ -86,6 +88,7 @@ const innerGetCompositions = async ({
 		isMainTab: true,
 		mediaCacheSizeInBytes,
 		initialMemoryAvailable: getAvailableMemory(logLevel),
+		darkMode,
 	});
 
 	await puppeteerEvaluateWithCatch({
@@ -247,6 +250,7 @@ const internalGetCompositionsRaw = async ({
 					chromeMode,
 					offthreadVideoThreads,
 					mediaCacheSizeInBytes,
+					darkMode: chromiumOptions.darkMode ?? false,
 				});
 			})
 
