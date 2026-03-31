@@ -20,6 +20,7 @@ const LayoutWrapper = (props: Props): ReactNode => {
 				id="crawlchat-script"
 				data-id="67c0a28c5b075f0bb35e5366"
 				data-sidepanel="true"
+				data-small="true"
 			/>
 		</>
 	);
