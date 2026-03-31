@@ -13,13 +13,6 @@ export const TableOfContents: React.FC = () => {
 						<code>Caption</code>
 					</div>
 				</TOCItem>
-				<TOCItem link="/docs/elevenlabs/elevenlabs-api-to-captions">
-					<strong>{'elevenLabsApiToCaptions()'}</strong>
-					<div>
-						Turn ElevenLabs Text to Speech alignment into an array of{' '}
-						<code>Caption</code>
-					</div>
-				</TOCItem>
 			</Grid>
 		</div>
 	);

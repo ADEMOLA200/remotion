@@ -273,10 +273,7 @@ const sidebars: SidebarsConfig = {
 				type: 'doc',
 				id: 'elevenlabs/index',
 			},
-			items: [
-				'elevenlabs/elevenlabs-transcript-to-captions',
-				'elevenlabs/elevenlabs-api-to-captions',
-			],
+			items: ['elevenlabs/elevenlabs-transcript-to-captions'],
 		},
 		{
 			type: 'category',

@@ -4151,15 +4151,6 @@ export const articles = [
 		slug: 'elevenlabs/elevenlabs-transcript-to-captions',
 	},
 	{
-		id: 'elevenlabs/elevenlabs-api-to-captions',
-		title: 'elevenLabsApiToCaptions()',
-		relativePath: 'docs/elevenlabs/elevenlabs-api-to-captions.mdx',
-		compId: 'articles-docs-elevenlabs-elevenlabs-api-to-captions',
-		crumb: '@remotion/elevenlabs',
-		noAi: false,
-		slug: 'elevenlabs/elevenlabs-api-to-captions',
-	},
-	{
 		id: 'overlay',
 		title: 'Creating overlays',
 		relativePath: 'docs/overlay.mdx',

@@ -548,7 +548,6 @@
         "@remotion/eslint-config-internal": "workspace:*",
         "@typescript/native-preview": "catalog:",
         "eslint": "catalog:",
-        "vitest": "catalog:",
       },
     },
     "packages/enable-scss": {
