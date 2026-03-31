@@ -9,21 +9,28 @@ Turns the output from [ElevenLabs Speech to Text API](https://elevenlabs.io/docs
 
 The ElevenLabs Speech to Text API returns word-level timing data. This function extracts the words with their timestamps to create standard Remotion captions.
 
+:::note
+The API must be called with `timestamps_granularity` set to `"word"` to include word-level timing in the response.
+:::
+
 ```tsx title="Example usage"
+import fs from 'fs';
 import {elevenLabsTranscriptToCaptions} from '@remotion/elevenlabs';
 
-const transcript = {
-	language_code: 'eng',
-	language_probability: 0.93,
-	text: 'Hello world!',
-	words: [
-		{text: 'Hello', start: 0.0, end: 0.5, type: 'word', logprob: -0.01},
-		{text: ' ', start: 0.5, end: 0.6, type: 'spacing', logprob: 0.0},
-		{text: 'world!', start: 0.6, end: 1.2, type: 'word', logprob: -0.02},
-	],
-	transcription_id: 'abc123',
-};
+const form = new FormData();
+form.append('file', new Blob([fs.readFileSync('audio.mp3')]));
+form.append('model_id', 'scribe_v2');
+form.append('timestamps_granularity', 'word');
 
+const response = await fetch('https://api.elevenlabs.io/v1/speech-to-text', {
+	method: 'POST',
+	headers: {
+		'xi-api-key': process.env.ELEVENLABS_API_KEY!,
+	},
+	body: form,
+});
+
+const transcript = await response.json();
 const {captions} = elevenLabsTranscriptToCaptions({transcript});
 ```
 
