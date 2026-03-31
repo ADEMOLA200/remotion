@@ -5,9 +5,9 @@ crumb: 'Subtitle videos'
 
 <AvailableFrom v="4.0.441" />
 
-The `@remotion/elevenlabs` package provides utilities for working with the ElevenLabs API.
+The `@remotion/elevenlabs` package provides utilities for converting the output of ElevenLabs APIs into an array of [`Caption`](/docs/captions/caption) objects, making them compatible with other caption-related Remotion APIs.
 
-It provides a transformation function for converting the output of the ElevenLabs API into an array of [`Caption`](/docs/captions/caption) objects in order to make the captions compatible with other caption-related Remotion APIs.
+It supports converting the output of both the [Speech to Text API](https://elevenlabs.io/docs/api-reference/speech-to-text/convert) and the [Text to Speech with timestamps API](https://elevenlabs.io/docs/api-reference/text-to-speech-with-timestamps).
 
 import {TableOfContents} from './TableOfContents';
 

@@ -4142,6 +4142,15 @@ export const articles = [
 		slug: 'elevenlabs/index',
 	},
 	{
+		id: 'elevenlabs/elevenlabs-transcript-to-captions',
+		title: 'elevenLabsTranscriptToCaptions()',
+		relativePath: 'docs/elevenlabs/elevenlabs-transcript-to-captions.mdx',
+		compId: 'articles-docs-elevenlabs-elevenlabs-transcript-to-captions',
+		crumb: '@remotion/elevenlabs',
+		noAi: false,
+		slug: 'elevenlabs/elevenlabs-transcript-to-captions',
+	},
+	{
 		id: 'elevenlabs/elevenlabs-api-to-captions',
 		title: 'elevenLabsApiToCaptions()',
 		relativePath: 'docs/elevenlabs/elevenlabs-api-to-captions.mdx',

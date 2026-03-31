@@ -5,9 +5,13 @@ crumb: '@remotion/elevenlabs'
 
 # elevenLabsApiToCaptions()<AvailableFrom v="4.0.441"/>
 
-Turns the output from [ElevenLabs Text-to-speech with timestamps API](https://elevenlabs.io/docs/api-reference/text-to-speech-with-timestamps) into an array of [`Caption`](/docs/captions/caption) objects.
+Turns the output from [ElevenLabs Text to Speech with timestamps API](https://elevenlabs.io/docs/api-reference/text-to-speech-with-timestamps) into an array of [`Caption`](/docs/captions/caption) objects.
 
-The ElevenLabs API returns character-level alignment metadata. This function groups these characters into words and calculates their start and end times to create standard Remotion captions.
+The ElevenLabs Text to Speech API returns character-level alignment metadata. This function groups these characters into words and calculates their start and end times to create standard Remotion captions.
+
+:::note
+If you are using ElevenLabs **Speech to Text** (not Text to Speech), use [`elevenLabsTranscriptToCaptions()`](/docs/elevenlabs/elevenlabs-transcript-to-captions) instead.
+:::
 
 ```tsx title="Example usage"
 import {elevenLabsApiToCaptions} from '@remotion/elevenlabs';

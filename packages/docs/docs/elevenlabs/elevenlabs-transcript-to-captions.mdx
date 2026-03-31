@@ -1,0 +1,35 @@
+---
+title: elevenLabsTranscriptToCaptions()
+crumb: '@remotion/elevenlabs'
+---
+
+# elevenLabsTranscriptToCaptions()<AvailableFrom v="4.0.442"/>
+
+Turns the output from [ElevenLabs Speech to Text API](https://elevenlabs.io/docs/api-reference/speech-to-text/convert) into an array of [`Caption`](/docs/captions/caption) objects.
+
+The ElevenLabs Speech to Text API returns word-level timing data. This function extracts the words with their timestamps to create standard Remotion captions.
+
+```tsx title="Example usage"
+import {elevenLabsTranscriptToCaptions} from '@remotion/elevenlabs';
+
+const transcript = {
+	language_code: 'eng',
+	language_probability: 0.93,
+	text: 'Hello world!',
+	words: [
+		{text: 'Hello', start: 0.0, end: 0.5, type: 'word', logprob: -0.01},
+		{text: ' ', start: 0.5, end: 0.6, type: 'spacing', logprob: 0.0},
+		{text: 'world!', start: 0.6, end: 1.2, type: 'word', logprob: -0.02},
+	],
+	transcription_id: 'abc123',
+};
+
+const {captions} = elevenLabsTranscriptToCaptions({transcript});
+```
+
+## See also
+
+- [Source code for this function](https://github.com/remotion-dev/remotion/blob/main/packages/elevenlabs/src/elevenlabs-transcript-to-captions.ts)
+- [`@remotion/elevenlabs`](/docs/elevenlabs)
+- [`@remotion/openai-whisper`](/docs/openai-whisper/index)
+- [`@remotion/captions`](/docs/captions/api)

@@ -6,10 +6,17 @@ export const TableOfContents: React.FC = () => {
 	return (
 		<div>
 			<Grid>
+				<TOCItem link="/docs/elevenlabs/elevenlabs-transcript-to-captions">
+					<strong>{'elevenLabsTranscriptToCaptions()'}</strong>
+					<div>
+						Turn ElevenLabs Speech to Text output into an array of{' '}
+						<code>Caption</code>
+					</div>
+				</TOCItem>
 				<TOCItem link="/docs/elevenlabs/elevenlabs-api-to-captions">
 					<strong>{'elevenLabsApiToCaptions()'}</strong>
 					<div>
-						Turn ElevenLabs API transcriptions into an array of{' '}
+						Turn ElevenLabs Text to Speech alignment into an array of{' '}
 						<code>Caption</code>
 					</div>
 				</TOCItem>
