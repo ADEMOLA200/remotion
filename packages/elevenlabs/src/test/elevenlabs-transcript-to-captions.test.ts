@@ -17,7 +17,7 @@ test('handles invalid transcript input', () => {
 		elevenLabsTranscriptToCaptions({
 			transcript: {} as unknown as ElevenLabsTranscript,
 		}),
-	).toThrowError(/Invalid ElevenLabs transcript formatting/);
+	).toThrowError(/Invalid ElevenLabs transcript/);
 });
 
 test('handles empty words array', () => {

@@ -15,7 +15,9 @@ export const elevenLabsTranscriptToCaptions = ({
 	const captions: Caption[] = [];
 
 	if (!transcript || !transcript.words || !Array.isArray(transcript.words)) {
-		throw new Error('Invalid ElevenLabs transcript formatting');
+		throw new Error(
+			'Invalid ElevenLabs transcript. The transcript must be generated with `timestamps_granularity` set to `"word"`. See https://www.remotion.dev/docs/elevenlabs/elevenlabs-transcript-to-captions',
+		);
 	}
 
 	const {words} = transcript;
