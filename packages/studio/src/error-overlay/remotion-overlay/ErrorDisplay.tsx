@@ -8,6 +8,7 @@ import type {ErrorRecord} from '../react-overlay/listen-to-runtime-errors';
 import {AskOnDiscord} from './AskOnDiscord';
 import {CalculateMetadataErrorExplainer} from './CalculateMetadataErrorExplainer';
 import {CompositionIdsDropdown} from './CompositionIdsDropdown';
+import {CopyStackTrace} from './CopyStackTrace';
 import {ErrorTitle} from './ErrorTitle';
 import {getHelpLink} from './get-help-link';
 import {HelpLink} from './HelpLink';
@@ -116,6 +117,10 @@ export const ErrorDisplay: React.FC<{
 			/>
 			<div style={spacer} />
 			<AskOnDiscord canHaveKeyboardShortcuts={keyboardShortcuts} />
+			<CopyStackTrace
+				canHaveKeyboardShortcuts={keyboardShortcuts}
+				errorText={display.error.stack || display.error.message}
+			/>
 			{onRetry ? (
 				<>
 					<div style={spacer} />
