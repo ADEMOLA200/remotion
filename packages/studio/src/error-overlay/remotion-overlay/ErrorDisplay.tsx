@@ -117,9 +117,19 @@ export const ErrorDisplay: React.FC<{
 			/>
 			<div style={spacer} />
 			<AskOnDiscord canHaveKeyboardShortcuts={keyboardShortcuts} />
+			<div style={spacer} />
 			<CopyStackTrace
 				canHaveKeyboardShortcuts={keyboardShortcuts}
-				errorText={display.error.stack || display.error.message}
+				errorText={
+					display.stackFrames
+						? display.stackFrames
+								.map(
+									(frame) =>
+										`at ${frame.originalFunctionName || '<anonymous>'} (${frame.originalFileName || 'unknown'}:${frame.originalLineNumber || '?'}:${frame.originalColumnNumber || '?'})`,
+								)
+								.join('\n')
+						: display.error.stack || display.error.message
+				}
 			/>
 			{onRetry ? (
 				<>

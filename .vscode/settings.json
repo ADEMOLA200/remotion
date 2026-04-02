@@ -25,7 +25,7 @@
 	},
 	"[typescriptreact]": {
 		"editor.formatOnSave": true,
-		"editor.defaultFormatter": "oxc.oxc-vscode"
+		"editor.defaultFormatter": "vscode.typescript-language-features"
 	},
 	"[go]": {
 		"editor.defaultFormatter": "golang.go"

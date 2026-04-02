@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import {Button} from '../../components/Button';
 import {useKeybinding} from '../../helpers/use-keybinding';
 import {ShortcutHint} from './ShortcutHint';
@@ -19,7 +19,6 @@ export const CopyStackTrace: React.FC<{
 				setTimeout(() => setCopyState('idle'), 2000);
 			})
 			.catch(() => {
-				// Fallback UI state on copy failure
 				setCopyState('failed');
 				setTimeout(() => setCopyState('idle'), 2000);
 			});
@@ -34,7 +33,7 @@ export const CopyStackTrace: React.FC<{
 
 		const {unregister} = registerKeybinding({
 			event: 'keydown',
-			key: 'c', // CMD+C / CTRL+C shortcut for copying
+			key: 't',
 			callback: handleCopyToClipboard,
 			commandCtrlKey: true,
 			preventDefault: true,
@@ -45,17 +44,23 @@ export const CopyStackTrace: React.FC<{
 		return () => unregister();
 	}, [canHaveKeyboardShortcuts, handleCopyToClipboard, registerKeybinding]);
 
-	const resolveButtonLabel = () => {
-		if (copyState === 'copied') return 'Copied!';
-		if (copyState === 'failed') return 'Failed!';
+	const label = useMemo(() => {
+		if (copyState === 'copied') {
+			return 'Copied!';
+		}
+
+		if (copyState === 'failed') {
+			return 'Failed!';
+		}
+
 		return 'Copy Stack Trace';
-	};
+	}, [copyState]);
 
 	return (
 		<Button onClick={handleCopyToClipboard}>
-			{resolveButtonLabel()}{' '}
+			{label}{' '}
 			{copyState === 'idle' && canHaveKeyboardShortcuts ? (
-				<ShortcutHint keyToPress="c" cmdOrCtrl />
+				<ShortcutHint cmdOrCtrl keyToPress="t" />
 			) : null}
 		</Button>
 	);
