@@ -53,7 +53,7 @@ export const CopyStackTrace: React.FC<{
 			return 'Failed!';
 		}
 
-		return 'Copy Stack Trace';
+		return 'Copy Stacktrace';
 	}, [copyState]);
 
 	return (
