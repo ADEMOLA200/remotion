@@ -1,5 +1,12 @@
 import type {KeyboardEvent, MouseEvent} from 'react';
-import React, {useCallback, useContext, useMemo, useState} from 'react';
+import React, {
+	useCallback,
+	useContext,
+	useLayoutEffect,
+	useMemo,
+	useRef,
+	useState,
+} from 'react';
 import {type _InternalTypes} from 'remotion';
 import {
 	BACKGROUND,
@@ -106,6 +113,16 @@ export const CompositionSelectorItem: React.FC<{
 	const onPointerLeave = useCallback(() => {
 		setHovered(false);
 	}, []);
+
+	const compositionRowRef = useRef<HTMLAnchorElement>(null);
+	useLayoutEffect(() => {
+		if (item.type === 'composition' && selected) {
+			compositionRowRef.current?.scrollIntoView({
+				block: 'center',
+				behavior: 'auto',
+			});
+		}
+	}, [item.type, selected]);
 
 	const style: React.CSSProperties = useMemo(() => {
 		return {
@@ -282,6 +299,7 @@ export const CompositionSelectorItem: React.FC<{
 		<ContextMenu values={contextMenu}>
 			<Row align="center">
 				<a
+					ref={compositionRowRef}
 					style={style}
 					onPointerEnter={onPointerEnter}
 					onPointerLeave={onPointerLeave}

@@ -1,4 +1,11 @@
-import React, {useCallback, useContext, useMemo, useRef, useState} from 'react';
+import React, {
+	useCallback,
+	useContext,
+	useLayoutEffect,
+	useMemo,
+	useRef,
+	useState,
+} from 'react';
 import {Internals, type StaticFile} from 'remotion';
 import {NoReactInternals} from 'remotion/no-react';
 import {
@@ -272,6 +279,13 @@ const AssetSelectorItem: React.FC<{
 		setHovered(false);
 	}, []);
 
+	const rowRef = useRef<HTMLDivElement>(null);
+	useLayoutEffect(() => {
+		if (selected) {
+			rowRef.current?.scrollIntoView({block: 'center', behavior: 'auto'});
+		}
+	}, [selected]);
+
 	const onClick = useCallback(() => {
 		setCanvasContent({type: 'asset', asset: relativePath});
 		pushUrl(`/assets/${relativePath}`);
@@ -352,6 +366,7 @@ const AssetSelectorItem: React.FC<{
 	return (
 		<Row align="center">
 			<div
+				ref={rowRef}
 				style={style}
 				onPointerEnter={onPointerEnter}
 				onPointerLeave={onPointerLeave}
