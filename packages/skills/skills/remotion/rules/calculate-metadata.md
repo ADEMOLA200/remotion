@@ -86,14 +86,14 @@ const calculateMetadata: CalculateMetadataFunction<Props> = async ({
 
 ## Setting a default outName
 
-Set the default output filename based on props:
+Set the default output filename based on props. Omit the file extension: Remotion appends the correct extension for the selected codec (for example `.mp4` or `.mov`), so including one yourself produces names like `video.mp4.mp4`.
 
 ```tsx
 const calculateMetadata: CalculateMetadataFunction<Props> = async ({
   props,
 }) => {
   return {
-    defaultOutName: `video-${props.id}`, // .mp4 is added automatically
+    defaultOutName: `video-${props.id}`, // extension added automatically
   };
 };
 ```
@@ -130,5 +130,5 @@ All fields are optional. Returned values override the `<Composition>` props:
 - `height`: Composition height in pixels
 - `fps`: Frames per second
 - `props`: Transformed props passed to the component
-- `defaultOutName`: Default output filename
+- `defaultOutName`: Default output base name (no extension; the renderer appends it)
 - `defaultCodec`: Default codec for rendering
