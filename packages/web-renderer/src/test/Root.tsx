@@ -58,6 +58,7 @@ import {filterText} from './fixtures/text/filter-text';
 import {fontStyle} from './fixtures/text/font-style';
 import {fontVariantCaps} from './fixtures/text/font-variant-caps';
 import {letterSpacing} from './fixtures/text/letter-spacing';
+import {maskedGradientTextOverlay} from './fixtures/text/masked-gradient-text-overlay';
 import {paragraphs} from './fixtures/text/paragraphs';
 import {textFixture} from './fixtures/text/text';
 import {textShadow} from './fixtures/text/text-shadow';
@@ -155,6 +156,7 @@ export const Root: React.FC = () => {
 				<Composition {...whiteSpaceCollapsing} />
 				<Composition {...whiteSpaceCollapsing2} />
 				<Composition {...filterText} />
+				<Composition {...maskedGradientTextOverlay} />
 			</Folder>
 			<Folder name="Projects">
 				<Composition {...unwrapped} />
