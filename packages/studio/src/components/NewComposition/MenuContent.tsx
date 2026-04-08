@@ -3,6 +3,7 @@ import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {INPUT_BORDER_COLOR_UNHOVERED} from '../../helpers/colors';
 import {useMobileLayout} from '../../helpers/mobile-layout';
 import {useKeybinding} from '../../helpers/use-keybinding';
+import {useZIndex} from '../../state/z-index';
 import {VERTICAL_SCROLLBAR_CLASSNAME} from '../Menu/is-menu-item';
 import {MenuDivider} from '../Menu/MenuDivider';
 import type {MenuId} from '../Menu/MenuItem';
@@ -16,6 +17,7 @@ import {
 import type {ComboboxValue} from './ComboBox';
 
 const BORDER_SIZE = 1;
+const TYPEAHEAD_RESET_MS = 800;
 
 const container: React.CSSProperties = {
 	paddingTop: MENU_VERTICAL_PADDING,
@@ -48,11 +50,19 @@ export const MenuContent: React.FC<{
 	fixedHeight,
 }) => {
 	const keybindings = useKeybinding();
+	const {isHighestContext} = useZIndex();
 	const containerRef = useRef<HTMLDivElement>(null);
 	const isMobileLayout = useMobileLayout();
 
 	const [subMenuActivated, setSubMenuActivated] =
 		useState<SubMenuActivated>(false);
+	const typeaheadRef = useRef<{
+		typed: string;
+		lastTypedAt: number;
+	}>({
+		typed: '',
+		lastTypedAt: 0,
+	});
 
 	if (values[0].type === 'divider') {
 		throw new Error('first value cant be divide');
@@ -74,6 +84,22 @@ export const MenuContent: React.FC<{
 
 	const isItemSelectable = useCallback((v: ComboboxValue) => {
 		return v.type !== 'divider' && !v.disabled;
+	}, []);
+
+	const getSearchableLabel = useCallback((item: ComboboxValue) => {
+		if (item.type === 'divider') {
+			return null;
+		}
+
+		if (item.quickSwitcherLabel) {
+			return item.quickSwitcherLabel.toLowerCase();
+		}
+
+		if (typeof item.label === 'string' || typeof item.label === 'number') {
+			return String(item.label).toLowerCase();
+		}
+
+		return null;
 	}, []);
 
 	const onArrowUp = useCallback(() => {
@@ -270,6 +296,93 @@ export const MenuContent: React.FC<{
 		onEnter,
 		onArrowRight,
 	]);
+
+	useEffect(() => {
+		const onKeyDown = (e: KeyboardEvent) => {
+			if (!isHighestContext) {
+				return;
+			}
+
+			if (e.defaultPrevented) {
+				return;
+			}
+
+			if (e.metaKey || e.ctrlKey || e.altKey) {
+				return;
+			}
+
+			const {activeElement} = document;
+			if (
+				activeElement instanceof HTMLInputElement ||
+				activeElement instanceof HTMLTextAreaElement
+			) {
+				return;
+			}
+
+			if (e.key.length !== 1) {
+				return;
+			}
+
+			if (e.key === ' ') {
+				return;
+			}
+
+			const key = e.key.toLowerCase();
+			const now = Date.now();
+			const resetTypeahead =
+				now - typeaheadRef.current.lastTypedAt > TYPEAHEAD_RESET_MS;
+			const nextTypeahead = resetTypeahead ? key : typeaheadRef.current.typed + key;
+			typeaheadRef.current = {
+				typed: nextTypeahead,
+				lastTypedAt: now,
+			};
+
+			const selectableWithLabel = values
+				.filter((item) => isItemSelectable(item))
+				.map((item) => ({item, label: getSearchableLabel(item)}))
+				.filter((item) => item.label !== null);
+
+			if (selectableWithLabel.length === 0) {
+				return;
+			}
+
+			const selectedIndex = selectableWithLabel.findIndex(
+				(item) => item.item.id === selectedItem,
+			);
+			const ordered =
+				selectedIndex === -1
+					? selectableWithLabel
+					: [
+							...selectableWithLabel.slice(selectedIndex + 1),
+							...selectableWithLabel.slice(0, selectedIndex + 1),
+						];
+
+			let matched = ordered.find((item) =>
+				item.label?.startsWith(nextTypeahead),
+			);
+
+			// Native selects cycle through options when repeatedly pressing the same key.
+			if (
+				!matched &&
+				nextTypeahead.length > 1 &&
+				nextTypeahead.split('').every((char) => char === key)
+			) {
+				matched = ordered.find((item) => item.label?.startsWith(key));
+			}
+
+			if (!matched) {
+				return;
+			}
+
+			setSelectedItem(matched.item.id);
+			e.preventDefault();
+		};
+
+		window.addEventListener('keydown', onKeyDown);
+		return () => {
+			window.removeEventListener('keydown', onKeyDown);
+		};
+	}, [getSearchableLabel, isHighestContext, isItemSelectable, selectedItem, values]);
 
 	// Disable submenu if not selected
 	useEffect(() => {
