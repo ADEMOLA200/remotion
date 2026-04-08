@@ -331,7 +331,9 @@ export const MenuContent: React.FC<{
 			const now = Date.now();
 			const resetTypeahead =
 				now - typeaheadRef.current.lastTypedAt > TYPEAHEAD_RESET_MS;
-			const nextTypeahead = resetTypeahead ? key : typeaheadRef.current.typed + key;
+			const nextTypeahead = resetTypeahead
+				? key
+				: typeaheadRef.current.typed + key;
 			typeaheadRef.current = {
 				typed: nextTypeahead,
 				lastTypedAt: now,
@@ -382,7 +384,13 @@ export const MenuContent: React.FC<{
 		return () => {
 			window.removeEventListener('keydown', onKeyDown);
 		};
-	}, [getSearchableLabel, isHighestContext, isItemSelectable, selectedItem, values]);
+	}, [
+		getSearchableLabel,
+		isHighestContext,
+		isItemSelectable,
+		selectedItem,
+		values,
+	]);
 
 	// Disable submenu if not selected
 	useEffect(() => {
