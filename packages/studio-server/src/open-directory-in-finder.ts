@@ -15,7 +15,10 @@ export const openDirectoryInFinder = (
 	}
 
 	if (platform() === 'win32') {
-		const proc = spawn('explorer.exe', ['/select,', resolved]);
+		const proc = spawn('explorer.exe', ['/select,', resolved], {
+			// Avoid default stdio pipes: under FD pressure (e.g. many watchers) spawn can fail with EBADF.
+			stdio: 'ignore',
+		});
 
 		return new Promise<void>((resolve, reject) => {
 			proc.on('exit', (code) => {
@@ -37,9 +40,13 @@ export const openDirectoryInFinder = (
 
 	const p = spawn(
 		command,
-		[platform() === 'darwin' ? '-R' : null, dirToOpen].filter(
+		[platform() === 'darwin' ? '-R' : null, resolved].filter(
 			NoReactInternals.truthy,
 		),
+		{
+			// Avoid default stdio pipes: under FD pressure (e.g. many watchers) spawn can fail with EBADF.
+			stdio: ['ignore', 'ignore', 'pipe'],
+		},
 	);
 
 	const stderrChunks: Uint8Array[] = [];
