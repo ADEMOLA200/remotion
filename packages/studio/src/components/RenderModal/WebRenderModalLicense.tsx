@@ -14,6 +14,7 @@ import {
 	WebRenderModalLicenseKeyDetails,
 	fetchLicenseKeyDetails,
 } from './WebRenderModalLicenseKeyDetails';
+import {isLocalhostLikeHostname} from './is-localhost-like';
 
 type WebRenderModalLicenseProps = {
 	readonly licenseKey: string | null;
@@ -152,6 +153,10 @@ export const WebRenderModalLicense: React.FC<WebRenderModalLicenseProps> = ({
 	setLicenseKey,
 	initialPublicLicenseKey,
 }) => {
+	const hostName =
+		typeof window === 'undefined' ? null : window.location?.hostname ?? null;
+	const isDevelopmentHost =
+		hostName === null ? false : isLocalhostLikeHostname(hostName);
 	const [licenseValidation, setLicenseValidation] =
 		useState<LicenseKeyValidation>({valid: true, message: null, details: null});
 	const [isLoading, setIsLoading] = useState(false);
@@ -221,6 +226,12 @@ export const WebRenderModalLicense: React.FC<WebRenderModalLicenseProps> = ({
 				</a>
 				.
 			</div>
+			{isDevelopmentHost ? (
+				<div style={descriptionStyle}>
+					Renders from <code style={codeStyle}>{hostName}</code> are classified as
+					development renders and are not billable.
+				</div>
+			) : null}
 			<div style={row}>
 				<div style={justifyCenter}>
 					<Checkbox
