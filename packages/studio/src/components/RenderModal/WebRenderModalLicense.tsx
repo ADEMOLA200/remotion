@@ -9,12 +9,12 @@ import {Checkbox} from '../Checkbox';
 import {Spacing} from '../layout';
 import {RemotionInput} from '../NewComposition/RemInput';
 import {ValidationMessage} from '../NewComposition/ValidationMessage';
+import {isLocalhostLikeHostname} from './is-localhost-like';
 import type {LicenseKeyDetails} from './WebRenderModalLicenseKeyDetails';
 import {
 	WebRenderModalLicenseKeyDetails,
 	fetchLicenseKeyDetails,
 } from './WebRenderModalLicenseKeyDetails';
-import {isLocalhostLikeHostname} from './is-localhost-like';
 
 type WebRenderModalLicenseProps = {
 	readonly licenseKey: string | null;
@@ -154,7 +154,7 @@ export const WebRenderModalLicense: React.FC<WebRenderModalLicenseProps> = ({
 	initialPublicLicenseKey,
 }) => {
 	const hostName =
-		typeof window === 'undefined' ? null : window.location?.hostname ?? null;
+		typeof window === 'undefined' ? null : (window.location?.hostname ?? null);
 	const isDevelopmentHost =
 		hostName === null ? false : isLocalhostLikeHostname(hostName);
 	const [licenseValidation, setLicenseValidation] =
@@ -228,8 +228,8 @@ export const WebRenderModalLicense: React.FC<WebRenderModalLicenseProps> = ({
 			</div>
 			{isDevelopmentHost ? (
 				<div style={descriptionStyle}>
-					Renders from <code style={codeStyle}>{hostName}</code> are classified as
-					development renders and are not billable.
+					Renders from <code style={codeStyle}>{hostName}</code> are classified
+					as development renders and are not billable.
 				</div>
 			) : null}
 			<div style={row}>
