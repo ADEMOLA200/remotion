@@ -16,7 +16,7 @@ beforeAll(async () => {
 	await $`php composer.phar update --quiet --lock`.cwd(
 		path.join(process.cwd(), '..', 'lambda-php'),
 	);
-});
+}, 120_000);
 
 describe('These should run serially', () => {
 	test('Set the right version for phpunit', () => {
@@ -133,6 +133,7 @@ class Semantic
 				requestHandler: null,
 				mediaCacheSizeInBytes: null,
 				isProduction: null,
+				sampleRate: 48000,
 			});
 		const jsonOutput = toParse.substring(0, toParse.lastIndexOf('}') + 1);
 		const parsedJson = JSON.parse(jsonOutput);

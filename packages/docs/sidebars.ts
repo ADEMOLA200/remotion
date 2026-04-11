@@ -13,6 +13,7 @@ const sidebars: SidebarsConfig = {
 			},
 			collapsed: true,
 			items: [
+				'cli/create-video',
 				'cli/studio',
 				'cli/render',
 				'cli/still',
@@ -268,6 +269,15 @@ const sidebars: SidebarsConfig = {
 		},
 		{
 			type: 'category',
+			label: '@remotion/elevenlabs',
+			link: {
+				type: 'doc',
+				id: 'elevenlabs/index',
+			},
+			items: ['elevenlabs/elevenlabs-transcript-to-captions'],
+		},
+		{
+			type: 'category',
 			label: '@remotion/fonts',
 			link: {
 				type: 'doc',
@@ -463,6 +473,15 @@ const sidebars: SidebarsConfig = {
 		},
 		{
 			type: 'category',
+			label: '@remotion/starburst',
+			link: {
+				type: 'doc',
+				id: 'starburst/starburst-api',
+			},
+			items: ['starburst/starburst-component'],
+		},
+		{
+			type: 'category',
 			label: '@remotion/sfx',
 			link: {
 				type: 'doc',
@@ -476,6 +495,10 @@ const sidebars: SidebarsConfig = {
 				'sfx/mouse-click',
 				'sfx/shutter-modern',
 				'sfx/shutter-old',
+				'sfx/ding',
+				'sfx/bruh',
+				'sfx/vine-boom',
+				'sfx/windows-xp-error',
 			],
 		},
 		{
@@ -905,6 +928,7 @@ const sidebars: SidebarsConfig = {
 				'animation-math',
 				'shaders',
 				'light-leaks',
+				'starburst',
 			],
 		},
 		{
@@ -1005,6 +1029,7 @@ const sidebars: SidebarsConfig = {
 				'metadata',
 				'hardware-acceleration',
 				'hdr',
+				'sample-rate',
 			],
 		},
 		{
@@ -1047,6 +1072,7 @@ const sidebars: SidebarsConfig = {
 				'client-side-rendering/migration',
 				'client-side-rendering/cancellation',
 				'client-side-rendering/telemetry',
+				'client-side-rendering/html-in-canvas',
 			],
 		},
 		{
@@ -1212,6 +1238,7 @@ const sidebars: SidebarsConfig = {
 				'font-picker',
 				'building-a-timeline',
 				'multiple-fps',
+				'electron',
 				'angular',
 				'svelte',
 				'vue',
@@ -1365,6 +1392,7 @@ const sidebars: SidebarsConfig = {
 			label: 'Troubleshooting',
 			items: [
 				'troubleshooting/debug-failed-render',
+				'troubleshooting/video-has-no-sound',
 				'timeout',
 				'target-closed',
 				'media-playback-error',
@@ -1379,6 +1407,7 @@ const sidebars: SidebarsConfig = {
 				'staticfile-relative-paths',
 				'staticfile-remote-urls',
 				'troubleshooting/background-image',
+				'troubleshooting/css-animations',
 				'troubleshooting/nextjs-image',
 				'troubleshooting/rosetta',
 				'troubleshooting/loading-root-component',
@@ -1423,16 +1452,16 @@ const sidebars: SidebarsConfig = {
 				'support',
 			],
 		},
-		'upgrading',
 		{
 			type: 'category',
-			label: 'Migration guides',
+			label: 'Upgrading',
 			items: [
-				'react-19',
+				'upgrading',
 				'5-0-migration',
 				'4-0-migration',
 				'3-0-migration',
 				'2-0-migration',
+				'react-19',
 			],
 		},
 		{
@@ -1582,6 +1611,7 @@ const sidebars: SidebarsConfig = {
 				'editor-starter/production-checklist',
 				'editor-starter/features-not-included',
 				'editor-starter/faq',
+				'editor-starter/vs-studio',
 			],
 		},
 	],

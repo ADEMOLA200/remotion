@@ -57,6 +57,8 @@ export type RenderDefaults = {
 	chromeMode: ChromeMode;
 	publicLicenseKey: string | null;
 	outputLocation: string | null;
+	allowHtmlInCanvas: boolean;
+	sampleRate: number;
 };
 
 declare global {

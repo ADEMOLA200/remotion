@@ -223,15 +223,16 @@ const processJobIfPossible = async ({
 
 		const {unwatch} = StudioServerInternals.installFileWatcher({
 			file: path.resolve(remotionRoot, nextJob.outName),
-			onChange: (type) => {
-				if (type === 'created') {
+			existenceOnly: true,
+			onChange: (event) => {
+				if (event.type === 'created') {
 					updateJob(nextJob.id, (job) => ({
 						...job,
 						deletedOutputLocation: false,
 					}));
 				}
 
-				if (type === 'deleted') {
+				if (event.type === 'deleted') {
 					updateJob(nextJob.id, (job) => ({
 						...job,
 						deletedOutputLocation: true,

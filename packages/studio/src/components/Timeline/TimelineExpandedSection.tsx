@@ -1,3 +1,4 @@
+import type {SequenceNodePath} from '@remotion/studio-shared';
 import React, {useMemo} from 'react';
 import type {TSequence} from 'remotion';
 import type {
@@ -32,7 +33,8 @@ export const TimelineExpandedSection: React.FC<{
 	readonly sequence: TSequence;
 	readonly originalLocation: OriginalPosition | null;
 	readonly nestedDepth: number;
-}> = ({sequence, originalLocation, nestedDepth}) => {
+	readonly nodePath: SequenceNodePath | null;
+}> = ({sequence, originalLocation, nestedDepth, nodePath}) => {
 	const overrideId = sequence.controls?.overrideId ?? sequence.id;
 	const schemaFields = useMemo(
 		() => getSchemaFields(sequence.controls),
@@ -67,6 +69,14 @@ export const TimelineExpandedSection: React.FC<{
 		};
 	}, [expandedHeight]);
 
+	const keysToObserve = useMemo(() => {
+		if (!schemaFields) {
+			return [];
+		}
+
+		return schemaFields.map((f) => f.key);
+	}, [schemaFields]);
+
 	return (
 		<div style={style}>
 			{schemaFields
@@ -79,6 +89,8 @@ export const TimelineExpandedSection: React.FC<{
 									overrideId={overrideId}
 									validatedLocation={validatedLocation}
 									nestedDepth={nestedDepth}
+									nodePath={nodePath}
+									keysToObserve={keysToObserve}
 								/>
 							</React.Fragment>
 						);

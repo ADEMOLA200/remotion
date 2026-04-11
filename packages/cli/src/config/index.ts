@@ -50,6 +50,7 @@ import {getWebpackPolling} from './webpack-poll';
 export type {Concurrency, WebpackConfiguration, WebpackOverrideFn};
 
 const {
+	allowHtmlInCanvasOption,
 	benchmarkConcurrenciesOption,
 	concurrencyOption,
 	offthreadVideoCacheSizeInBytesOption,
@@ -120,6 +121,7 @@ const {
 	envFileOption,
 	runsOption,
 	noOpenOption,
+	sampleRateOption,
 } = BrowserSafeApis.options;
 
 declare global {
@@ -185,6 +187,11 @@ declare global {
 		readonly setExperimentalClientSideRenderingEnabled: (
 			enabled: boolean,
 		) => void;
+		/**
+		 * Allow the experimental HTML-in-canvas capture path in Studio client-side renders.
+		 * @default false
+		 */
+		readonly setAllowHtmlInCanvasEnabled: (enabled: boolean) => void;
 		/**
 		 * Enable experimental Rspack bundler instead of Webpack.
 		 * @param enabled Boolean whether to enable the Rspack bundler
@@ -550,7 +557,7 @@ declare global {
 		readonly setImageSequencePattern: (pattern: string | null) => void;
 		/**
 		 * Set the public license key for your company license.
-		 * Obtain it from the "Usage" tab on https://remotion.pro
+		 * Obtain it from https://remotion.pro (License keys page)
 		 * Pass "free-license" if you are eligible for the free license.
 		 */
 		readonly setPublicLicenseKey: (key: string | null) => void;
@@ -621,6 +628,11 @@ type FlatConfig = RemotionConfigObject &
 		 */
 		setBenchmarkConcurrencies: (concurrencies: string | null) => void;
 		/**
+		 * Set the audio sample rate for rendered output.
+		 * Default: 48000
+		 */
+		setSampleRate: (sampleRate: number) => void;
+		/**
 		 * @deprecated 'The config format has changed. Change `Config.Bundling.*()` calls to `Config.*()` in your config file.'
 		 */
 		Bundling: void;
@@ -681,6 +693,7 @@ export const Config: FlatConfig = {
 	setKeyboardShortcutsEnabled: keyboardShortcutsOption.setConfig,
 	setExperimentalClientSideRenderingEnabled:
 		experimentalClientSideRenderingOption.setConfig,
+	setAllowHtmlInCanvasEnabled: allowHtmlInCanvasOption.setConfig,
 	setExperimentalRspackEnabled: rspackOption.setConfig,
 	setExperimentalVisualMode: experimentalVisualModeOption.setConfig,
 	setNumberOfSharedAudioTags: numberOfSharedAudioTagsOption.setConfig,
@@ -771,6 +784,7 @@ export const Config: FlatConfig = {
 	setBundleOutDir: outDirOption.setConfig,
 	setBenchmarkRuns: runsOption.setConfig,
 	setBenchmarkConcurrencies: benchmarkConcurrenciesOption.setConfig,
+	setSampleRate: sampleRateOption.setConfig,
 };
 
 export const ConfigInternals = {

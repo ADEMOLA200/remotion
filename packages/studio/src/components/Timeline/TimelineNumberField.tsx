@@ -1,16 +1,25 @@
-import React, {useCallback, useEffect, useMemo, useState} from 'react';
+import React, {useCallback, useMemo, useState} from 'react';
 import type {SchemaFieldInfo} from '../../helpers/timeline-layout';
 import {InputDragger} from '../NewComposition/InputDragger';
 import {draggerStyle, getDecimalPlaces} from './timeline-field-utils';
 
 export const TimelineNumberField: React.FC<{
 	readonly field: SchemaFieldInfo;
+	readonly effectiveValue: unknown;
 	readonly codeValue: unknown;
 	readonly canUpdate: boolean;
 	readonly onSave: (key: string, value: unknown) => Promise<void>;
 	readonly onDragValueChange: (key: string, value: unknown) => void;
 	readonly onDragEnd: () => void;
-}> = ({field, codeValue, canUpdate, onSave, onDragValueChange, onDragEnd}) => {
+}> = ({
+	field,
+	effectiveValue,
+	canUpdate,
+	onSave,
+	onDragValueChange,
+	onDragEnd,
+	codeValue,
+}) => {
 	const [dragValue, setDragValue] = useState<number | null>(null);
 
 	const onValueChange = useCallback(
@@ -21,22 +30,19 @@ export const TimelineNumberField: React.FC<{
 		[onDragValueChange, field.key],
 	);
 
-	useEffect(() => {
-		setDragValue(null);
-		onDragEnd();
-	}, [field.currentValue, onDragEnd]);
-
 	const onValueChangeEnd = useCallback(
 		(newVal: number) => {
 			if (canUpdate && newVal !== codeValue) {
-				onSave(field.key, newVal).catch(() => {
+				onSave(field.key, newVal).finally(() => {
 					setDragValue(null);
+					onDragEnd();
 				});
 			} else {
 				setDragValue(null);
+				onDragEnd();
 			}
 		},
-		[canUpdate, onSave, field.key, codeValue],
+		[canUpdate, onSave, field.key, codeValue, onDragEnd],
 	);
 
 	const onTextChange = useCallback(
@@ -71,7 +77,7 @@ export const TimelineNumberField: React.FC<{
 	return (
 		<InputDragger
 			type="number"
-			value={dragValue ?? (codeValue as number)}
+			value={dragValue ?? (effectiveValue as number)}
 			style={draggerStyle}
 			status="ok"
 			small

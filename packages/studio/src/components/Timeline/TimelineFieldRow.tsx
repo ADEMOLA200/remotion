@@ -1,3 +1,4 @@
+import type {SequenceNodePath} from '@remotion/studio-shared';
 import React, {useCallback, useContext, useMemo} from 'react';
 import {Internals} from 'remotion';
 import type {CanUpdateSequencePropStatus} from 'remotion';
@@ -23,6 +24,7 @@ const fieldRowBase: React.CSSProperties = {
 const fieldName: React.CSSProperties = {
 	fontSize: 12,
 	color: 'rgba(255, 255, 255, 0.8)',
+	userSelect: 'none',
 };
 
 const fieldLabelRow: React.CSSProperties = {
@@ -38,7 +40,16 @@ export const TimelineFieldRow: React.FC<{
 	readonly overrideId: string;
 	readonly validatedLocation: CodePosition | null;
 	readonly nestedDepth: number;
-}> = ({field, overrideId, validatedLocation, nestedDepth}) => {
+	readonly nodePath: SequenceNodePath | null;
+	readonly keysToObserve: string[];
+}> = ({
+	field,
+	overrideId,
+	validatedLocation,
+	nestedDepth,
+	nodePath,
+	keysToObserve,
+}) => {
 	const {
 		setDragOverrides,
 		clearDragOverrides,
@@ -65,9 +76,11 @@ export const TimelineFieldRow: React.FC<{
 		shouldResortToDefaultValueIfUndefined: true,
 	});
 
+	const {setCodeValues} = useContext(Internals.VisualModeOverridesContext);
+
 	const onSave = useCallback(
 		(key: string, value: unknown): Promise<void> => {
-			if (!propStatuses || !validatedLocation) {
+			if (!propStatuses || !validatedLocation || !nodePath) {
 				return Promise.reject(new Error('Cannot save'));
 			}
 
@@ -83,15 +96,34 @@ export const TimelineFieldRow: React.FC<{
 
 			return callApi('/api/save-sequence-props', {
 				fileName: validatedLocation.source,
-				line: validatedLocation.line,
-				column: validatedLocation.column,
+				nodePath,
 				key,
 				value: JSON.stringify(value),
-				enumPaths: [],
 				defaultValue,
-			}).then(() => undefined);
+				observedKeys: keysToObserve,
+			}).then((data) => {
+				if (data.success) {
+					if (data.newStatus.canUpdate) {
+						setCodeValues(overrideId, data.newStatus.props);
+					} else {
+						setCodeValues(overrideId, null);
+					}
+
+					return;
+				}
+
+				return Promise.reject(new Error(data.reason));
+			});
 		},
-		[propStatuses, validatedLocation, field.fieldSchema.default],
+		[
+			field.fieldSchema.default,
+			keysToObserve,
+			nodePath,
+			overrideId,
+			propStatuses,
+			setCodeValues,
+			validatedLocation,
+		],
 	);
 
 	const onDragValueChange = useCallback(
@@ -129,6 +161,7 @@ export const TimelineFieldRow: React.FC<{
 				onDragEnd={onDragEnd}
 				canUpdate={propStatus?.canUpdate ?? false}
 				effectiveValue={effectiveValue}
+				codeValue={propStatus}
 			/>
 		</div>
 	);

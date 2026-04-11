@@ -21,6 +21,7 @@ import {
 	CanUseRemotionHooks,
 	CanUseRemotionHooksProvider,
 } from './CanUseRemotionHooks.js';
+import {CompositionRenderErrorContext} from './composition-render-error-context.js';
 import {type CompProps} from './Composition.js';
 import type {
 	TCompMetadata,
@@ -40,7 +41,6 @@ import {OBJECTFIT_CONTAIN_CLASS_NAME} from './default-css.js';
 import {
 	EditorPropsContext,
 	EditorPropsProvider,
-	editorPropsProviderRef,
 	timeValueRef,
 } from './EditorProps.js';
 import {
@@ -63,6 +63,7 @@ import type {LoggingContextValue} from './log-level-context.js';
 import {LogLevelContext, useLogLevel} from './log-level-context.js';
 import {Log} from './log.js';
 import {MaxMediaCacheSizeContext} from './max-video-cache-size.js';
+import type {NonceHistory} from './nonce.js';
 import {NonceContext} from './nonce.js';
 import {playbackLogging} from './playback-logging.js';
 import {portalNode} from './portal-node.js';
@@ -82,7 +83,6 @@ import {
 	resolveVideoConfigOrCatch,
 } from './resolve-video-config.js';
 import {
-	PROPS_UPDATED_EXTERNALLY,
 	ResolveCompositionContext,
 	resolveCompositionsRef,
 	useResolvedVideoConfig,
@@ -103,6 +103,7 @@ import {setupEnvVariables} from './setup-env-variables.js';
 import * as TimelinePosition from './timeline-position-state.js';
 import {
 	persistCurrentFrame,
+	useTimelineContext,
 	useTimelineSetFrame,
 } from './timeline-position-state.js';
 import {
@@ -241,6 +242,7 @@ export const Internals = {
 	REMOTION_STUDIO_CONTAINER_ELEMENT,
 	RenderAssetManager,
 	persistCurrentFrame,
+	useTimelineContext,
 	useTimelineSetFrame,
 	isIosSafari,
 	WATCH_REMOTION_STATIC_FILES,
@@ -252,8 +254,6 @@ export const Internals = {
 	CurrentScaleContext,
 	PreviewSizeContext,
 	calculateScale,
-	editorPropsProviderRef,
-	PROPS_UPDATED_EXTERNALLY,
 	validateRenderAsset,
 	Log,
 	LogLevelContext,
@@ -278,6 +278,7 @@ export const Internals = {
 	AbsoluteTimeContext,
 	RenderAssetManagerProvider,
 	getEffectiveVisualModeValue,
+	CompositionRenderErrorContext,
 } as const;
 
 export type {
@@ -301,4 +302,5 @@ export type {
 	ScheduleAudioNodeOptions,
 	CanUpdateSequencePropStatus,
 	ScheduleAudioNodeResult,
+	NonceHistory,
 };

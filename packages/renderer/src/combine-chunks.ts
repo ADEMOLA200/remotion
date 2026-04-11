@@ -57,6 +57,7 @@ type OptionalCombineChunksOptions = {
 	metadata: Record<string, string> | null;
 	frameRange: FrameRange | null;
 	everyNthFrame: number;
+	sampleRate: number;
 };
 
 type AllCombineChunksOptions = MandatoryCombineChunksOptions &
@@ -70,6 +71,7 @@ const codecSupportsFastStart: {[key in Codec]: boolean} = {
 	'h264-ts': false,
 	h264: true,
 	h265: true,
+	av1: true,
 	aac: false,
 	gif: false,
 	mp3: false,
@@ -101,6 +103,7 @@ export const internalCombineChunks = async ({
 	everyNthFrame,
 	frameRange,
 	compositionDurationInFrames,
+	sampleRate,
 }: AllCombineChunksOptions & {
 	indent: boolean;
 }) => {
@@ -206,6 +209,7 @@ export const internalCombineChunks = async ({
 							concatenatedAudio = frames;
 							updateProgress();
 						},
+						sampleRate,
 					})
 				: null,
 
@@ -280,5 +284,6 @@ export const combineChunks = (options: CombineChunksOptions) => {
 		everyNthFrame: options.everyNthFrame ?? 1,
 		frameRange: options.frameRange ?? null,
 		compositionDurationInFrames: options.compositionDurationInFrames,
+		sampleRate: options.sampleRate ?? 48000,
 	});
 };

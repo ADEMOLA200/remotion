@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useMemo, useState} from 'react';
+import React, {useCallback, useMemo, useState} from 'react';
 import type {SchemaFieldInfo} from '../../helpers/timeline-layout';
 import {InputDragger} from '../NewComposition/InputDragger';
 import {getDecimalPlaces} from './timeline-field-utils';
@@ -30,26 +30,29 @@ const containerStyle: React.CSSProperties = {
 export const TimelineTranslateField: React.FC<{
 	readonly field: SchemaFieldInfo;
 	readonly codeValue: unknown;
+	readonly effectiveValue: unknown;
 	readonly canUpdate: boolean;
 	readonly onSave: (key: string, value: unknown) => Promise<void>;
 	readonly onDragValueChange: (key: string, value: unknown) => void;
 	readonly onDragEnd: () => void;
-}> = ({field, codeValue, canUpdate, onSave, onDragValueChange, onDragEnd}) => {
+}> = ({
+	field,
+	codeValue,
+	effectiveValue,
+	canUpdate,
+	onSave,
+	onDragValueChange,
+	onDragEnd,
+}) => {
 	const [dragX, setDragX] = useState<number | null>(null);
 	const [dragY, setDragY] = useState<number | null>(null);
 
 	const [codeX, codeY] = useMemo(
-		() => parseTranslate(String(codeValue ?? '0px 0px')),
-		[codeValue],
+		() => parseTranslate(String(effectiveValue ?? '0px 0px')),
+		[effectiveValue],
 	);
 
 	const makeString = useCallback((x: number, y: number) => `${x}px ${y}px`, []);
-
-	useEffect(() => {
-		setDragX(null);
-		setDragY(null);
-		onDragEnd();
-	}, [field.currentValue, onDragEnd]);
 
 	const step =
 		field.fieldSchema.type === 'translate' ? (field.fieldSchema.step ?? 1) : 1;
@@ -81,14 +84,25 @@ export const TimelineTranslateField: React.FC<{
 			const currentY = dragY ?? codeY;
 			const newStr = makeString(newVal, currentY);
 			if (canUpdate && newStr !== codeValue) {
-				onSave(field.key, newStr).catch(() => {
+				onSave(field.key, newStr).finally(() => {
 					setDragX(null);
+					onDragEnd();
 				});
 			} else {
 				setDragX(null);
+				onDragEnd();
 			}
 		},
-		[canUpdate, onSave, field.key, codeValue, dragY, codeY, makeString],
+		[
+			dragY,
+			codeY,
+			makeString,
+			canUpdate,
+			codeValue,
+			onSave,
+			field.key,
+			onDragEnd,
+		],
 	);
 
 	const onXTextChange = useCallback(
@@ -100,14 +114,12 @@ export const TimelineTranslateField: React.FC<{
 					const newStr = makeString(parsed, currentY);
 					if (newStr !== codeValue) {
 						setDragX(parsed);
-						onSave(field.key, newStr).catch(() => {
-							setDragX(null);
-						});
+						onSave(field.key, newStr);
 					}
 				}
 			}
 		},
-		[canUpdate, onSave, field.key, codeValue, dragY, codeY, makeString],
+		[canUpdate, dragY, codeY, makeString, codeValue, onSave, field.key],
 	);
 
 	// --- Y callbacks ---
@@ -125,14 +137,25 @@ export const TimelineTranslateField: React.FC<{
 			const currentX = dragX ?? codeX;
 			const newStr = makeString(currentX, newVal);
 			if (canUpdate && newStr !== codeValue) {
-				onSave(field.key, newStr).catch(() => {
+				onSave(field.key, newStr).finally(() => {
 					setDragY(null);
+					onDragEnd();
 				});
 			} else {
 				setDragY(null);
+				onDragEnd();
 			}
 		},
-		[canUpdate, onSave, field.key, codeValue, dragX, codeX, makeString],
+		[
+			dragX,
+			codeX,
+			makeString,
+			canUpdate,
+			codeValue,
+			onSave,
+			field.key,
+			onDragEnd,
+		],
 	);
 
 	const onYTextChange = useCallback(

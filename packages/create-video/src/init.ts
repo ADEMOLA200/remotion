@@ -23,7 +23,13 @@ import {
 } from './pkg-managers';
 import prompts from './prompts';
 import {resolveProjectRoot} from './resolve-project-root';
-import {getDirectoryArgument, selectTemplate} from './select-template';
+import {
+	getDirectoryArgument,
+	isNoTailwindFlagSelected,
+	isTmpFlagSelected,
+	isYesFlagSelected,
+	selectTemplate,
+} from './select-template';
 
 const gitExists = (commandToCheck: string, argsToCheck: string[]) => {
 	try {
@@ -85,6 +91,13 @@ export const init = async () => {
 	// Get directory argument if provided
 	const directoryArgument = getDirectoryArgument();
 
+	if (isYesFlagSelected() && !directoryArgument && !isTmpFlagSelected()) {
+		Log.error(
+			'A directory name must be specified when using --yes. Example: --yes --blank my-video',
+		);
+		process.exit(1);
+	}
+
 	// Select template first
 	const selectedTemplate = await selectTemplate();
 
@@ -118,28 +131,32 @@ export const init = async () => {
 	const isInsideGitRepo = result.type === 'is-git-repo';
 
 	if (isInsideGitRepo) {
-		const {shouldContinue} = await prompts({
-			type: 'toggle',
-			name: 'shouldContinue',
-			message: `You are already inside a Git repo (${path.resolve(
-				result.location,
-			)}).\nA new project will be created without initializing a new Git repository. Do you want to continue?`,
-			initial: false,
-			active: 'Yes',
-			inactive: 'No',
-		});
-		if (!shouldContinue) {
-			process.exit(1);
+		if (!isYesFlagSelected()) {
+			const {shouldContinue} = await prompts({
+				type: 'toggle',
+				name: 'shouldContinue',
+				message: `You are already inside a Git repo (${path.resolve(
+					result.location,
+				)}).\nA new project will be created without initializing a new Git repository. Do you want to continue?`,
+				initial: false,
+				active: 'Yes',
+				inactive: 'No',
+			});
+			if (!shouldContinue) {
+				process.exit(1);
+			}
 		}
 	}
 
 	const latestRemotionVersionPromise = getLatestRemotionVersion();
 
 	const shouldOverrideTailwind = selectedTemplate.allowEnableTailwind
-		? await askTailwind()
+		? isYesFlagSelected()
+			? !isNoTailwindFlagSelected()
+			: await askTailwind()
 		: false;
 
-	const shouldInstallSkills = await askSkills();
+	const shouldInstallSkills = isYesFlagSelected() ? false : await askSkills();
 
 	const pkgManager = selectPackageManager();
 	const pkgManagerVersion = await getPackageManagerVersionOrNull(pkgManager);
@@ -241,5 +258,7 @@ export const init = async () => {
 	);
 	Log.info();
 
-	await openInEditorFlow(projectRoot);
+	if (!isYesFlagSelected()) {
+		await openInEditorFlow(projectRoot);
+	}
 };

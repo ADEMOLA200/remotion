@@ -1,9 +1,23 @@
-import React, {useCallback, useEffect, useMemo, useState} from 'react';
+import React, {useCallback, useMemo, useState} from 'react';
 import type {SchemaFieldInfo} from '../../helpers/timeline-layout';
 import {InputDragger} from '../NewComposition/InputDragger';
 import {draggerStyle, getDecimalPlaces} from './timeline-field-utils';
 
+const unitPattern = /^([+-]?(?:\d+\.?\d*|\.\d+))(deg|rad|turn|grad)$/;
+
+const unitToDegrees: Record<string, number> = {
+	deg: 1,
+	rad: 180 / Math.PI,
+	turn: 360,
+	grad: 360 / 400,
+};
+
 const parseCssRotationToDegrees = (value: string): number => {
+	const match = value.trim().match(unitPattern);
+	if (match) {
+		return Number(match[1]) * unitToDegrees[match[2]];
+	}
+
 	try {
 		const m = new DOMMatrix(`rotate(${value})`);
 		return Math.round(Math.atan2(m.b, m.a) * (180 / Math.PI) * 1e6) / 1e6;
@@ -14,17 +28,26 @@ const parseCssRotationToDegrees = (value: string): number => {
 
 export const TimelineRotationField: React.FC<{
 	readonly field: SchemaFieldInfo;
+	readonly effectiveValue: unknown;
 	readonly codeValue: unknown;
 	readonly canUpdate: boolean;
 	readonly onSave: (key: string, value: unknown) => Promise<void>;
 	readonly onDragValueChange: (key: string, value: unknown) => void;
 	readonly onDragEnd: () => void;
-}> = ({field, codeValue, canUpdate, onSave, onDragValueChange, onDragEnd}) => {
+}> = ({
+	field,
+	effectiveValue,
+	codeValue,
+	canUpdate,
+	onSave,
+	onDragValueChange,
+	onDragEnd,
+}) => {
 	const [dragValue, setDragValue] = useState<number | null>(null);
 
 	const degrees = useMemo(
-		() => parseCssRotationToDegrees(String(codeValue ?? '0deg')),
-		[codeValue],
+		() => parseCssRotationToDegrees(String(effectiveValue ?? '0deg')),
+		[effectiveValue],
 	);
 
 	const onValueChange = useCallback(
@@ -35,23 +58,20 @@ export const TimelineRotationField: React.FC<{
 		[onDragValueChange, field.key],
 	);
 
-	useEffect(() => {
-		setDragValue(null);
-		onDragEnd();
-	}, [field.currentValue, onDragEnd]);
-
 	const onValueChangeEnd = useCallback(
 		(newVal: number) => {
 			const newStr = `${newVal}deg`;
 			if (canUpdate && newStr !== codeValue) {
-				onSave(field.key, newStr).catch(() => {
+				onSave(field.key, newStr).finally(() => {
 					setDragValue(null);
+					onDragEnd();
 				});
 			} else {
 				setDragValue(null);
+				onDragEnd();
 			}
 		},
-		[canUpdate, onSave, field.key, codeValue],
+		[canUpdate, onSave, field.key, codeValue, onDragEnd],
 	);
 
 	const onTextChange = useCallback(

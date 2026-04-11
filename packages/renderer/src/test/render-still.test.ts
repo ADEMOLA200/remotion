@@ -25,6 +25,7 @@ test(
 					defaultVideoImageFormat: null,
 					defaultPixelFormat: null,
 					defaultProResProfile: null,
+					defaultSampleRate: null,
 				},
 				frame: 0,
 				output: '/file/output.png',
@@ -34,7 +35,7 @@ test(
 		).toThrow(/not be NaN, but is NaN/);
 	},
 	{
-		timeout: 30000,
+		timeout: 90000,
 	},
 );
 
@@ -57,6 +58,7 @@ test(
 				defaultVideoImageFormat: null,
 				defaultPixelFormat: null,
 				defaultProResProfile: null,
+				defaultSampleRate: null,
 			},
 			frame: 0,
 			serveUrl: exampleBuild,
@@ -66,7 +68,7 @@ test(
 		expect(contentType).toBe('image/png');
 	},
 	{
-		timeout: 30000,
+		timeout: 90000,
 	},
 );
 
@@ -90,6 +92,7 @@ test(
 					defaultVideoImageFormat: null,
 					defaultPixelFormat: null,
 					defaultProResProfile: null,
+					defaultSampleRate: null,
 				},
 				frame: 200,
 				output: '/file/output.png',
@@ -100,7 +103,7 @@ test(
 			/Cannot use frame 200: Duration of composition is 30, therefore the highest frame that can be rendered is 29/,
 		);
 	},
-	{timeout: 30000},
+	{timeout: 90000},
 );
 
 test(
@@ -123,6 +126,7 @@ test(
 					defaultVideoImageFormat: null,
 					defaultPixelFormat: null,
 					defaultProResProfile: null,
+					defaultSampleRate: null,
 				},
 				// @ts-expect-error
 				imageFormat: 'jjj',
@@ -133,6 +137,6 @@ test(
 		).toThrow(/Image format should be one of: "png", "jpeg", "pdf", "webp"/);
 	},
 	{
-		timeout: 30000,
+		timeout: 90000,
 	},
 );

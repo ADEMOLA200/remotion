@@ -1,18 +1,23 @@
 import React, {
-	forwardRef,
 	useCallback,
 	useContext,
 	useImperativeHandle,
 	useLayoutEffect,
 	useRef,
+	useState,
 } from 'react';
 import type {IsExact} from './audio/props.js';
+import type {SequenceControls} from './CompositionManager.js';
+import {addSequenceStackTraces} from './enable-sequence-stack-traces.js';
 import {getCrossOriginValue} from './get-cross-origin-value.js';
 import {usePreload} from './prefetch.js';
+import type {SequenceSchema} from './sequence-field-schema.js';
 import {SequenceContext} from './SequenceContext.js';
 import {useBufferState} from './use-buffer-state.js';
 import {useDelayRender} from './use-delay-render.js';
+import {useImageInTimeline} from './use-media-in-timeline.js';
 import {useRemotionEnvironment} from './use-remotion-environment.js';
+import {wrapInSchema} from './wrap-in-schema.js';
 
 function exponentialBackoff(errorCount: number): number {
 	return 1000 * 2 ** (errorCount - 1);
@@ -33,31 +38,72 @@ export type ImgProps = NativeImgProps & {
 	readonly delayRenderTimeoutInMilliseconds?: number;
 	readonly onImageFrame?: (imageElement: HTMLImageElement) => void;
 	readonly src: string;
+	readonly showInTimeline?: boolean;
+	readonly name?: string;
+	/**
+	 * @deprecated For internal use only
+	 */
+	readonly stack?: string;
 };
 
-type Expected = Omit<NativeImgProps, 'onError' | 'src' | 'crossOrigin'>;
+type Expected = Omit<NativeImgProps, 'onError' | 'src' | 'crossOrigin' | 'ref'>;
 
-const ImgRefForwarding: React.ForwardRefRenderFunction<
-	HTMLImageElement,
-	ImgProps
-> = (
-	{
-		onError,
-		maxRetries = 2,
-		src,
-		pauseWhenLoading,
-		delayRenderRetries,
-		delayRenderTimeoutInMilliseconds,
-		onImageFrame,
-		crossOrigin,
-		...props
+const imgSchema = {
+	'style.translate': {
+		type: 'translate',
+		step: 1,
+		default: '0px 0px',
+		description: 'Position',
 	},
+	'style.scale': {
+		type: 'number',
+		min: 0.05,
+		max: 100,
+		step: 0.01,
+		default: 1,
+		description: 'Scale',
+	},
+	'style.rotate': {
+		type: 'rotation',
+		step: 1,
+		default: '0deg',
+		description: 'Rotation',
+	},
+	'style.opacity': {
+		type: 'number',
+		min: 0,
+		max: 1,
+		step: 0.01,
+		default: 1,
+		description: 'Opacity',
+	},
+} as const satisfies SequenceSchema;
+
+const ImgInner: React.FC<
+	ImgProps & {
+		readonly controls: SequenceControls | undefined;
+	}
+> = ({
+	onError,
+	maxRetries = 2,
+	src,
+	pauseWhenLoading,
+	delayRenderRetries,
+	delayRenderTimeoutInMilliseconds,
+	onImageFrame,
+	crossOrigin,
+	showInTimeline,
+	name,
+	stack,
 	ref,
-) => {
+	controls,
+	...props
+}) => {
 	const imageRef = useRef<HTMLImageElement>(null);
 	const errors = useRef<Record<string, number>>({});
 	const {delayPlayback} = useBufferState();
 	const sequenceContext = useContext(SequenceContext);
+	const [timelineId] = useState(() => String(Math.random()));
 
 	if (!src) {
 		throw new Error('No "src" prop was passed to <Img>.');
@@ -72,6 +118,18 @@ const ImgRefForwarding: React.ForwardRefRenderFunction<
 	useImperativeHandle(ref, () => {
 		return imageRef.current as HTMLImageElement;
 	}, []);
+
+	useImageInTimeline({
+		src,
+		displayName: name ?? null,
+		id: timelineId,
+		stack: stack ?? null,
+		showInTimeline: showInTimeline ?? true,
+		premountDisplay: sequenceContext?.premountDisplay ?? null,
+		postmountDisplay: sequenceContext?.postmountDisplay ?? null,
+		loopDisplay: undefined,
+		controls: controls ?? null,
+	});
 
 	const actualSrc = usePreload(src as string);
 
@@ -272,4 +330,5 @@ const ImgRefForwarding: React.ForwardRefRenderFunction<
  * @description Works just like a regular HTML img tag. When you use the <Img> tag, Remotion will ensure that the image is loaded before rendering the frame.
  * @see [Documentation](https://remotion.dev/docs/img)
  */
-export const Img = forwardRef(ImgRefForwarding);
+export const Img = wrapInSchema(ImgInner, imgSchema);
+addSequenceStackTraces(Img);

@@ -55,6 +55,7 @@ import {
 	ResolveCompositionBeforeModal,
 	ResolvedCompositionContext,
 } from './ResolveCompositionBeforeModal';
+import type {UpdaterFunction} from './SchemaEditor/ZodSwitch';
 import {useEncodableAudioCodecs} from './use-encodable-audio-codecs';
 import {useEncodableVideoCodecs} from './use-encodable-video-codecs';
 import {WebRendererExperimentalBadge} from './WebRendererExperimentalBadge';
@@ -86,6 +87,7 @@ type WebRenderModalProps = {
 	readonly initialTransparent: boolean | null;
 	readonly initialMuted: boolean | null;
 	readonly initialMediaCacheSizeInBytes: number | null;
+	readonly initialAllowHtmlInCanvas: boolean;
 };
 
 export type RenderType = 'still' | 'video' | 'audio';
@@ -189,6 +191,7 @@ const WebRenderModal: React.FC<WebRenderModalProps> = ({
 	initialKeyframeIntervalInSeconds,
 	initialTransparent,
 	initialMuted,
+	initialAllowHtmlInCanvas,
 }) => {
 	const context = useContext(ResolvedCompositionContext);
 	const {setSelectedModal} = useContext(ModalsContext);
@@ -224,14 +227,19 @@ const WebRenderModal: React.FC<WebRenderModalProps> = ({
 	);
 	const [frame, setFrame] = useState(() => initialFrame);
 	const [logLevel, setLogLevel] = useState(() => initialLogLevel);
-	const [inputProps, setInputProps] = useState(() => defaultProps);
+	const [inputProps, _setInputProps] = useState(() => defaultProps);
+	const setInputProps: UpdaterFunction<Record<string, unknown>> = useCallback(
+		(updater) => {
+			_setInputProps(updater);
+		},
+		[],
+	);
 	const [delayRenderTimeout, setDelayRenderTimeout] = useState(
 		initialDelayRenderTimeout ?? 30000,
 	);
 	const [mediaCacheSizeInBytes, setMediaCacheSizeInBytes] = useState<
 		number | null
 	>(initialMediaCacheSizeInBytes);
-	const [saving, setSaving] = useState(false);
 
 	// Video-specific state
 	const [codec, setCodec] = useState<WebRendererVideoCodec>(
@@ -268,6 +276,10 @@ const WebRenderModal: React.FC<WebRenderModalProps> = ({
 	const [scale, setScale] = useState(initialScale ?? 1);
 
 	const [licenseKey, setLicenseKey] = useState(initialLicenseKey);
+
+	const [allowHtmlInCanvas, setAllowHtmlInCanvas] = useState(
+		initialAllowHtmlInCanvas ?? false,
+	);
 
 	const encodableAudioCodecs = useEncodableAudioCodecs(container);
 	const encodableVideoCodecs = useEncodableVideoCodecs(container);
@@ -538,6 +550,7 @@ const WebRenderModal: React.FC<WebRenderModalProps> = ({
 					logLevel,
 					licenseKey,
 					scale,
+					allowHtmlInCanvas,
 				},
 				compositionRef,
 			);
@@ -566,6 +579,7 @@ const WebRenderModal: React.FC<WebRenderModalProps> = ({
 					logLevel,
 					licenseKey,
 					scale,
+					allowHtmlInCanvas,
 				},
 				compositionRef,
 			);
@@ -609,6 +623,7 @@ const WebRenderModal: React.FC<WebRenderModalProps> = ({
 		addClientStillJob,
 		addClientVideoJob,
 		scale,
+		allowHtmlInCanvas,
 	]);
 
 	return (
@@ -729,11 +744,12 @@ const WebRenderModal: React.FC<WebRenderModalProps> = ({
 							defaultProps={inputProps}
 							setDefaultProps={setInputProps}
 							unresolvedComposition={unresolvedComposition}
-							mayShowSaveButton={false}
 							propsEditType="input-props"
-							saving={saving}
-							setSaving={setSaving}
-							readOnlyStudio={false}
+							canSaveDefaultProps={{
+								canUpdate: false,
+								reason: 'render dialogue',
+								determined: false,
+							}}
 						/>
 					) : tab === 'picture' ? (
 						<WebRenderModalPicture
@@ -771,6 +787,8 @@ const WebRenderModal: React.FC<WebRenderModalProps> = ({
 							setMediaCacheSizeInBytes={setMediaCacheSizeInBytes}
 							hardwareAcceleration={hardwareAcceleration}
 							setHardwareAcceleration={setHardwareAcceleration}
+							allowHtmlInCanvas={allowHtmlInCanvas}
+							setAllowHtmlInCanvas={setAllowHtmlInCanvas}
 						/>
 					) : (
 						<WebRenderModalLicense

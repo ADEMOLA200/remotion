@@ -114,9 +114,6 @@ export const config: VercelConfig = {
 		routes.redirect('/github', 'https://github.com/remotion-dev/remotion', {
 			permanent: false,
 		}),
-		routes.redirect('/brand', 'https://github.com/remotion-dev/logo', {
-			permanent: false,
-		}),
 		routes.redirect('/docs/lottie/after-effects', '/docs/after-effects', {
 			permanent: false,
 		}),
@@ -310,5 +307,11 @@ export const config: VercelConfig = {
 		),
 		routes.redirect('/docs/video', '/docs/html5-video', {permanent: false}),
 		routes.redirect('/docs/audio', '/docs/html5-audio', {permanent: false}),
+		routes.redirect('/terms', 'https://remotion.pro/terms', {
+			permanent: false,
+		}),
+		routes.redirect('/privacy', 'https://remotion.pro/privacy', {
+			permanent: false,
+		}),
 	],
 };

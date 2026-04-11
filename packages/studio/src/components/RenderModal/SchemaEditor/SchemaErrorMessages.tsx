@@ -113,8 +113,7 @@ export const InvalidDefaultProps: React.FC<{
 
 export const InvalidSchema: React.FC<{
 	zodValidationResult: ZodSafeParseResult;
-	reset: () => void;
-}> = ({zodValidationResult, reset}) => {
+}> = ({zodValidationResult}) => {
 	return (
 		<div style={errorContainer}>
 			<div style={errorExplanation}>The data does not satisfy the schema:</div>
@@ -125,14 +124,6 @@ export const InvalidSchema: React.FC<{
 			/>
 			<Spacing y={1} block />
 			<div style={errorExplanation}>Fix the schema using the JSON editor.</div>
-			<Spacing y={1} block />
-			<div style={errorExplanation}>
-				Alternatively, reset the data to the{' '}
-				<code style={inlineCodeSnippet}>defaultProps</code> that you have
-				defined.
-			</div>
-			<Spacing y={1} block />
-			<Button onClick={reset}>Reset props</Button>
 		</div>
 	);
 };
@@ -143,13 +134,15 @@ export const TopLevelZodValue: React.FC<{
 	return (
 		<div style={explainer}>
 			<div style={errorExplanation}>
-				The top-level type of the schema must be a pure{' '}
-				<code style={codeSnippet}>z.object</code>. Instead got a schema of type{' '}
-				<code style={codeSnippet}>{typeReceived}</code>
+				The top-level type of the schema must be{' '}
+				<code style={codeSnippet}>z.object()</code> or{' '}
+				<code style={codeSnippet}>z.discriminatedUnion()</code>. Instead got a
+				schema of type <code style={codeSnippet}>{typeReceived}</code>
 			</div>
 			<Spacing y={1} />
 			<div style={errorExplanation}>
-				Fix the schema by changing the top-level Zod type to an object.
+				Fix the schema by changing the top-level Zod type to an object or
+				discriminated union.
 			</div>
 			<Spacing y={2} block />
 			<Button onClick={openDocs}>Learn more</Button>

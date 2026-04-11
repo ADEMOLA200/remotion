@@ -52,6 +52,7 @@ type NewAudioForPreviewProps = {
 	readonly fallbackHtml5AudioProps: FallbackHtml5AudioProps | undefined;
 	readonly debugAudioScheduling: boolean;
 	readonly onError: MediaOnError | undefined;
+	readonly credentials: RequestCredentials | undefined;
 };
 
 type AudioForPreviewAssertedShowingProps = NewAudioForPreviewProps & {
@@ -79,6 +80,7 @@ const AudioForPreviewAssertedShowing: React.FC<
 	fallbackHtml5AudioProps,
 	debugAudioScheduling,
 	onError,
+	credentials,
 	controls,
 }) => {
 	const videoConfig = useUnsafeVideoConfig();
@@ -92,7 +94,7 @@ const AudioForPreviewAssertedShowing: React.FC<
 		useState(false);
 
 	const [playing] = Timeline.usePlayingState();
-	const timelineContext = useContext(Internals.TimelineContext);
+	const timelineContext = Internals.useTimelineContext();
 	const globalPlaybackRate = timelineContext.playbackRate;
 	const sharedAudioContext = useContext(SharedAudioContext);
 	const buffer = useBufferState();
@@ -180,6 +182,7 @@ const AudioForPreviewAssertedShowing: React.FC<
 	const initialGlobalPlaybackRate = useRef(globalPlaybackRate);
 	const initialPlaybackRate = useRef(playbackRate);
 	const initialMuted = useRef(effectiveMuted);
+	const initialDurationInFrames = useRef(videoConfig.durationInFrames);
 	const initialSequenceOffset = useRef(sequenceOffset);
 
 	useCommonEffects({
@@ -233,10 +236,11 @@ const AudioForPreviewAssertedShowing: React.FC<
 				isPostmounting: initialIsPostmounting.current,
 				isPremounting: initialIsPremounting.current,
 				globalPlaybackRate: initialGlobalPlaybackRate.current,
-				durationInFrames: videoConfig.durationInFrames,
+				durationInFrames: initialDurationInFrames.current,
 				onVideoFrameCallback: null,
 				playing: initialPlaying.current,
 				sequenceOffset: initialSequenceOffset.current,
+				credentials,
 			});
 
 			mediaPlayerRef.current = player;
@@ -372,7 +376,7 @@ const AudioForPreviewAssertedShowing: React.FC<
 		debugAudioScheduling,
 		buffer,
 		onError,
-		videoConfig.durationInFrames,
+		credentials,
 	]);
 
 	if (shouldFallbackToNativeAudio && !disallowFallbackToHtml5Audio) {
@@ -427,6 +431,7 @@ type InnerAudioProps = {
 	readonly fallbackHtml5AudioProps?: FallbackHtml5AudioProps;
 	readonly debugAudioScheduling?: boolean;
 	readonly onError?: MediaOnError;
+	readonly credentials?: RequestCredentials;
 };
 
 export const AudioForPreview: React.FC<
@@ -452,6 +457,7 @@ export const AudioForPreview: React.FC<
 	fallbackHtml5AudioProps,
 	debugAudioScheduling,
 	onError,
+	credentials,
 	controls,
 }) => {
 	const preloadedSrc = usePreload(src);
@@ -508,6 +514,7 @@ export const AudioForPreview: React.FC<
 			toneFrequency={toneFrequency}
 			debugAudioScheduling={debugAudioScheduling ?? false}
 			onError={onError}
+			credentials={credentials}
 			fallbackHtml5AudioProps={fallbackHtml5AudioProps}
 			controls={controls}
 		/>

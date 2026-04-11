@@ -25,7 +25,9 @@ import {type MediaOnError, callOnErrorAndResolve} from '../on-error';
 import {useLoopDisplay} from '../show-in-timeline';
 import {useCommonEffects} from '../use-common-effects';
 import {useMediaInTimeline} from '../use-media-in-timeline';
-import type {FallbackOffthreadVideoProps} from './props';
+import type {FallbackOffthreadVideoProps, VideoObjectFit} from './props';
+import {cacheVideoFrame, getCachedVideoFrame} from './video-frame-cache';
+import {warnAboutObjectFitInStyleOrClassName} from './warn-object-fit-css';
 
 const {
 	useUnsafeVideoConfig,
@@ -64,6 +66,9 @@ type VideoForPreviewProps = {
 	readonly debugAudioScheduling: boolean;
 	readonly headless: boolean;
 	readonly onError: MediaOnError | undefined;
+	readonly credentials: RequestCredentials | undefined;
+	readonly objectFit: VideoObjectFit;
+	readonly _experimentalInitiallyDrawCachedFrame: boolean;
 };
 
 type VideoForPreviewAssertedShowingProps = VideoForPreviewProps & {
@@ -95,7 +100,10 @@ const VideoForPreviewAssertedShowing: React.FC<
 	debugAudioScheduling,
 	headless,
 	onError,
+	credentials,
 	controls,
+	objectFit: objectFitProp,
+	_experimentalInitiallyDrawCachedFrame,
 }) => {
 	const src = usePreload(unpreloadedSrc);
 
@@ -112,7 +120,7 @@ const VideoForPreviewAssertedShowing: React.FC<
 		useState(false);
 
 	const [playing] = Timeline.usePlayingState();
-	const timelineContext = useContext(Internals.TimelineContext);
+	const timelineContext = Internals.useTimelineContext();
 	const globalPlaybackRate = timelineContext.playbackRate;
 	const sharedAudioContext = useContext(SharedAudioContext);
 	const buffer = useBufferState();
@@ -198,7 +206,59 @@ const VideoForPreviewAssertedShowing: React.FC<
 	const initialGlobalPlaybackRate = useRef(globalPlaybackRate);
 	const initialPlaybackRate = useRef(playbackRate);
 	const initialMuted = useRef(effectiveMuted);
+	const initialDurationInFrames = useRef(videoConfig.durationInFrames);
 	const initialSequenceOffset = useRef(sequenceOffset);
+	const hasDrawnRealFrameRef = useRef(false);
+	const isPremountingRef = useRef(isPremounting);
+	isPremountingRef.current = isPremounting;
+
+	useLayoutEffect(() => {
+		if (!_experimentalInitiallyDrawCachedFrame) {
+			return;
+		}
+
+		const canvas = canvasRef.current;
+		if (!canvas) {
+			return;
+		}
+
+		const cached = getCachedVideoFrame(src);
+		if (!cached) {
+			return;
+		}
+
+		canvas.width = cached.width;
+		canvas.height = cached.height;
+		const ctx = canvas.getContext('2d', {
+			alpha: true,
+			desynchronized: true,
+		});
+		if (!ctx) {
+			return;
+		}
+
+		ctx.drawImage(cached, 0, 0);
+	}, [_experimentalInitiallyDrawCachedFrame, src]);
+
+	useLayoutEffect(() => {
+		if (!_experimentalInitiallyDrawCachedFrame) {
+			return;
+		}
+
+		const canvas = canvasRef.current;
+
+		return () => {
+			if (
+				!canvas ||
+				!hasDrawnRealFrameRef.current ||
+				isPremountingRef.current
+			) {
+				return;
+			}
+
+			cacheVideoFrame(src, canvas);
+		};
+	}, [_experimentalInitiallyDrawCachedFrame, src]);
 
 	useEffect(() => {
 		if (!sharedAudioContext) return;
@@ -225,10 +285,11 @@ const VideoForPreviewAssertedShowing: React.FC<
 				isPremounting: initialIsPremounting.current,
 				isPostmounting: initialIsPostmounting.current,
 				globalPlaybackRate: initialGlobalPlaybackRate.current,
-				durationInFrames: videoConfig.durationInFrames,
+				durationInFrames: initialDurationInFrames.current,
 				onVideoFrameCallback: initialOnVideoFrameRef.current ?? null,
 				playing: initialPlaying.current,
 				sequenceOffset: initialSequenceOffset.current,
+				credentials,
 			});
 
 			mediaPlayerRef.current = player;
@@ -294,6 +355,7 @@ const VideoForPreviewAssertedShowing: React.FC<
 					if (result.type === 'success') {
 						setMediaPlayerReady(true);
 						setMediaDurationInSeconds(result.durationInSeconds);
+						hasDrawnRealFrameRef.current = true;
 					}
 				})
 				.catch((error) => {
@@ -347,6 +409,7 @@ const VideoForPreviewAssertedShowing: React.FC<
 
 			setMediaPlayerReady(false);
 			setShouldFallbackToNativeVideo(false);
+			hasDrawnRealFrameRef.current = false;
 		};
 	}, [
 		audioStreamIndex,
@@ -360,8 +423,10 @@ const VideoForPreviewAssertedShowing: React.FC<
 		sharedAudioContext,
 		videoConfig.fps,
 		onError,
-		videoConfig.durationInFrames,
+		credentials,
 	]);
+
+	warnAboutObjectFitInStyleOrClassName({style, className, logLevel});
 
 	const classNameValue = useMemo(() => {
 		return [Internals.OBJECTFIT_CONTAIN_CLASS_NAME, className]
@@ -417,8 +482,9 @@ const VideoForPreviewAssertedShowing: React.FC<
 		return {
 			...style,
 			opacity: isSequenceHidden ? 0 : (style?.opacity ?? 1),
+			objectFit: objectFitProp,
 		};
-	}, [isSequenceHidden, style]);
+	}, [isSequenceHidden, objectFitProp, style]);
 
 	if (shouldFallbackToNativeVideo && !disallowFallbackToOffthreadVideo) {
 		// <Video> will fallback to <VideoForPreview> anyway

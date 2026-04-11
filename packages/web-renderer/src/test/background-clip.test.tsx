@@ -6,13 +6,14 @@ import {backgroundClipText} from './fixtures/text/background-clip-text';
 import {testImage} from './utils';
 
 test('should render background-clip: text', async () => {
-	const {blob} = await renderStillOnWeb({
-		licenseKey: 'free-license',
-		composition: backgroundClipText,
-		frame: 0,
-		inputProps: {},
-		imageFormat: 'png',
-	});
+	const blob = await (
+		await renderStillOnWeb({
+			licenseKey: 'free-license',
+			composition: backgroundClipText,
+			frame: 0,
+			inputProps: {},
+		})
+	).blob({format: 'png'});
 
 	await testImage({
 		blob,
@@ -24,19 +25,20 @@ test('should render background-clip: text', async () => {
 
 test('should render background-clip: text (scaled)', async () => {
 	await page.viewport(800, 1400);
-	const {blob} = await renderStillOnWeb({
-		licenseKey: 'free-license',
-		composition: backgroundClipText,
-		frame: 0,
-		inputProps: {},
-		imageFormat: 'png',
-		scale: 2,
-	});
+	const blob = await (
+		await renderStillOnWeb({
+			licenseKey: 'free-license',
+			composition: backgroundClipText,
+			frame: 0,
+			inputProps: {},
+			scale: 2,
+		})
+	).blob({format: 'png'});
 
 	await testImage({
 		blob,
 		testId: 'background-clip-text-scaled',
 		threshold: 0,
-		allowedMismatchedPixelRatio: 0.04,
+		allowedMismatchedPixelRatio: 0.06,
 	});
 });

@@ -2,6 +2,10 @@ import {expect, test} from 'bun:test';
 import {existsSync, readFileSync} from 'fs';
 import path from 'path';
 import {RenderInternals, openBrowser} from '@remotion/renderer';
+import {
+	getRemotionVersionFromIndexHtml,
+	VERSION,
+} from '@remotion/serverless-client';
 
 test(
 	'Bundle studio',
@@ -33,12 +37,19 @@ test(
 			throw new Error('Studio was bundled');
 		}
 
+		const indexHtmlContent = readFileSync(
+			path.join(folder, 'index.html'),
+			'utf-8',
+		);
+		const version = getRemotionVersionFromIndexHtml(indexHtmlContent);
+		expect(version).toBe(VERSION);
+
 		const {port, close} = await RenderInternals.serveStatic(
 			path.join(process.cwd(), '..', 'example', 'build'),
 			{
 				port: null,
 				offthreadVideoThreads: 1,
-				downloadMap: RenderInternals.makeDownloadMap(),
+				downloadMap: RenderInternals.makeDownloadMap(48000),
 				indent: false,
 				logLevel: 'info',
 				offthreadVideoCacheSizeInBytes: null,

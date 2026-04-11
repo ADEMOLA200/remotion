@@ -54,7 +54,8 @@ export const getErrorRecord = async (
 const crashWithFrames = (crash: () => void) => (error: Error) => {
 	const didHookOrderChange =
 		error.message.startsWith('Rendered fewer hooks') ||
-		error.message.startsWith('Rendered more hooks');
+		error.message.startsWith('Rendered more hooks') ||
+		error.message.startsWith('Should have a queue');
 
 	const key = 'remotion.lastCrashBecauseOfHooks';
 	const previousCrashWasBecauseOfHooks = window.localStorage.getItem(key);
@@ -74,7 +75,6 @@ const crashWithFrames = (crash: () => void) => (error: Error) => {
 		// eslint-disable-next-line no-console
 		console.log('Hook order changed. Reloading app...');
 
-		window.remotion_unsavedProps = false;
 		reloadUrl();
 	} else {
 		setErrorsRef.current?.addError(error);
@@ -87,11 +87,7 @@ export function listenToRuntimeErrors(crash: () => void) {
 	const crashWithFramesRunTime = crashWithFrames(crash);
 
 	registerError(window, (error) => {
-		return crashWithFramesRunTime({
-			message: error.message,
-			stack: error.stack,
-			name: error.name,
-		});
+		return crashWithFramesRunTime(error);
 	});
 	registerPromise(window, (error) => {
 		return crashWithFramesRunTime(error);
