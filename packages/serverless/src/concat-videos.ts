@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+import {join} from 'node:path';
 import type {
 	AudioCodec,
 	CancelSignal,
@@ -6,9 +8,6 @@ import type {
 	LogLevel,
 } from '@remotion/renderer';
 import {RenderInternals} from '@remotion/renderer';
-import fs from 'node:fs';
-import {join} from 'node:path';
-
 import type {CloudProvider, ServerlessCodec} from '@remotion/serverless-client';
 import {REMOTION_CONCATENATED_TOKEN} from '@remotion/serverless-client';
 import type {InsideFunctionSpecifics} from './provider-implementation';
@@ -32,6 +31,7 @@ export const concatVideos = async <Provider extends CloudProvider>({
 	everyNthFrame,
 	frameRange,
 	compositionDurationInFrames,
+	sampleRate,
 }: {
 	onProgress: CombineChunksOnProgress;
 	codec: ServerlessCodec;
@@ -51,6 +51,7 @@ export const concatVideos = async <Provider extends CloudProvider>({
 	compositionDurationInFrames: number;
 	everyNthFrame: number;
 	frameRange: FrameRange | null;
+	sampleRate: number;
 }) => {
 	const outfile = join(
 		RenderInternals.tmpDir(REMOTION_CONCATENATED_TOKEN),
@@ -81,6 +82,7 @@ export const concatVideos = async <Provider extends CloudProvider>({
 		compositionDurationInFrames,
 		everyNthFrame,
 		frameRange,
+		sampleRate,
 	});
 
 	combine.end();

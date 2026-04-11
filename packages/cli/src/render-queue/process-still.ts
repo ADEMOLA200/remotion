@@ -9,8 +9,11 @@ const {
 	publicDirOption,
 	askAIOption,
 	experimentalClientSideRenderingOption,
+	experimentalVisualModeOption,
 	keyboardShortcutsOption,
+	rspackOption,
 	browserExecutableOption,
+	bundleCacheOption,
 } = BrowserSafeApis.options;
 
 export const processStill = async ({
@@ -42,9 +45,16 @@ export const processStill = async ({
 		experimentalClientSideRenderingOption.getValue({
 			commandLine: parsedCli,
 		}).value;
+	const experimentalVisualModeEnabled = experimentalVisualModeOption.getValue({
+		commandLine: parsedCli,
+	}).value;
 	const keyboardShortcutsEnabled = keyboardShortcutsOption.getValue({
 		commandLine: parsedCli,
 	}).value;
+	const shouldCache = bundleCacheOption.getValue({
+		commandLine: parsedCli,
+	}).value;
+	const rspack = rspackOption.getValue({commandLine: parsedCli}).value;
 
 	const fullEntryPoint = convertEntryPointToServeUrl(entryPoint);
 
@@ -87,6 +97,9 @@ export const processStill = async ({
 		mediaCacheSizeInBytes: job.mediaCacheSizeInBytes,
 		askAIEnabled,
 		experimentalClientSideRenderingEnabled,
+		experimentalVisualModeEnabled,
 		keyboardShortcutsEnabled,
+		rspack,
+		shouldCache,
 	});
 };

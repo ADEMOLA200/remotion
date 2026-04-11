@@ -70,9 +70,11 @@ export const makeRetryPayload = (job: RenderJob): RenderModalState => {
 			defaulMetadata: job.metadata,
 			renderTypeOfLastRender: 'still',
 			initialHardwareAcceleration: defaults.hardwareAcceleration,
+			initialSampleRate: defaults.sampleRate,
 			initialChromeMode: job.chromeMode,
 			initialMediaCacheSizeInBytes: job.mediaCacheSizeInBytes,
 			renderDefaults: defaults,
+			readOnlyStudio: false,
 		};
 	}
 
@@ -126,9 +128,11 @@ export const makeRetryPayload = (job: RenderJob): RenderModalState => {
 			defaulMetadata: job.metadata,
 			renderTypeOfLastRender: 'sequence',
 			initialHardwareAcceleration: defaults.hardwareAcceleration,
+			initialSampleRate: defaults.sampleRate,
 			initialChromeMode: job.chromeMode,
 			initialMediaCacheSizeInBytes: job.mediaCacheSizeInBytes,
 			renderDefaults: defaults,
+			readOnlyStudio: false,
 		};
 	}
 
@@ -182,9 +186,11 @@ export const makeRetryPayload = (job: RenderJob): RenderModalState => {
 			defaulMetadata: job.metadata,
 			renderTypeOfLastRender: 'video',
 			initialHardwareAcceleration: job.hardwareAcceleration,
+			initialSampleRate: job.sampleRate,
 			initialChromeMode: job.chromeMode,
 			initialMediaCacheSizeInBytes: job.mediaCacheSizeInBytes,
 			renderDefaults: defaults,
+			readOnlyStudio: false,
 		};
 	}
 
@@ -222,5 +228,6 @@ export const makeClientRetryPayload = (
 			job.type === 'client-video' ? job.keyframeIntervalInSeconds : null,
 		initialMuted: job.type === 'client-video' ? job.muted : null,
 		initialTransparent: job.type === 'client-video' ? job.transparent : null,
+		initialAllowHtmlInCanvas: job.allowHtmlInCanvas,
 	};
 };

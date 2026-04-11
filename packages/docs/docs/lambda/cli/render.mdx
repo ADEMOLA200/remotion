@@ -79,10 +79,7 @@ The [AWS region](/docs/lambda/region-selection) to select. Both project and func
 
 ### `--props`
 
-[Input Props to pass to the selected composition of your video.](/docs/passing-props#passing-input-props-in-the-cli).  
-Must be a serialized JSON string (`--props='{"hello": "world"}'`) or a path to a JSON file (`./path/to/props.json`).  
-From the root component the props can be read using [`getInputProps()`](/docs/get-input-props).  
-You may transform input props using [`calculateMetadata()`](/docs/calculate-metadata).
+<Options id="props" />
 
 :::note
 Inline JSON string isn't supported on Windows shells because it removes the `"` character, use a file name instead.
@@ -146,7 +143,9 @@ Renamed to `jpegQuality` in `v4.0.0`.
 
 ### `--codec`
 
-[`h264` or `h265` (supported since v4.0.32) or `png` or `vp8` or `mp3` or `aac` or `wav` or `prores`](/docs/config#setcodec). If you don't supply `--codec`, it will use `h264`.
+[`h264` or `h265` or `vp8` or `vp9` or `gif` or `mp3` or `aac` or `wav` or `prores`](/docs/config#setcodec). If you don't supply `--codec`, it will use `h264`.
+
+`av1` is not available on Lambda due to function size constraints.
 
 ### `--audio-codec`<AvailableFrom v="3.3.42" />
 
@@ -186,11 +185,11 @@ Renamed to `jpegQuality` in `v4.0.0`.
 
 ### `--env-file`
 
-Specify a location for a dotenv file - Default `.env`. [Read about how environment variables work in Remotion.](/docs/env-variables)
+<Options id="env-file" />
 
 ### `--frames`
 
-[Render a subset of a video](/docs/config#setframerange). Example: `--frames=0-9` to select the first 10 frames. You can omit the start or end: `--frames=100-` renders from frame 100 to the end<AvailableFrom v="4.0.421" inline />, `--frames=-100` renders from the start to frame 100<AvailableFrom v="4.0.421" inline />. To render a still, use the [`still`](/docs/lambda/cli/still) command.
+<Options id="frames" />
 
 ### `--every-nth-frame`<AvailableFrom v="3.1.0" />
 
@@ -305,6 +304,10 @@ Lets you set a custom user agent that the headless Chrome browser assumes.
 ### `--metadata`<AvailableFrom v="4.0.216" />
 
 <Options cli id="metadata" />
+
+### `--sample-rate`<AvailableFrom v="4.0.448" />
+
+<Options cli id="sample-rate" />
 
 ### `--force-path-style`<AvailableFrom v="4.0.202" />
 

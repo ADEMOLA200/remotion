@@ -1,4 +1,11 @@
-import React, {useCallback, useContext, useMemo, useRef, useState} from 'react';
+import React, {
+	useCallback,
+	useContext,
+	useLayoutEffect,
+	useMemo,
+	useRef,
+	useState,
+} from 'react';
 import {Internals, type StaticFile} from 'remotion';
 import {NoReactInternals} from 'remotion/no-react';
 import {
@@ -10,6 +17,10 @@ import {
 import {copyText} from '../helpers/copy-text';
 import type {AssetFolder, AssetStructure} from '../helpers/create-folder-tree';
 import {useMobileLayout} from '../helpers/mobile-layout';
+import {
+	markAssetSidebarScrollFromRowClick,
+	maybeScrollAssetSidebarRowIntoView,
+} from '../helpers/sidebar-scroll-into-view';
 import {pushUrl} from '../helpers/url-state';
 import useAssetDragEvents from '../helpers/use-asset-drag-events';
 import {ClipboardIcon} from '../icons/clipboard';
@@ -18,9 +29,9 @@ import {CollapsedFolderIcon, ExpandedFolderIcon} from '../icons/folder';
 import {SidebarContext} from '../state/sidebar';
 import type {RenderInlineAction} from './InlineAction';
 import {InlineAction} from './InlineAction';
+import {Row, Spacing} from './layout';
 import {showNotification} from './Notifications/NotificationCenter';
 import {openInFileExplorer} from './RenderQueue/actions';
-import {Row, Spacing} from './layout';
 
 const ASSET_ITEM_HEIGHT = 32;
 
@@ -76,6 +87,7 @@ const AssetFolderItem: React.FC<{
 	) => void;
 	readonly dropLocation: string | null;
 	readonly setDropLocation: React.Dispatch<React.SetStateAction<string | null>>;
+	readonly readOnlyStudio: boolean;
 }> = ({
 	tabIndex,
 	item,
@@ -84,6 +96,7 @@ const AssetFolderItem: React.FC<{
 	toggleFolder,
 	dropLocation,
 	setDropLocation,
+	readOnlyStudio,
 }) => {
 	const [hovered, setHovered] = useState(false);
 	const openFolderTimerRef = useRef<number | null>(null);
@@ -170,6 +183,7 @@ const AssetFolderItem: React.FC<{
 					toggleFolder={toggleFolder}
 					dropLocation={dropLocation}
 					setDropLocation={setDropLocation}
+					readOnlyStudio={readOnlyStudio}
 				/>
 			) : null}
 		</div>
@@ -188,6 +202,7 @@ export const AssetFolderTree: React.FC<{
 	) => void;
 	readonly dropLocation: string | null;
 	readonly setDropLocation: React.Dispatch<React.SetStateAction<string | null>>;
+	readonly readOnlyStudio: boolean;
 }> = ({
 	item,
 	level,
@@ -197,6 +212,7 @@ export const AssetFolderTree: React.FC<{
 	tabIndex,
 	dropLocation,
 	setDropLocation,
+	readOnlyStudio,
 }) => {
 	const combinedParents = useMemo(() => {
 		return [parentFolder, name].filter(NoReactInternals.truthy).join('/');
@@ -214,6 +230,7 @@ export const AssetFolderTree: React.FC<{
 						toggleFolder={toggleFolder}
 						dropLocation={dropLocation}
 						setDropLocation={setDropLocation}
+						readOnlyStudio={readOnlyStudio}
 					/>
 				);
 			})}
@@ -225,6 +242,7 @@ export const AssetFolderTree: React.FC<{
 						tabIndex={tabIndex}
 						level={level}
 						parentFolder={combinedParents}
+						readOnlyStudio={readOnlyStudio}
 					/>
 				);
 			})}
@@ -237,7 +255,8 @@ const AssetSelectorItem: React.FC<{
 	readonly tabIndex: number;
 	readonly level: number;
 	readonly parentFolder: string;
-}> = ({item, tabIndex, level, parentFolder}) => {
+	readonly readOnlyStudio: boolean;
+}> = ({item, tabIndex, level, parentFolder, readOnlyStudio}) => {
 	const isMobileLayout = useMobileLayout();
 	const [hovered, setHovered] = useState(false);
 	const {setSidebarCollapsedState} = useContext(SidebarContext);
@@ -248,24 +267,33 @@ const AssetSelectorItem: React.FC<{
 	const {setCanvasContent} = useContext(Internals.CompositionSetters);
 	const {canvasContent} = useContext(Internals.CompositionManager);
 
+	const relativePath = useMemo(() => {
+		return parentFolder ? parentFolder + '/' + item.name : item.name;
+	}, [parentFolder, item.name]);
+
 	const selected = useMemo(() => {
 		if (canvasContent && canvasContent.type === 'asset') {
-			const nameWOParent = canvasContent.asset.split('/').pop();
-
-			return nameWOParent === item.name;
+			return canvasContent.asset === relativePath;
 		}
 
 		return false;
-	}, [canvasContent, item.name]);
+	}, [canvasContent, relativePath]);
 
 	const onPointerLeave = useCallback(() => {
 		setHovered(false);
 	}, []);
 
+	const rowRef = useRef<HTMLDivElement>(null);
+	useLayoutEffect(() => {
+		maybeScrollAssetSidebarRowIntoView({
+			element: rowRef.current,
+			assetPath: relativePath,
+			selected,
+		});
+	}, [relativePath, selected]);
+
 	const onClick = useCallback(() => {
-		const relativePath = parentFolder
-			? parentFolder + '/' + item.name
-			: item.name;
+		markAssetSidebarScrollFromRowClick(relativePath);
 		setCanvasContent({type: 'asset', asset: relativePath});
 		pushUrl(`/assets/${relativePath}`);
 		if (isMobileLayout) {
@@ -273,8 +301,7 @@ const AssetSelectorItem: React.FC<{
 		}
 	}, [
 		isMobileLayout,
-		item.name,
-		parentFolder,
+		relativePath,
 		setCanvasContent,
 		setSidebarCollapsedState,
 	]);
@@ -346,6 +373,7 @@ const AssetSelectorItem: React.FC<{
 	return (
 		<Row align="center">
 			<div
+				ref={rowRef}
 				style={style}
 				onPointerEnter={onPointerEnter}
 				onPointerLeave={onPointerLeave}
@@ -364,12 +392,16 @@ const AssetSelectorItem: React.FC<{
 							renderAction={renderCopyAction}
 							onClick={copyToClipboard}
 						/>
-						<Spacing x={0.5} />
-						<InlineAction
-							title="Open in Explorer"
-							renderAction={renderFileExplorerAction}
-							onClick={revealInExplorer}
-						/>
+						{readOnlyStudio ? null : (
+							<>
+								<Spacing x={0.5} />
+								<InlineAction
+									title="Open in Explorer"
+									renderAction={renderFileExplorerAction}
+									onClick={revealInExplorer}
+								/>
+							</>
+						)}
 					</>
 				) : null}
 			</div>

@@ -3,14 +3,15 @@
 		"url": "https://github.com/remotion-dev/remotion/tree/main/packages/studio-server"
 	},
 	"name": "@remotion/studio-server",
-	"version": "4.0.425",
+	"version": "4.0.448",
 	"description": "Run a Remotion Studio with a server backend",
 	"main": "dist",
 	"sideEffects": false,
 	"scripts": {
 		"lint": "eslint src",
 		"test": "bun test src",
-		"formatting": "prettier src --check",
+		"formatting": "oxfmt src --check",
+		"format": "oxfmt src",
 		"make": "tsgo -d"
 	},
 	"author": "Jonny Burger <jonny@remotion.dev>",
@@ -23,8 +24,10 @@
 		"access": "public"
 	},
 	"dependencies": {
+		"@babel/types": "7.24.0",
 		"@babel/parser": "7.24.1",
 		"semver": "7.5.3",
+		"prettier": "catalog:",
 		"remotion": "workspace:*",
 		"recast": "0.23.11",
 		"@remotion/bundler": "workspace:*",
@@ -37,7 +40,6 @@
 	"devDependencies": {
 		"ast-types": "0.16.1",
 		"react": "catalog:",
-		"@babel/types": "7.24.0",
 		"@types/semver": "^7.3.4",
 		"@remotion/eslint-config-internal": "workspace:*",
 		"eslint": "catalog:",

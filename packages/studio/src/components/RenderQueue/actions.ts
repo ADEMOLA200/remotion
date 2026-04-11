@@ -12,7 +12,6 @@ import type {
 import type {HardwareAccelerationOption} from '@remotion/renderer/client';
 import type {
 	ApplyCodemodRequest,
-	CanUpdateDefaultPropsResponse,
 	EnumPath,
 	OpenInFileExplorerRequest,
 	RecastCodemod,
@@ -211,6 +210,7 @@ export const addVideoRenderJob = ({
 	hardwareAcceleration,
 	chromeMode,
 	mediaCacheSizeInBytes,
+	sampleRate,
 }: {
 	compositionId: string;
 	outName: string;
@@ -252,6 +252,7 @@ export const addVideoRenderJob = ({
 	hardwareAcceleration: HardwareAccelerationOption;
 	chromeMode: ChromeMode;
 	mediaCacheSizeInBytes: number | null;
+	sampleRate: number;
 }) => {
 	return callApi('/api/render', {
 		compositionId,
@@ -300,6 +301,7 @@ export const addVideoRenderJob = ({
 		hardwareAcceleration,
 		chromeMode,
 		mediaCacheSizeInBytes,
+		sampleRate,
 	});
 };
 
@@ -383,22 +385,6 @@ export const callUpdateDefaultPropsApi = (
 			staticBase: window.remotion_staticBase,
 		}).serializedString,
 		enumPaths,
-	});
-};
-
-export const canUpdateDefaultProps = (
-	compositionId: string,
-	readOnlyStudio: boolean,
-): Promise<CanUpdateDefaultPropsResponse> => {
-	if (readOnlyStudio) {
-		return Promise.resolve({
-			canUpdate: false,
-			reason: 'Read-only studio',
-		});
-	}
-
-	return callApi('/api/can-update-default-props', {
-		compositionId,
 	});
 };
 

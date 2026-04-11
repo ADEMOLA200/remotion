@@ -34,10 +34,12 @@ import {
 	envVariablesArrayToObject,
 	envVariablesObjectToArray,
 } from '../../helpers/convert-env-variables';
+import {copyText} from '../../helpers/copy-text';
+import {makeReadOnlyStudioRenderCommand} from '../../helpers/make-render-command';
 import {useRenderModalSections} from '../../helpers/render-modal-sections';
 import {useKeybinding} from '../../helpers/use-keybinding';
-import {Checkmark} from '../../icons/Checkmark';
 import {AudioIcon} from '../../icons/audio';
+import {Checkmark} from '../../icons/Checkmark';
 import {DataIcon} from '../../icons/data';
 import {FileIcon} from '../../icons/file';
 import {PicIcon} from '../../icons/frame';
@@ -50,6 +52,7 @@ import {VERTICAL_SCROLLBAR_CLASSNAME} from '../Menu/is-menu-item';
 import {ModalHeader} from '../ModalHeader';
 import type {ComboboxValue} from '../NewComposition/ComboBox';
 import {DismissableModal} from '../NewComposition/DismissableModal';
+import {showNotification} from '../Notifications/NotificationCenter';
 import {
 	optionsSidebarTabs,
 	persistSelectedOptionsSidebarPanel,
@@ -64,17 +67,6 @@ import {SegmentedControl} from '../SegmentedControl';
 import {VerticalTab} from '../Tabs/vertical';
 import {useCrfState} from './CrfSetting';
 import {DataEditor} from './DataEditor';
-import type {RenderType} from './RenderModalAdvanced';
-import {RenderModalAdvanced} from './RenderModalAdvanced';
-import {RenderModalAudio} from './RenderModalAudio';
-import {RenderModalBasic} from './RenderModalBasic';
-import {RenderModalGif} from './RenderModalGif';
-import type {QualityControl} from './RenderModalPicture';
-import {RenderModalPicture} from './RenderModalPicture';
-import {
-	ResolveCompositionBeforeModal,
-	ResolvedCompositionContext,
-} from './ResolveCompositionBeforeModal';
 import {getDefaultCodecs} from './get-default-codecs';
 import {getStringBeforeSuffix} from './get-string-before-suffix';
 import {validateOutnameGui} from './out-name-checker';
@@ -90,6 +82,18 @@ import {
 	optionsPanel,
 	outerModalStyle,
 } from './render-modals';
+import type {RenderType} from './RenderModalAdvanced';
+import {RenderModalAdvanced} from './RenderModalAdvanced';
+import {RenderModalAudio} from './RenderModalAudio';
+import {RenderModalBasic} from './RenderModalBasic';
+import {RenderModalGif} from './RenderModalGif';
+import type {QualityControl} from './RenderModalPicture';
+import {RenderModalPicture} from './RenderModalPicture';
+import {
+	ResolveCompositionBeforeModal,
+	ResolvedCompositionContext,
+} from './ResolveCompositionBeforeModal';
+import type {UpdaterFunction} from './SchemaEditor/ZodSwitch';
 
 type State =
 	| {
@@ -141,6 +145,7 @@ const reducer = (state: State, action: Action): State => {
 };
 
 type RenderModalProps = {
+	readonly readOnlyStudio: boolean;
 	readonly compositionId: string;
 	readonly initialFrame: number;
 	readonly initialVideoImageFormat: VideoImageFormat | null;
@@ -183,6 +188,7 @@ type RenderModalProps = {
 	readonly defaultConfigurationAudioCodec: AudioCodec | null;
 	readonly initialForSeamlessAacConcatenation: boolean;
 	readonly initialHardwareAcceleration: HardwareAccelerationOption;
+	readonly initialSampleRate: number;
 	readonly renderTypeOfLastRender: RenderType | null;
 	readonly initialChromeMode: ChromeMode;
 	readonly initialOffthreadVideoThreads: number | null;
@@ -195,6 +201,7 @@ const RenderModal: React.FC<
 		readonly defaultConfigurationVideoCodec: Codec | null;
 	}
 > = ({
+	readOnlyStudio,
 	initialFrame,
 	initialVideoImageFormat,
 	initialStillImageFormat,
@@ -238,6 +245,7 @@ const RenderModal: React.FC<
 	initialForSeamlessAacConcatenation,
 	renderTypeOfLastRender,
 	initialHardwareAcceleration,
+	initialSampleRate,
 	defaultMetadata,
 	initialChromeMode,
 	renderDefaults,
@@ -283,7 +291,6 @@ const RenderModal: React.FC<
 
 	const [state, dispatch] = useReducer(reducer, initialState);
 	const [unclampedFrame, setFrame] = useState(() => initialFrame);
-	const [saving, setSaving] = useState<boolean>(false);
 	const [stillImageFormat, setStillImageFormat] = useState<StillImageFormat>(
 		() => initialStillImageFormat,
 	);
@@ -340,6 +347,7 @@ const RenderModal: React.FC<
 	);
 	const [forSeamlessAacConcatenation, setForSeamlessAacConcatenation] =
 		useState(() => initialForSeamlessAacConcatenation);
+	const [sampleRate, setSampleRate] = useState<number>(() => initialSampleRate);
 
 	const [renderMode, setRenderModeState] =
 		useState<RenderType>(initialRenderType);
@@ -581,7 +589,13 @@ const RenderModal: React.FC<
 		return null;
 	}, [codec, x264PresetSetting, renderMode]);
 
-	const [inputProps, setInputProps] = useState(() => defaultProps);
+	const [inputProps, _setInputProps] = useState(() => defaultProps);
+	const setInputProps: UpdaterFunction<Record<string, unknown>> = useCallback(
+		(updater) => {
+			_setInputProps(updater);
+		},
+		[],
+	);
 
 	const [metadata] = useState(() => defaultMetadata);
 
@@ -858,6 +872,7 @@ const RenderModal: React.FC<
 			chromeMode,
 			offthreadVideoThreads,
 			mediaCacheSizeInBytes,
+			sampleRate,
 		})
 			.then(() => {
 				dispatchIfMounted({type: 'succeed'});
@@ -912,6 +927,7 @@ const RenderModal: React.FC<
 		chromeMode,
 		offthreadVideoThreads,
 		mediaCacheSizeInBytes,
+		sampleRate,
 	]);
 
 	const onClickSequence = useCallback(() => {
@@ -1159,9 +1175,156 @@ const RenderModal: React.FC<
 
 	const {registerKeybinding} = useKeybinding();
 
-	const renderDisabled = state.type === 'load' || !outnameValidation.valid;
+	const readOnlyRenderCommand = useMemo(() => {
+		if (!readOnlyStudio) {
+			return null;
+		}
+
+		return makeReadOnlyStudioRenderCommand({
+			remotionVersion: window.remotion_version,
+			locationHref: window.location.href,
+			compositionId: resolvedComposition.id,
+			outName,
+			renderMode,
+			renderDefaults,
+			durationInFrames: resolvedComposition.durationInFrames,
+			concurrency,
+			frame,
+			startFrame,
+			endFrame,
+			stillImageFormat,
+			sequenceImageFormat,
+			videoImageFormat,
+			jpegQuality:
+				renderMode === 'video'
+					? stillImageFormat === 'jpeg'
+						? jpegQuality
+						: null
+					: renderMode === 'audio'
+						? null
+						: jpegQuality,
+			codec,
+			muted,
+			enforceAudioTrack,
+			proResProfile,
+			x264Preset,
+			pixelFormat,
+			crf:
+				qualityControlType === 'crf' &&
+				hardwareAcceleration !== 'if-possible' &&
+				hardwareAcceleration !== 'required'
+					? crf
+					: null,
+			videoBitrate,
+			audioBitrate,
+			audioCodec,
+			everyNthFrame,
+			numberOfGifLoops,
+			disallowParallelEncoding,
+			encodingBufferSize,
+			encodingMaxRate,
+			forSeamlessAacConcatenation,
+			separateAudioTo,
+			colorSpace,
+			scale,
+			logLevel,
+			delayRenderTimeout,
+			hardwareAcceleration,
+			chromeMode,
+			headless,
+			disableWebSecurity,
+			ignoreCertificateErrors,
+			gl: openGlOption === 'default' ? null : openGlOption,
+			userAgent,
+			multiProcessOnLinux,
+			darkMode,
+			offthreadVideoCacheSizeInBytes,
+			offthreadVideoThreads,
+			mediaCacheSizeInBytes,
+			beepOnFinish,
+			repro,
+			metadata,
+			sampleRate,
+			envVariables: envVariablesArrayToObject(envVariables),
+			inputProps,
+		});
+	}, [
+		audioBitrate,
+		audioCodec,
+		beepOnFinish,
+		chromeMode,
+		codec,
+		colorSpace,
+		concurrency,
+		crf,
+		darkMode,
+		delayRenderTimeout,
+		disableWebSecurity,
+		disallowParallelEncoding,
+		endFrame,
+		encodingBufferSize,
+		encodingMaxRate,
+		enforceAudioTrack,
+		envVariables,
+		everyNthFrame,
+		frame,
+		forSeamlessAacConcatenation,
+		hardwareAcceleration,
+		headless,
+		ignoreCertificateErrors,
+		inputProps,
+		jpegQuality,
+		logLevel,
+		mediaCacheSizeInBytes,
+		metadata,
+		multiProcessOnLinux,
+		muted,
+		numberOfGifLoops,
+		offthreadVideoCacheSizeInBytes,
+		offthreadVideoThreads,
+		openGlOption,
+		outName,
+		pixelFormat,
+		proResProfile,
+		qualityControlType,
+		readOnlyStudio,
+		renderDefaults,
+		renderMode,
+		repro,
+		resolvedComposition.durationInFrames,
+		resolvedComposition.id,
+		scale,
+		sampleRate,
+		separateAudioTo,
+		sequenceImageFormat,
+		startFrame,
+		stillImageFormat,
+		userAgent,
+		videoImageFormat,
+		videoBitrate,
+		x264Preset,
+	]);
+	const [commandCopiedAt, setCommandCopiedAt] = useState<number | null>(null);
+	const renderDisabled = readOnlyStudio
+		? false
+		: !outnameValidation.valid || state.type === 'load';
 
 	const trigger = useCallback(() => {
+		if (readOnlyStudio) {
+			if (!readOnlyRenderCommand) {
+				return;
+			}
+
+			copyText(readOnlyRenderCommand)
+				.then(() => {
+					setCommandCopiedAt(Date.now());
+				})
+				.catch((err) => {
+					showNotification(`Could not copy: ${err.message}`, 2000);
+				});
+			return;
+		}
+
 		if (renderMode === 'still') {
 			onClickStill();
 		} else if (renderMode === 'sequence') {
@@ -1169,7 +1332,25 @@ const RenderModal: React.FC<
 		} else {
 			onClickVideo();
 		}
-	}, [renderMode, onClickStill, onClickSequence, onClickVideo]);
+	}, [
+		onClickSequence,
+		onClickStill,
+		onClickVideo,
+		readOnlyRenderCommand,
+		readOnlyStudio,
+		renderMode,
+	]);
+
+	useEffect(() => {
+		if (commandCopiedAt === null) {
+			return;
+		}
+
+		const timeout = setTimeout(() => {
+			setCommandCopiedAt(null);
+		}, 2000);
+		return () => clearTimeout(timeout);
+	}, [commandCopiedAt]);
 
 	useEffect(() => {
 		if (renderDisabled) {
@@ -1224,7 +1405,13 @@ const RenderModal: React.FC<
 						backgroundColor: outnameValidation.valid ? BLUE : BLUE_DISABLED,
 					}}
 				>
-					{state.type === 'idle' ? `Render ${renderMode}` : 'Rendering...'}
+					{readOnlyStudio
+						? commandCopiedAt
+							? 'Copied command!'
+							: 'Copy command'
+						: state.type === 'idle'
+							? `Render ${renderMode}`
+							: 'Rendering...'}
 					<ShortcutHint keyToPress="↵" cmdOrCtrl />
 				</Button>
 			</div>
@@ -1322,6 +1509,7 @@ const RenderModal: React.FC<
 							setStartFrame={setStartFrame}
 							setVerboseLogging={setLogLevel}
 							logLevel={logLevel}
+							showOutputName={!readOnlyStudio}
 							startFrame={startFrame}
 							validationMessage={
 								outnameValidation.valid ? null : outnameValidation.error.message
@@ -1384,6 +1572,8 @@ const RenderModal: React.FC<
 							separateAudioTo={separateAudioTo}
 							setSeparateAudioTo={setSeparateAudioTo}
 							outName={outName}
+							sampleRate={sampleRate}
+							setSampleRate={setSampleRate}
 						/>
 					) : tab === 'gif' ? (
 						<RenderModalGif
@@ -1399,11 +1589,12 @@ const RenderModal: React.FC<
 							defaultProps={inputProps}
 							setDefaultProps={setInputProps}
 							unresolvedComposition={unresolvedComposition}
-							mayShowSaveButton={false}
 							propsEditType="input-props"
-							saving={saving}
-							setSaving={setSaving}
-							readOnlyStudio={false}
+							canSaveDefaultProps={{
+								canUpdate: false,
+								reason: 'render dialogue',
+								determined: false,
+							}}
 						/>
 					) : (
 						<RenderModalAdvanced

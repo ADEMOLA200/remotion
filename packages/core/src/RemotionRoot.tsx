@@ -1,15 +1,15 @@
 import React, {useMemo} from 'react';
-import {EditorPropsProvider} from './EditorProps.js';
-import {SequenceManagerProvider} from './SequenceManager.js';
-import {TimelineContextProvider} from './TimelineContext.js';
 import {SharedAudioContextProvider} from './audio/shared-audio-tags.js';
 import {BufferingProvider} from './buffering.js';
+import {EditorPropsProvider} from './EditorProps.js';
 import type {LoggingContextValue} from './log-level-context.js';
 import {LogLevelContext} from './log-level-context.js';
 import type {LogLevel} from './log.js';
 import type {TNonceContext} from './nonce.js';
 import {NonceContext} from './nonce.js';
 import {PrefetchProvider} from './prefetch-state.js';
+import {SequenceManagerProvider} from './SequenceManager.js';
+import {TimelineContextProvider} from './TimelineContext.js';
 import {MediaEnabledProvider} from './use-media-enabled.js';
 import {DurationsContextProvider} from './video/duration-state.js';
 
@@ -21,7 +21,7 @@ export const RemotionRootContexts: React.FC<{
 	readonly videoEnabled: boolean;
 	readonly audioEnabled: boolean;
 	readonly frameState: Record<string, number> | null;
-	readonly nonceContextSeed: number;
+	readonly visualModeEnabled: boolean;
 }> = ({
 	children,
 	numberOfAudioTags,
@@ -30,15 +30,14 @@ export const RemotionRootContexts: React.FC<{
 	videoEnabled,
 	audioEnabled,
 	frameState,
-	nonceContextSeed,
+	visualModeEnabled,
 }) => {
 	const nonceContext = useMemo((): TNonceContext => {
 		let counter = 0;
 		return {
 			getNonce: () => counter++,
 		};
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [nonceContextSeed]);
+	}, []);
 
 	const logging: LoggingContextValue = useMemo(() => {
 		return {logLevel, mountTime: Date.now()};
@@ -54,7 +53,7 @@ export const RemotionRootContexts: React.FC<{
 					>
 						<EditorPropsProvider>
 							<PrefetchProvider>
-								<SequenceManagerProvider>
+								<SequenceManagerProvider visualModeEnabled={visualModeEnabled}>
 									<SharedAudioContextProvider
 										numberOfAudioTags={numberOfAudioTags}
 										audioLatencyHint={audioLatencyHint}

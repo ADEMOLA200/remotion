@@ -8,7 +8,7 @@ import {
 } from '../convert-audiodata/convert-audiodata';
 import {
 	TARGET_NUMBER_OF_CHANNELS,
-	TARGET_SAMPLE_RATE,
+	getTargetSampleRate,
 } from '../convert-audiodata/resample-audiodata';
 import {getSink} from '../get-sink';
 import {getTimeInSeconds} from '../get-time-in-seconds';
@@ -31,6 +31,7 @@ type ExtractAudioParams = {
 	trimAfter: number | undefined;
 	fps: number;
 	maxCacheSize: number;
+	credentials: RequestCredentials | undefined;
 };
 
 const extractAudioInternal = async ({
@@ -45,6 +46,7 @@ const extractAudioInternal = async ({
 	trimAfter,
 	fps,
 	maxCacheSize,
+	credentials,
 }: ExtractAudioParams): Promise<
 	| {
 			data: PcmS16AudioData | null;
@@ -55,7 +57,7 @@ const extractAudioInternal = async ({
 	| 'network-error'
 > => {
 	const {getAudio, actualMatroskaTimestamps, isMatroska, getDuration} =
-		await getSink(src, logLevel);
+		await getSink(src, logLevel, credentials);
 
 	let mediaDurationInSeconds: number | null = null;
 	if (loop) {
@@ -148,14 +150,14 @@ const extractAudioInternal = async ({
 
 				if (trimStartInSeconds < 0) {
 					const silenceFrames = Math.ceil(
-						fixFloatingPoint(-trimStartInSeconds * TARGET_SAMPLE_RATE),
+						fixFloatingPoint(-trimStartInSeconds * getTargetSampleRate()),
 					);
 					leadingSilence = {
 						data: new Int16Array(silenceFrames * TARGET_NUMBER_OF_CHANNELS),
 						numberOfFrames: silenceFrames,
 						timestamp: timeInSeconds * 1_000_000,
 						durationInMicroSeconds:
-							(silenceFrames / TARGET_SAMPLE_RATE) * 1_000_000,
+							(silenceFrames / getTargetSampleRate()) * 1_000_000,
 					};
 					trimStartInSeconds = 0;
 				}

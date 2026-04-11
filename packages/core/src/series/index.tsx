@@ -1,9 +1,8 @@
 import type {FC, PropsWithChildren} from 'react';
 import React, {Children, forwardRef, useMemo} from 'react';
+import {addSequenceStackTraces} from '../enable-sequence-stack-traces.js';
 import type {LayoutAndStyle, SequenceProps} from '../Sequence.js';
 import {Sequence} from '../Sequence.js';
-import {addSequenceStackTraces} from '../enable-sequence-stack-traces.js';
-import {ENABLE_V5_BREAKING_CHANGES} from '../v5-flag.js';
 import {validateDurationInFrames} from '../validation/validate-duration-in-frames.js';
 import {flattenChildren} from './flatten-children.js';
 import {
@@ -34,15 +33,7 @@ const SeriesSequenceRefForwardingFunction: React.ForwardRefRenderFunction<
 
 const SeriesSequence = forwardRef(SeriesSequenceRefForwardingFunction);
 
-type V4Props = {
-	children: React.ReactNode;
-};
-
-type V5Props = SequenceProps;
-
-type SeriesProps = true extends typeof ENABLE_V5_BREAKING_CHANGES
-	? V5Props
-	: V4Props;
+type SeriesProps = SequenceProps;
 
 /**
  * @description with this component, you can easily stitch together scenes that should play sequentially after another.
@@ -141,19 +132,18 @@ const Series: FC<SeriesProps> & {
 		});
 	}, [props.children]);
 
-	if (ENABLE_V5_BREAKING_CHANGES) {
-		return (
-			<IsInsideSeriesContainer>
-				<Sequence {...props}>{childrenValue}</Sequence>
-			</IsInsideSeriesContainer>
-		);
-	}
-
-	return <IsInsideSeriesContainer>{childrenValue}</IsInsideSeriesContainer>;
+	return (
+		<IsInsideSeriesContainer>
+			<Sequence layout="none" name="<Series>" {...props}>
+				{childrenValue}
+			</Sequence>
+		</IsInsideSeriesContainer>
+	);
 };
 
 Series.Sequence = SeriesSequence;
 
 export {Series};
 
+addSequenceStackTraces(Series);
 addSequenceStackTraces(SeriesSequence);

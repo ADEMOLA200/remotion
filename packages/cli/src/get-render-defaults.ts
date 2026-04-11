@@ -5,6 +5,7 @@ import {ConfigInternals} from './config';
 import {parsedCli} from './parsed-cli';
 
 const {
+	allowHtmlInCanvasOption,
 	x264Option,
 	audioBitrateOption,
 	offthreadVideoCacheSizeInBytesOption,
@@ -41,6 +42,7 @@ const {
 	publicLicenseKeyOption,
 	stillImageFormatOption,
 	videoImageFormatOption,
+	sampleRateOption,
 } = BrowserSafeApis.options;
 
 export const getRenderDefaults = (): RenderDefaults => {
@@ -155,6 +157,10 @@ export const getRenderDefaults = (): RenderDefaults => {
 	const metadata = ConfigInternals.getMetadata();
 	const outputLocation = ConfigInternals.getOutputLocation();
 
+	const allowHtmlInCanvas = allowHtmlInCanvasOption.getValue({
+		commandLine: parsedCli,
+	}).value;
+
 	const maxConcurrency = RenderInternals.getMaxConcurrency();
 	const minConcurrency = RenderInternals.getMinConcurrency();
 
@@ -202,5 +208,7 @@ export const getRenderDefaults = (): RenderDefaults => {
 		mediaCacheSizeInBytes,
 		publicLicenseKey,
 		outputLocation,
+		allowHtmlInCanvas,
+		sampleRate: sampleRateOption.getValue({commandLine: parsedCli}).value,
 	};
 };

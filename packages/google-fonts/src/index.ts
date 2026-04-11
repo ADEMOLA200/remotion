@@ -29,6 +29,7 @@ export type GoogleFont = {
 					weights?: Variants[T]['weights'][] | undefined;
 					subsets?: Variants[T]['subsets'][] | undefined;
 					document?: Document | undefined;
+					ignoreTooManyRequestsWarning?: boolean;
 			  }
 			| undefined,
 	) => {
@@ -329,6 +330,11 @@ export const getAvailableFonts = () => [
 		fontFamily: 'Alumni Sans SC',
 		importName: 'AlumniSansSC',
 		load: () => import('./AlumniSansSC') as Promise<GoogleFont>,
+	},
+	{
+		fontFamily: 'Alyamama',
+		importName: 'Alyamama',
+		load: () => import('./Alyamama') as Promise<GoogleFont>,
 	},
 	{
 		fontFamily: 'Amarante',
@@ -784,6 +790,11 @@ export const getAvailableFonts = () => [
 		fontFamily: 'BIZ UDPMincho',
 		importName: 'BIZUDPMincho',
 		load: () => import('./BIZUDPMincho') as Promise<GoogleFont>,
+	},
+	{
+		fontFamily: 'BJ Cree',
+		importName: 'BJCree',
+		load: () => import('./BJCree') as Promise<GoogleFont>,
 	},
 	{
 		fontFamily: 'Babylonica',
@@ -1284,6 +1295,21 @@ export const getAvailableFonts = () => [
 		fontFamily: 'Bowlby One SC',
 		importName: 'BowlbyOneSC',
 		load: () => import('./BowlbyOneSC') as Promise<GoogleFont>,
+	},
+	{
+		fontFamily: 'Bpmf Huninn',
+		importName: 'BpmfHuninn',
+		load: () => import('./BpmfHuninn') as Promise<GoogleFont>,
+	},
+	{
+		fontFamily: 'Bpmf Iansui',
+		importName: 'BpmfIansui',
+		load: () => import('./BpmfIansui') as Promise<GoogleFont>,
+	},
+	{
+		fontFamily: 'Bpmf Zihi Kai Std',
+		importName: 'BpmfZihiKaiStd',
+		load: () => import('./BpmfZihiKaiStd') as Promise<GoogleFont>,
 	},
 	{
 		fontFamily: 'Braah One',
@@ -2009,6 +2035,11 @@ export const getAvailableFonts = () => [
 		fontFamily: 'Darumadrop One',
 		importName: 'DarumadropOne',
 		load: () => import('./DarumadropOne') as Promise<GoogleFont>,
+	},
+	{
+		fontFamily: 'Datatype',
+		importName: 'Datatype',
+		load: () => import('./Datatype') as Promise<GoogleFont>,
 	},
 	{
 		fontFamily: 'David Libre',
@@ -3476,6 +3507,16 @@ export const getAvailableFonts = () => [
 		load: () => import('./InterTight') as Promise<GoogleFont>,
 	},
 	{
+		fontFamily: 'Iosevka Charon',
+		importName: 'IosevkaCharon',
+		load: () => import('./IosevkaCharon') as Promise<GoogleFont>,
+	},
+	{
+		fontFamily: 'Iosevka Charon Mono',
+		importName: 'IosevkaCharonMono',
+		load: () => import('./IosevkaCharonMono') as Promise<GoogleFont>,
+	},
+	{
 		fontFamily: 'Irish Grover',
 		importName: 'IrishGrover',
 		load: () => import('./IrishGrover') as Promise<GoogleFont>,
@@ -4744,6 +4785,11 @@ export const getAvailableFonts = () => [
 		fontFamily: 'Miniver',
 		importName: 'Miniver',
 		load: () => import('./Miniver') as Promise<GoogleFont>,
+	},
+	{
+		fontFamily: 'Miranda Sans',
+		importName: 'MirandaSans',
+		load: () => import('./MirandaSans') as Promise<GoogleFont>,
 	},
 	{
 		fontFamily: 'Miriam Libre',
@@ -7520,6 +7566,11 @@ export const getAvailableFonts = () => [
 		fontFamily: 'Saira Semi Condensed',
 		importName: 'SairaSemiCondensed',
 		load: () => import('./SairaSemiCondensed') as Promise<GoogleFont>,
+	},
+	{
+		fontFamily: 'Saira Stencil',
+		importName: 'SairaStencil',
+		load: () => import('./SairaStencil') as Promise<GoogleFont>,
 	},
 	{
 		fontFamily: 'Saira Stencil One',

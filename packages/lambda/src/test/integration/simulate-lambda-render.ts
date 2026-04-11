@@ -1,10 +1,10 @@
+import path from 'path';
 import {
 	LambdaClientInternals,
 	type RenderMediaOnLambdaInput,
 } from '@remotion/lambda-client';
 import {RenderInternals} from '@remotion/renderer';
 import {ServerlessRoutines} from '@remotion/serverless';
-import path from 'path';
 import {mockImplementation} from '../mocks/mock-implementation';
 import {waitUntilDone} from './wait-until-done';
 
@@ -20,7 +20,7 @@ export const simulateLambdaRender = async (
 	const {port, close} = await RenderInternals.serveStatic(exampleBuild, {
 		binariesDirectory: null,
 		offthreadVideoThreads: 1,
-		downloadMap: RenderInternals.makeDownloadMap(),
+		downloadMap: RenderInternals.makeDownloadMap(48000),
 		indent: false,
 		logLevel: input.logLevel ?? 'info',
 		offthreadVideoCacheSizeInBytes: null,

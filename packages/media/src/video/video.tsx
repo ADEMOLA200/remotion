@@ -1,5 +1,6 @@
 import React from 'react';
-import {Internals, useRemotionEnvironment} from 'remotion';
+import type {SequenceControls, SequenceSchema} from 'remotion';
+import {Internals, Sequence, useRemotionEnvironment} from 'remotion';
 import type {InnerVideoProps, VideoProps} from './props';
 import {VideoForPreview} from './video-for-preview';
 import {VideoForRendering} from './video-for-rendering';
@@ -7,7 +8,58 @@ import {VideoForRendering} from './video-for-rendering';
 const {validateMediaTrimProps, resolveTrimProps, validateMediaProps} =
 	Internals;
 
-const InnerVideo: React.FC<InnerVideoProps> = ({
+const videoSchema = {
+	volume: {
+		type: 'number',
+		min: 0,
+		max: 20,
+		step: 0.01,
+		default: 1,
+		description: 'Volume',
+	},
+	playbackRate: {
+		type: 'number',
+		min: 0.1,
+		step: 0.01,
+		default: 1,
+		description: 'Playback Rate',
+	},
+	loop: {type: 'boolean', default: false, description: 'Loop'},
+	'style.translate': {
+		type: 'translate',
+		step: 1,
+		default: '0px 0px',
+		description: 'Position',
+	},
+	'style.scale': {
+		type: 'number',
+		min: 0.05,
+		max: 100,
+		step: 0.01,
+		default: 1,
+		description: 'Scale',
+	},
+	'style.rotate': {
+		type: 'rotation',
+		step: 1,
+		default: '0deg',
+		description: 'Rotation',
+	},
+	'style.opacity': {
+		type: 'number',
+		min: 0,
+		max: 1,
+		step: 0.01,
+		default: 1,
+		description: 'Opacity',
+	},
+} as const satisfies SequenceSchema;
+
+const InnerVideo: React.FC<
+	InnerVideoProps & {
+		readonly controls: SequenceControls | undefined;
+	}
+> = ({
 	src,
 	audioStreamIndex,
 	className,
@@ -30,8 +82,13 @@ const InnerVideo: React.FC<InnerVideoProps> = ({
 	toneFrequency,
 	showInTimeline,
 	debugOverlay,
+	debugAudioScheduling,
 	headless,
 	onError,
+	credentials,
+	controls,
+	objectFit,
+	_experimentalInitiallyDrawCachedFrame,
 }) => {
 	const environment = useRemotionEnvironment();
 
@@ -88,6 +145,8 @@ const InnerVideo: React.FC<InnerVideoProps> = ({
 				trimBeforeValue={trimBeforeValue}
 				headless={headless}
 				onError={onError}
+				credentials={credentials}
+				objectFit={objectFit}
 			/>
 		);
 	}
@@ -113,13 +172,24 @@ const InnerVideo: React.FC<InnerVideoProps> = ({
 			disallowFallbackToOffthreadVideo={disallowFallbackToOffthreadVideo}
 			fallbackOffthreadVideoProps={fallbackOffthreadVideoProps}
 			debugOverlay={debugOverlay ?? false}
+			debugAudioScheduling={debugAudioScheduling ?? false}
 			headless={headless ?? false}
 			onError={onError}
+			credentials={credentials}
+			controls={controls}
+			objectFit={objectFit}
+			_experimentalInitiallyDrawCachedFrame={
+				_experimentalInitiallyDrawCachedFrame
+			}
 		/>
 	);
 };
 
-export const Video: React.FC<VideoProps> = ({
+const VideoInner: React.FC<
+	VideoProps & {
+		readonly controls: SequenceControls | undefined;
+	}
+> = ({
 	src,
 	audioStreamIndex,
 	className,
@@ -142,42 +212,65 @@ export const Video: React.FC<VideoProps> = ({
 	stack,
 	toneFrequency,
 	debugOverlay,
+	debugAudioScheduling,
 	headless,
 	onError,
+	credentials,
+	controls,
+	objectFit,
+	_experimentalInitiallyDrawCachedFrame,
+	from,
+	durationInFrames,
 }) => {
 	const fallbackLogLevel = Internals.useLogLevel();
 	return (
-		<InnerVideo
-			audioStreamIndex={audioStreamIndex ?? 0}
-			className={className}
-			delayRenderRetries={delayRenderRetries ?? null}
-			delayRenderTimeoutInMilliseconds={
-				delayRenderTimeoutInMilliseconds ?? null
-			}
-			disallowFallbackToOffthreadVideo={
-				disallowFallbackToOffthreadVideo ?? false
-			}
-			fallbackOffthreadVideoProps={fallbackOffthreadVideoProps ?? {}}
-			logLevel={logLevel ?? fallbackLogLevel}
-			loop={loop ?? false}
-			loopVolumeCurveBehavior={loopVolumeCurveBehavior ?? 'repeat'}
-			muted={muted ?? false}
-			name={name}
-			onVideoFrame={onVideoFrame}
-			playbackRate={playbackRate ?? 1}
-			showInTimeline={showInTimeline ?? true}
-			src={src}
-			style={style ?? {}}
-			trimAfter={trimAfter}
-			trimBefore={trimBefore}
-			volume={volume ?? 1}
-			toneFrequency={toneFrequency ?? 1}
-			stack={stack}
-			debugOverlay={debugOverlay ?? false}
-			headless={headless ?? false}
-			onError={onError}
-		/>
+		<Sequence
+			layout="none"
+			from={from ?? 0}
+			durationInFrames={durationInFrames ?? Infinity}
+			showInTimeline={false}
+		>
+			<InnerVideo
+				audioStreamIndex={audioStreamIndex ?? 0}
+				className={className}
+				delayRenderRetries={delayRenderRetries ?? null}
+				delayRenderTimeoutInMilliseconds={
+					delayRenderTimeoutInMilliseconds ?? null
+				}
+				disallowFallbackToOffthreadVideo={
+					disallowFallbackToOffthreadVideo ?? false
+				}
+				fallbackOffthreadVideoProps={fallbackOffthreadVideoProps ?? {}}
+				logLevel={logLevel ?? fallbackLogLevel}
+				loop={loop ?? false}
+				loopVolumeCurveBehavior={loopVolumeCurveBehavior ?? 'repeat'}
+				muted={muted ?? false}
+				name={name}
+				onVideoFrame={onVideoFrame}
+				playbackRate={playbackRate ?? 1}
+				showInTimeline={showInTimeline ?? true}
+				src={src}
+				style={style ?? {}}
+				trimAfter={trimAfter}
+				trimBefore={trimBefore}
+				volume={volume ?? 1}
+				toneFrequency={toneFrequency ?? 1}
+				stack={stack}
+				debugOverlay={debugOverlay ?? false}
+				debugAudioScheduling={debugAudioScheduling ?? false}
+				headless={headless ?? false}
+				onError={onError}
+				credentials={credentials}
+				controls={controls}
+				objectFit={objectFit ?? 'contain'}
+				_experimentalInitiallyDrawCachedFrame={
+					_experimentalInitiallyDrawCachedFrame ?? false
+				}
+			/>
+		</Sequence>
 	);
 };
+
+export const Video = Internals.wrapInSchema(VideoInner, videoSchema);
 
 Internals.addSequenceStackTraces(Video);

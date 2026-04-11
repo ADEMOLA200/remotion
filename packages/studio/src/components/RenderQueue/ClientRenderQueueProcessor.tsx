@@ -3,7 +3,6 @@ import type {
 	WebRendererAudioCodec,
 	WebRendererContainer,
 	WebRendererQuality,
-	WebRendererVideoCodec,
 } from '@remotion/web-renderer';
 import {renderMediaOnWeb, renderStillOnWeb} from '@remotion/web-renderer';
 import {useCallback, useContext, useEffect} from 'react';
@@ -60,27 +59,29 @@ export const ClientRenderQueueProcessor: React.FC = () => {
 				throw new Error(`Composition not found for job ${job.id}`);
 			}
 
-			const {blob} = await renderStillOnWeb({
-				composition: {
-					component: compositionRef.component,
-					width: compositionRef.width,
-					height: compositionRef.height,
-					fps: compositionRef.fps,
-					durationInFrames: compositionRef.durationInFrames,
-					defaultProps: compositionRef.defaultProps,
-					calculateMetadata: compositionRef.calculateMetadata ?? undefined,
-					id: job.compositionId,
-				},
-				frame: job.frame,
-				imageFormat: job.imageFormat,
-				inputProps: job.inputProps,
-				delayRenderTimeoutInMilliseconds: job.delayRenderTimeout,
-				mediaCacheSizeInBytes: job.mediaCacheSizeInBytes,
-				logLevel: job.logLevel,
-				licenseKey: job.licenseKey ?? undefined,
-				scale: job.scale,
-				signal,
-			});
+			const blob = await (
+				await renderStillOnWeb({
+					composition: {
+						component: compositionRef.component,
+						width: compositionRef.width,
+						height: compositionRef.height,
+						fps: compositionRef.fps,
+						durationInFrames: compositionRef.durationInFrames,
+						defaultProps: compositionRef.defaultProps,
+						calculateMetadata: compositionRef.calculateMetadata ?? undefined,
+						id: job.compositionId,
+					},
+					frame: job.frame,
+					inputProps: job.inputProps,
+					delayRenderTimeoutInMilliseconds: job.delayRenderTimeout,
+					mediaCacheSizeInBytes: job.mediaCacheSizeInBytes,
+					logLevel: job.logLevel,
+					licenseKey: job.licenseKey ?? undefined,
+					scale: job.scale,
+					signal,
+					allowHtmlInCanvas: job.allowHtmlInCanvas,
+				})
+			).blob({format: job.imageFormat});
 
 			return {
 				getBlob: () => Promise.resolve(blob),
@@ -119,7 +120,7 @@ export const ClientRenderQueueProcessor: React.FC = () => {
 				delayRenderTimeoutInMilliseconds: job.delayRenderTimeout,
 				mediaCacheSizeInBytes: job.mediaCacheSizeInBytes,
 				logLevel: job.logLevel,
-				videoCodec: job.videoCodec as WebRendererVideoCodec,
+				videoCodec: job.videoCodec ?? undefined,
 				audioCodec: job.audioCodec as WebRendererAudioCodec,
 				audioBitrate: job.audioBitrate as WebRendererQuality,
 				container: job.container as WebRendererContainer,
@@ -138,10 +139,14 @@ export const ClientRenderQueueProcessor: React.FC = () => {
 					onProgress(job.id, {
 						encodedFrames: progress.encodedFrames,
 						totalFrames,
+						doneIn: progress.doneIn,
+						renderEstimatedTime: progress.renderEstimatedTime,
+						progress: progress.progress,
 					});
 				},
 				outputTarget: 'web-fs',
 				licenseKey: job.licenseKey ?? undefined,
+				allowHtmlInCanvas: job.allowHtmlInCanvas,
 			});
 
 			return {

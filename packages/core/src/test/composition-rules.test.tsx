@@ -1,5 +1,5 @@
-import {cleanup, render} from '@testing-library/react';
 import {afterEach, describe, expect, test} from 'bun:test';
+import {cleanup, render} from '@testing-library/react';
 import React from 'react';
 import {Composition} from '../Composition.js';
 import {CompositionManagerProvider} from '../CompositionManagerProvider.js';
@@ -59,13 +59,13 @@ describe('Render composition-rules should throw with invalid props', () => {
 						initialCanvasContent={null}
 					>
 						<RemotionRootContexts
+							visualModeEnabled={false}
 							frameState={null}
 							videoEnabled
 							audioEnabled
 							numberOfAudioTags={0}
 							logLevel="info"
 							audioLatencyHint="interactive"
-							nonceContextSeed={1}
 						>
 							<RenderAssetManagerProvider collectAssets={null}>
 								<Composition

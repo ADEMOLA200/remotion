@@ -47,7 +47,9 @@ const {
 	darkModeOption,
 	askAIOption,
 	experimentalClientSideRenderingOption,
+	experimentalVisualModeOption,
 	keyboardShortcutsOption,
+	rspackOption,
 	pixelFormatOption,
 	browserExecutableOption,
 	everyNthFrameOption,
@@ -55,6 +57,13 @@ const {
 	userAgentOption,
 	disableWebSecurityOption,
 	ignoreCertificateErrorsOption,
+	concurrencyOption,
+	overrideHeightOption,
+	overrideWidthOption,
+	overrideFpsOption,
+	overrideDurationOption,
+	bundleCacheOption,
+	sampleRateOption,
 } = BrowserSafeApis.options;
 
 export const render = async (
@@ -95,21 +104,30 @@ export const render = async (
 	}
 
 	const {
-		concurrency,
 		frameRange,
 		shouldOutputImageSequence,
 		inputProps,
 		envVariables,
-		height,
-		width,
-		fps,
-		durationInFrames,
 		ffmpegOverride,
 	} = getCliOptions({
 		isStill: false,
 		logLevel,
 		indent: false,
 	});
+
+	const concurrency = concurrencyOption.getValue({
+		commandLine: parsedCli,
+	}).value;
+	const height = overrideHeightOption.getValue({
+		commandLine: parsedCli,
+	}).value;
+	const width = overrideWidthOption.getValue({
+		commandLine: parsedCli,
+	}).value;
+	const fps = overrideFpsOption.getValue({commandLine: parsedCli}).value;
+	const durationInFrames = overrideDurationOption.getValue({
+		commandLine: parsedCli,
+	}).value;
 
 	const pixelFormat = pixelFormatOption.getValue({
 		commandLine: parsedCli,
@@ -207,6 +225,8 @@ export const render = async (
 	const keyboardShortcutsEnabled = keyboardShortcutsOption.getValue({
 		commandLine: parsedCli,
 	}).value;
+	const rspack = rspackOption.getValue({commandLine: parsedCli}).value;
+	const sampleRate = sampleRateOption.getValue({commandLine: parsedCli}).value;
 
 	const chromiumOptions: Required<ChromiumOptions> = {
 		disableWebSecurity,
@@ -230,6 +250,16 @@ export const render = async (
 		commandLine: parsedCli,
 	}).value;
 	const mediaCacheSizeInBytes = mediaCacheSizeInBytesOption.getValue({
+		commandLine: parsedCli,
+	}).value;
+	const shouldCache = bundleCacheOption.getValue({
+		commandLine: parsedCli,
+	}).value;
+	const experimentalClientSideRenderingEnabled =
+		experimentalClientSideRenderingOption.getValue({
+			commandLine: parsedCli,
+		}).value;
+	const experimentalVisualModeEnabled = experimentalVisualModeOption.getValue({
 		commandLine: parsedCli,
 	}).value;
 
@@ -303,9 +333,11 @@ export const render = async (
 		audioLatencyHint,
 		imageSequencePattern,
 		askAIEnabled,
-		experimentalClientSideRenderingEnabled:
-			experimentalClientSideRenderingOption.getValue({commandLine: parsedCli})
-				.value,
+		experimentalClientSideRenderingEnabled,
+		experimentalVisualModeEnabled,
 		keyboardShortcutsEnabled,
+		rspack,
+		sampleRate,
+		shouldCache,
 	});
 };

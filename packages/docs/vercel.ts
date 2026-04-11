@@ -114,9 +114,6 @@ export const config: VercelConfig = {
 		routes.redirect('/github', 'https://github.com/remotion-dev/remotion', {
 			permanent: false,
 		}),
-		routes.redirect('/brand', 'https://github.com/remotion-dev/logo', {
-			permanent: false,
-		}),
 		routes.redirect('/docs/lottie/after-effects', '/docs/after-effects', {
 			permanent: false,
 		}),
@@ -190,9 +187,6 @@ export const config: VercelConfig = {
 			permanent: false,
 		}),
 		routes.redirect('/bun', '/docs/bun', {permanent: false}),
-		routes.redirect('/bounties', '/docs/contributing/bounty', {
-			permanent: false,
-		}),
 		routes.redirect('/transitions', '/docs/transitioning', {
 			permanent: false,
 		}),
@@ -275,11 +269,9 @@ export const config: VercelConfig = {
 			'https://upload.wikimedia.org/wikipedia/commons/transcoded/c/c0/Big_Buck_Bunny_4K.webm/Big_Buck_Bunny_4K.webm.720p.vp9.webm',
 			{permanent: false},
 		),
-		routes.redirect(
-			'/bbb.mp4',
-			'https://remotion.media/BigBuckBunny.mp4',
-			{permanent: false},
-		),
+		routes.redirect('/bbb.mp4', 'https://remotion.media/BigBuckBunny.mp4', {
+			permanent: false,
+		}),
 		routes.redirect(
 			'/leads',
 			'https://github.com/orgs/remotion-dev/projects/15/views/1',
@@ -298,11 +290,9 @@ export const config: VercelConfig = {
 		routes.redirect('/docs/snippets/fps-converter', '/docs/multiple-fps', {
 			permanent: false,
 		}),
-		routes.redirect(
-			'/docs/miscellaneous/vercel-functions',
-			'/docs/vercel',
-			{permanent: false},
-		),
+		routes.redirect('/docs/miscellaneous/vercel-functions', '/docs/vercel', {
+			permanent: false,
+		}),
 		routes.redirect('/docs/miscellaneous/vercel', '/docs/vercel', {
 			permanent: false,
 		}),
@@ -317,5 +307,11 @@ export const config: VercelConfig = {
 		),
 		routes.redirect('/docs/video', '/docs/html5-video', {permanent: false}),
 		routes.redirect('/docs/audio', '/docs/html5-audio', {permanent: false}),
+		routes.redirect('/terms', 'https://remotion.pro/terms', {
+			permanent: false,
+		}),
+		routes.redirect('/privacy', 'https://remotion.pro/privacy', {
+			permanent: false,
+		}),
 	],
 };

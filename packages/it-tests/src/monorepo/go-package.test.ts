@@ -1,8 +1,8 @@
-import {LambdaClientInternals} from '@remotion/lambda-client';
 import {expect, test} from 'bun:test';
 import {execSync} from 'child_process';
 import {readFileSync, writeFileSync} from 'fs';
 import path from 'path';
+import {LambdaClientInternals} from '@remotion/lambda-client';
 
 test('Set the right version for gotest', () => {
 	const referenceVersion = readFileSync(
@@ -88,6 +88,7 @@ test(
 				requestHandler: null,
 				mediaCacheSizeInBytes: null,
 				isProduction: null,
+				sampleRate: 48000,
 			});
 
 		expect(removeUndefined(parsed)).toEqual(removeUndefined(nativeVersion));

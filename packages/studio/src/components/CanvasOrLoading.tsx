@@ -8,6 +8,7 @@ import {Canvas} from './Canvas';
 import {FramePersistor} from './FramePersistor';
 import {VERTICAL_SCROLLBAR_CLASSNAME} from './Menu/is-menu-item';
 import {RefreshCompositionOverlay} from './RefreshCompositionOverlay';
+import {RenderErrorContext} from './RenderErrorContext';
 import {
 	RunningCalculateMetadata,
 	loaderLabel,
@@ -32,6 +33,7 @@ export const CanvasOrLoading: React.FC<{
 	const resolved = Internals.useResolvedVideoConfig(null);
 	const {setZoom} = useContext(TimelineZoomCtx);
 	const {canvasContent} = useContext(Internals.CompositionManager);
+	const {error: renderError} = useContext(RenderErrorContext);
 
 	useEffect(() => {
 		if (
@@ -51,6 +53,12 @@ export const CanvasOrLoading: React.FC<{
 			});
 		});
 	}, [resolved, setZoom]);
+
+	if (renderError) {
+		return (
+			<ErrorLoading error={renderError} calculateMetadataContext={false} />
+		);
+	}
 
 	if (!canvasContent) {
 		const compname = window.location.pathname.replace('/', '');
@@ -92,7 +100,7 @@ export const CanvasOrLoading: React.FC<{
 	}
 
 	if (resolved.type === 'error') {
-		return <ErrorLoading error={resolved.error} />;
+		return <ErrorLoading error={resolved.error} calculateMetadataContext />;
 	}
 
 	return (
@@ -113,7 +121,8 @@ const loaderContainer: React.CSSProperties = {
 
 const ErrorLoading: React.FC<{
 	readonly error: Error;
-}> = ({error}) => {
+	readonly calculateMetadataContext: boolean;
+}> = ({error, calculateMetadataContext}) => {
 	return (
 		<div style={loaderContainer} className={VERTICAL_SCROLLBAR_CLASSNAME}>
 			<ErrorLoader
@@ -124,7 +133,7 @@ const ErrorLoading: React.FC<{
 				onRetry={() =>
 					Internals.resolveCompositionsRef.current?.reloadCurrentlySelectedComposition()
 				}
-				calculateMetadata
+				calculateMetadata={calculateMetadataContext}
 			/>
 		</div>
 	);

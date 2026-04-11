@@ -1,9 +1,12 @@
 import {describe, expect, it} from 'bun:test';
-import {CreateVideoInternals, Template} from 'create-video';
 import {existsSync, readFileSync} from 'node:fs';
 import path from 'node:path';
+import {CreateVideoInternals, Template} from 'create-video';
 
 const {FEATURED_TEMPLATES} = CreateVideoInternals;
+const normalizeEol = (contents: string) => {
+	return contents.replaceAll('\r\n', '\n');
+};
 
 const getFileForTemplate = (template: Template, file: string) => {
 	return path.join(process.cwd(), '..', template.templateInMonorepo, file);
@@ -40,6 +43,42 @@ describe('Templates should be valid', () => {
 
 			if (body.dependencies['@types/web']) {
 				expect(body.dependencies['@types/web']).toInclude('0.0.166');
+			}
+
+			const rootPackageJson = JSON.parse(
+				readFileSync(
+					path.join(process.cwd(), '..', '..', 'package.json'),
+					'utf8',
+				),
+			);
+			const catalog = rootPackageJson.workspaces.catalog;
+
+			if (body.dependencies.mediabunny) {
+				expect(body.dependencies.mediabunny).toBe(catalog.mediabunny);
+			}
+
+			if (body.dependencies['@mediabunny/mp3-encoder']) {
+				expect(body.dependencies['@mediabunny/mp3-encoder']).toBe(
+					catalog['@mediabunny/mp3-encoder'],
+				);
+			}
+
+			if (body.dependencies['@mediabunny/ac3']) {
+				expect(body.dependencies['@mediabunny/ac3']).toBe(
+					catalog['@mediabunny/ac3'],
+				);
+			}
+
+			if (body.dependencies['@mediabunny/aac-encoder']) {
+				expect(body.dependencies['@mediabunny/aac-encoder']).toBe(
+					catalog['@mediabunny/aac-encoder'],
+				);
+			}
+
+			if (body.dependencies['@mediabunny/flac-encoder']) {
+				expect(body.dependencies['@mediabunny/flac-encoder']).toBe(
+					catalog['@mediabunny/flac-encoder'],
+				);
 			}
 
 			expect(body.devDependencies.prettier).toMatch('3.8.1');
@@ -82,10 +121,10 @@ describe('Templates should be valid', () => {
 
 			const scripts = body.scripts;
 			expect(scripts.dev).toMatch(
-				/(remotion\sstudio)|(next dev)|(react-router dev)|(tsx watch)|(tsx src\/studio)|(bun studio\.ts)/,
+				/(remotion\sstudio)|(next dev)|(react-router dev)|(tsx watch)|(tsx src\/studio)|(bun studio\.ts)|(electron-forge start)/,
 			);
 			expect(scripts.build).toMatch(
-				/(remotion\sbundle)|(react-router build)|(next\sbuild)|(tsx src\/render)|(tsc \&\& vite build)|(bun build\.ts)/,
+				/(remotion\sbundle)|(react-router build)|(next\sbuild)|(tsx src\/render)|(tsc \&\& vite build)|(bun build\.ts)|(electron-forge package)/,
 			);
 		});
 
@@ -140,6 +179,53 @@ describe('Templates should be valid', () => {
 			expect(contents).not.toContain('Config.Preview');
 		});
 
+		it(`${template.shortName} should keep template-specific packaging files in sync`, async () => {
+			if (template.templateInMonorepo !== 'template-electron') {
+				return;
+			}
+
+			const packageJson = JSON.parse(
+				readFileSync(getFileForTemplate(template, 'package.json'), 'utf8'),
+			);
+			expect(
+				packageJson.optionalDependencies['@remotion/compositor-linux-x64-musl'],
+			).toBe('workspace:*');
+			expect(
+				packageJson.optionalDependencies[
+					'@remotion/compositor-linux-arm64-musl'
+				],
+			).toBe('workspace:*');
+
+			expect(existsSync(getFileForTemplate(template, 'forge.config.ts'))).toBe(
+				true,
+			);
+			expect(existsSync(getFileForTemplate(template, 'forge.env.d.ts'))).toBe(
+				true,
+			);
+			expect(
+				existsSync(getFileForTemplate(template, 'vite.main.config.ts')),
+			).toBe(true);
+			expect(
+				existsSync(getFileForTemplate(template, 'vite.preload.config.ts')),
+			).toBe(true);
+			expect(
+				existsSync(getFileForTemplate(template, 'vite.renderer.config.ts')),
+			).toBe(true);
+			expect(existsSync(getFileForTemplate(template, 'src/main.ts'))).toBe(
+				true,
+			);
+			expect(existsSync(getFileForTemplate(template, 'src/preload.ts'))).toBe(
+				true,
+			);
+			expect(
+				existsSync(getFileForTemplate(template, 'src/remotion-bundle.ts')),
+			).toBe(true);
+			expect(existsSync(getFileForTemplate(template, 'src/renderer.ts'))).toBe(
+				true,
+			);
+			expect(existsSync(getFileForTemplate(template, 'index.html'))).toBe(true);
+		});
+
 		it(`${template.shortName} should not use setExperimentalClientSideRenderingEnabled`, async () => {
 			const {contents, entryPoint} = await findFile([
 				getFileForTemplate(template, 'remotion.config.ts'),
@@ -149,6 +235,15 @@ describe('Templates should be valid', () => {
 			expect(contents).not.toContain(
 				'setExperimentalClientSideRenderingEnabled',
 			);
+		});
+
+		it(`${template.shortName} should not use setExperimentalRspackEnabled`, async () => {
+			const {contents, entryPoint} = await findFile([
+				getFileForTemplate(template, 'remotion.config.ts'),
+				getFileForTemplate(template, 'remotion.config.js'),
+			]);
+			expect(entryPoint).toBeTruthy();
+			expect(contents).not.toContain('setExperimentalRspackEnabled');
 		});
 
 		it(`${template.shortName} should use good tsconfig values`, async () => {
@@ -183,7 +278,11 @@ describe('Templates should be valid', () => {
 			const {contents} = await findFile([
 				getFileForTemplate(template, '.prettierrc'),
 			]);
-			expect(contents).toBe(`{
+			expect(contents).toBeTruthy();
+			if (!contents) {
+				throw new Error('Expected .prettierrc to exist');
+			}
+			expect(normalizeEol(contents)).toBe(`{
   "useTabs": false,
   "bracketSpacing": true,
   "tabWidth": 2

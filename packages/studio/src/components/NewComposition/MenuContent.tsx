@@ -3,17 +3,18 @@ import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {INPUT_BORDER_COLOR_UNHOVERED} from '../../helpers/colors';
 import {useMobileLayout} from '../../helpers/mobile-layout';
 import {useKeybinding} from '../../helpers/use-keybinding';
+import {VERTICAL_SCROLLBAR_CLASSNAME} from '../Menu/is-menu-item';
 import {MenuDivider} from '../Menu/MenuDivider';
 import type {MenuId} from '../Menu/MenuItem';
 import type {SubMenuActivated} from '../Menu/MenuSubItem';
 import {MenuSubItem} from '../Menu/MenuSubItem';
-import {VERTICAL_SCROLLBAR_CLASSNAME} from '../Menu/is-menu-item';
 import {
 	MAX_MENU_WIDTH,
 	MAX_MOBILE_MENU_WIDTH,
 	MENU_VERTICAL_PADDING,
 } from '../Menu/styles';
 import type {ComboboxValue} from './ComboBox';
+import {findTypeaheadMenuItem} from './menu-typeahead';
 
 const BORDER_SIZE = 1;
 
@@ -53,6 +54,8 @@ export const MenuContent: React.FC<{
 
 	const [subMenuActivated, setSubMenuActivated] =
 		useState<SubMenuActivated>(false);
+	const typeaheadQueryRef = useRef('');
+	const typeaheadTimeoutRef = useRef<number | null>(null);
 
 	if (values[0].type === 'divider') {
 		throw new Error('first value cant be divide');
@@ -70,6 +73,14 @@ export const MenuContent: React.FC<{
 
 	const onItemSelected = useCallback((id: SetStateAction<string | null>) => {
 		setSelectedItem(id);
+	}, []);
+
+	const clearTypeahead = useCallback(() => {
+		typeaheadQueryRef.current = '';
+		if (typeaheadTimeoutRef.current !== null) {
+			window.clearTimeout(typeaheadTimeoutRef.current);
+			typeaheadTimeoutRef.current = null;
+		}
 	}, []);
 
 	const isItemSelectable = useCallback((v: ComboboxValue) => {
@@ -171,6 +182,47 @@ export const MenuContent: React.FC<{
 		setSubMenuActivated('without-mouse');
 	}, [onNextMenu, selectedItem, values]);
 
+	const onTypeahead = useCallback(
+		(event: KeyboardEvent) => {
+			if (
+				event.ctrlKey ||
+				event.metaKey ||
+				event.altKey ||
+				event.key.length !== 1 ||
+				event.key.trim().length === 0
+			) {
+				return;
+			}
+
+			const {activeElement} = document;
+			if (
+				activeElement instanceof HTMLInputElement ||
+				activeElement instanceof HTMLTextAreaElement
+			) {
+				return;
+			}
+
+			typeaheadQueryRef.current = `${typeaheadQueryRef.current}${event.key}`;
+			const matchedId = findTypeaheadMenuItem({
+				query: typeaheadQueryRef.current,
+				values,
+			});
+			if (matchedId !== null) {
+				setSelectedItem(matchedId);
+			}
+
+			if (typeaheadTimeoutRef.current !== null) {
+				window.clearTimeout(typeaheadTimeoutRef.current);
+			}
+
+			typeaheadTimeoutRef.current = window.setTimeout(() => {
+				typeaheadQueryRef.current = '';
+				typeaheadTimeoutRef.current = null;
+			}, 700);
+		},
+		[values],
+	);
+
 	const containerWithHeight: React.CSSProperties = useMemo(() => {
 		const containerStyles = {...container};
 		if (fixedHeight === null) {
@@ -185,6 +237,31 @@ export const MenuContent: React.FC<{
 
 		return containerStyles;
 	}, [fixedHeight, isMobileLayout]);
+
+	useEffect(() => {
+		if (
+			!keybindings.isHighestContext ||
+			!process.env.KEYBOARD_SHORTCUTS_ENABLED
+		) {
+			return;
+		}
+
+		const onKeyDown = (event: KeyboardEvent) => {
+			onTypeahead(event);
+		};
+
+		window.addEventListener('keydown', onKeyDown);
+		return () => {
+			window.removeEventListener('keydown', onKeyDown);
+			clearTypeahead();
+		};
+	}, [clearTypeahead, keybindings.isHighestContext, onTypeahead]);
+
+	useEffect(() => {
+		return () => {
+			clearTypeahead();
+		};
+	}, [clearTypeahead]);
 
 	useEffect(() => {
 		const escapeBinding = keybindings.registerKeybinding({

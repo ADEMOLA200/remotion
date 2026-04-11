@@ -11,7 +11,7 @@ const makeVideoConfig = (durationInFrames: number): VideoConfig => ({
 	// @ts-expect-error
 	component: {_payload: {_status: 1}},
 	props: {},
-	nonce: 16,
+	nonce: [[0, 16]],
 });
 
 test('Should test timeline sequence layout without max media duration', () => {
@@ -36,16 +36,16 @@ test('Should test timeline sequence layout without max media duration', () => {
 					},
 				},
 				props: {},
-				nonce: 16,
+				nonce: [[0, 16]],
 			},
 			windowWidth: 1414.203125,
 		}),
 	).toEqual({
-		marginLeft: 1154.2137986426505,
+		marginLeft: 1154.4991419797689,
 		premountWidth: null,
 		postmountWidth: null,
-		width: 226.9893263573493,
-		naturalWidth: 226.9893263573493,
+		width: 226.70398302023122,
+		naturalWidth: 226.70398302023122,
 	});
 });
 test('Should test timeline sequence layout with max media duration', () => {
@@ -70,16 +70,16 @@ test('Should test timeline sequence layout with max media duration', () => {
 					},
 				},
 				props: {},
-				nonce: 16,
+				nonce: [[0, 16]],
 			},
 			windowWidth: 1414.203125,
 		}),
 	).toEqual({
-		marginLeft: 1154.2137986426505,
+		marginLeft: 1154.4991419797689,
 		premountWidth: null,
 		postmountWidth: null,
-		width: 221.8531462892238,
-		naturalWidth: 221.8531462892238,
+		width: 221.5678029521057,
+		naturalWidth: 221.5678029521057,
 	});
 });
 
@@ -165,7 +165,7 @@ test('naturalWidth is constrained by maxMediaDuration but not by timeline end', 
 	expect(clippedByBoth.naturalWidth).toBeGreaterThan(clippedByBoth.width);
 
 	// Same segment but not clipped by timeline end (starts earlier)
-	// Both should have the same half-frame behavior (shouldAddHalfAFrameAtEnd = true)
+	// Both should have the same behavior
 	const clippedByMediaOnly = getTimelineSequenceLayout({
 		durationInFrames: 200,
 		startFrom: 100,

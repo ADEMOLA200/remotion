@@ -1,8 +1,8 @@
-import {LambdaClientInternals} from '@remotion/lambda-client';
 import {beforeAll, expect, test} from 'bun:test';
 import {execSync} from 'child_process';
 import {readFileSync, writeFileSync} from 'fs';
 import path from 'path';
+import {LambdaClientInternals} from '@remotion/lambda-client';
 
 const PYTHON_OUTPUT_MARKER = 10;
 const referenceVersion = readFileSync(
@@ -84,7 +84,7 @@ test('Python package should create the same renderMedia payload as normal Lambda
 			logLevel: 'info',
 			maxRetries: 1,
 			muted: false,
-			numberOfGifLoops: 0,
+			numberOfGifLoops: null,
 			offthreadVideoCacheSizeInBytes: null,
 			offthreadVideoThreads: null,
 			outName: null,
@@ -116,6 +116,7 @@ test('Python package should create the same renderMedia payload as normal Lambda
 			storageClass: null,
 			mediaCacheSizeInBytes: null,
 			isProduction: null,
+			sampleRate: 48000,
 		});
 	const jsonOutput = toParse.substring(0, toParse.lastIndexOf('}') + 1);
 	const parsedJson = JSON.parse(jsonOutput);

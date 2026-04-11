@@ -1,5 +1,5 @@
-import {ServerlessRoutines} from '@remotion/serverless-client';
 import {expect, test} from 'bun:test';
+import {ServerlessRoutines} from '@remotion/serverless-client';
 import {makeLambdaRenderMediaPayload} from '../make-lambda-payload';
 
 test('Should include concurrency field in payload', async () => {
@@ -58,6 +58,7 @@ test('Should include concurrency field in payload', async () => {
 		requestHandler: null,
 		preferLossless: false,
 		isProduction: null,
+		sampleRate: 48000,
 	});
 
 	expect(payload.type).toBe(ServerlessRoutines.start);
@@ -120,6 +121,7 @@ test('Should handle null concurrency', async () => {
 		requestHandler: null,
 		preferLossless: false,
 		isProduction: null,
+		sampleRate: 48000,
 	});
 
 	expect(payload.type).toBe(ServerlessRoutines.start);

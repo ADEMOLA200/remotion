@@ -1,6 +1,9 @@
 import {expect, test} from 'bun:test';
+import path from 'path';
 import {ensureBrowser} from '../ensure-browser';
 import {renderStill} from '../render-still';
+
+const exampleBuild = path.join(__dirname, '..', '..', '..', 'example', 'build');
 
 test(
 	'Need to pass valid metadata',
@@ -22,17 +25,17 @@ test(
 					defaultVideoImageFormat: null,
 					defaultPixelFormat: null,
 					defaultProResProfile: null,
+					defaultSampleRate: null,
 				},
 				frame: 0,
 				output: '/file/output.png',
-				serveUrl:
-					'https://661808694cad562ef2f35be7--incomparable-dasik-a4482b.netlify.app/',
+				serveUrl: exampleBuild,
 				verbose: false,
 			}),
 		).toThrow(/not be NaN, but is NaN/);
 	},
 	{
-		timeout: 30000,
+		timeout: 90000,
 	},
 );
 
@@ -41,7 +44,7 @@ test(
 	async () => {
 		await ensureBrowser();
 
-		const {buffer} = await renderStill({
+		const {buffer, contentType} = await renderStill({
 			composition: {
 				width: 1000,
 				height: 1000,
@@ -55,16 +58,17 @@ test(
 				defaultVideoImageFormat: null,
 				defaultPixelFormat: null,
 				defaultProResProfile: null,
+				defaultSampleRate: null,
 			},
 			frame: 0,
-			serveUrl:
-				'https://661808694cad562ef2f35be7--incomparable-dasik-a4482b.netlify.app/',
+			serveUrl: exampleBuild,
 			verbose: false,
 		});
 		expect(buffer?.length).toBeGreaterThan(1000);
+		expect(contentType).toBe('image/png');
 	},
 	{
-		timeout: 30000,
+		timeout: 90000,
 	},
 );
 
@@ -88,18 +92,18 @@ test(
 					defaultVideoImageFormat: null,
 					defaultPixelFormat: null,
 					defaultProResProfile: null,
+					defaultSampleRate: null,
 				},
 				frame: 200,
 				output: '/file/output.png',
-				serveUrl:
-					'https://661808694cad562ef2f35be7--incomparable-dasik-a4482b.netlify.app/',
+				serveUrl: exampleBuild,
 				verbose: false,
 			}),
 		).toThrow(
 			/Cannot use frame 200: Duration of composition is 30, therefore the highest frame that can be rendered is 29/,
 		);
 	},
-	{timeout: 30000},
+	{timeout: 90000},
 );
 
 test(
@@ -122,17 +126,17 @@ test(
 					defaultVideoImageFormat: null,
 					defaultPixelFormat: null,
 					defaultProResProfile: null,
+					defaultSampleRate: null,
 				},
 				// @ts-expect-error
 				imageFormat: 'jjj',
 				frame: 200,
 				output: '/file/output.png',
-				serveUrl:
-					'https://661808694cad562ef2f35be7--incomparable-dasik-a4482b.netlify.app/',
+				serveUrl: exampleBuild,
 			}),
 		).toThrow(/Image format should be one of: "png", "jpeg", "pdf", "webp"/);
 	},
 	{
-		timeout: 30000,
+		timeout: 90000,
 	},
 );

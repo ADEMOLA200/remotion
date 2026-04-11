@@ -139,6 +139,9 @@
 			"path": "./packages/template-render-server"
 		},
 		{
+			"path": "./packages/template-electron"
+		},
+		{
 			"path": "./packages/template-next-pages"
 		},
 		{
@@ -146,12 +149,6 @@
 		},
 		{
 			"path": "./packages/template-next-app-tailwind"
-		},
-		{
-			"path": "./packages/template-tts-azure"
-		},
-		{
-			"path": "./packages/template-tts-google"
 		},
 		{
 			"path": "./packages/template-three"
@@ -257,6 +254,15 @@
 		},
 		{
 			"path": "./packages/light-leaks"
+		},
+		{
+			"path": "./packages/starburst"
+		},
+		{
+			"path": "./packages/vercel"
+		},
+		{
+			"path": "./packages/sfx"
 		}
 	]
 }

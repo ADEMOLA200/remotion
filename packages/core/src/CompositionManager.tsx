@@ -3,7 +3,9 @@ import React from 'react';
 import type {AnyZodObject} from './any-zod-type.js';
 import type {CalculateMetadataFunction} from './Composition.js';
 import type {DownloadBehavior} from './download-behavior.js';
+import type {NonceHistory} from './nonce.js';
 import type {InferProps, PropsIfHasProps} from './props-if-has-props.js';
+import type {SequenceSchema} from './sequence-field-schema.js';
 
 export type TComposition<
 	Schema extends AnyZodObject,
@@ -17,11 +19,12 @@ export type TComposition<
 	folderName: string | null;
 	parentFolderName: string | null;
 	component: LazyExoticComponent<ComponentType<Props>> | ComponentType<Props>;
-	nonce: number;
+	nonce: NonceHistory;
 	schema: Schema | null;
 	calculateMetadata: CalculateMetadataFunction<
 		InferProps<Schema, Props>
 	> | null;
+	stack: string | null;
 } & PropsIfHasProps<Schema, Props>;
 
 export type AnyComposition = TComposition<
@@ -79,12 +82,22 @@ type EnhancedTSequenceData =
 			doesVolumeChange: boolean;
 			startMediaFrom: number;
 			playbackRate: number;
+	  }
+	| {
+			type: 'image';
+			src: string;
 	  };
 
 export type LoopDisplay = {
 	numberOfTimes: number;
 	startOffset: number;
 	durationInFrames: number;
+};
+
+export type SequenceControls = {
+	schema: SequenceSchema;
+	currentValue: Record<string, unknown>;
+	overrideId: string;
 };
 
 export type TSequence = {
@@ -95,11 +108,12 @@ export type TSequence = {
 	parent: string | null;
 	rootId: string;
 	showInTimeline: boolean;
-	nonce: number;
+	nonce: NonceHistory;
 	loopDisplay: LoopDisplay | undefined;
 	stack: string | null;
 	premountDisplay: number | null;
 	postmountDisplay: number | null;
+	controls: SequenceControls | null;
 } & EnhancedTSequenceData;
 
 export type AudioOrVideoAsset = {

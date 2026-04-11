@@ -13,6 +13,7 @@ const sidebars: SidebarsConfig = {
 			},
 			collapsed: true,
 			items: [
+				'cli/create-video',
 				'cli/studio',
 				'cli/render',
 				'cli/still',
@@ -267,6 +268,15 @@ const sidebars: SidebarsConfig = {
 		},
 		{
 			type: 'category',
+			label: '@remotion/elevenlabs',
+			link: {
+				type: 'doc',
+				id: 'elevenlabs/index',
+			},
+			items: ['elevenlabs/elevenlabs-transcript-to-captions'],
+		},
+		{
+			type: 'category',
 			label: '@remotion/fonts',
 			link: {
 				type: 'doc',
@@ -462,6 +472,36 @@ const sidebars: SidebarsConfig = {
 		},
 		{
 			type: 'category',
+			label: '@remotion/starburst',
+			link: {
+				type: 'doc',
+				id: 'starburst/starburst-api',
+			},
+			items: ['starburst/starburst-component'],
+		},
+		{
+			type: 'category',
+			label: '@remotion/sfx',
+			link: {
+				type: 'doc',
+				id: 'sfx/index',
+			},
+			items: [
+				'sfx/whip',
+				'sfx/whoosh',
+				'sfx/page-turn',
+				'sfx/ui-switch',
+				'sfx/mouse-click',
+				'sfx/shutter-modern',
+				'sfx/shutter-old',
+				'sfx/ding',
+				'sfx/bruh',
+				'sfx/vine-boom',
+				'sfx/windows-xp-error',
+			],
+		},
+		{
+			type: 'category',
 			label: '@remotion/openai-whisper',
 			link: {
 				type: 'doc',
@@ -555,6 +595,7 @@ const sidebars: SidebarsConfig = {
 				'renderer/get-silent-parts',
 				'renderer/combine-chunks',
 				'renderer/extract-audio',
+				'renderer/types',
 			],
 		},
 		{
@@ -583,6 +624,7 @@ const sidebars: SidebarsConfig = {
 				id: 'shapes/index',
 			},
 			items: [
+				'shapes/arrow',
 				'shapes/rect',
 				'shapes/triangle',
 				'shapes/circle',
@@ -591,6 +633,7 @@ const sidebars: SidebarsConfig = {
 				'shapes/star',
 				'shapes/pie',
 				'shapes/polygon',
+				'shapes/make-arrow',
 				'shapes/make-rect',
 				'shapes/make-triangle',
 				'shapes/make-circle',
@@ -717,6 +760,22 @@ const sidebars: SidebarsConfig = {
 			],
 		},
 
+		{
+			type: 'category',
+			label: '@remotion/vercel',
+			link: {
+				type: 'doc',
+				id: 'vercel/vercel-api',
+			},
+			items: [
+				'vercel/create-sandbox',
+				'vercel/add-bundle-to-sandbox',
+				'vercel/render-media-on-vercel',
+				'vercel/render-still-on-vercel',
+				'vercel/upload-to-vercel-blob',
+				'vercel/vercel-types',
+			],
+		},
 		{
 			type: 'category',
 			label: '@remotion/web-renderer',
@@ -868,6 +927,7 @@ const sidebars: SidebarsConfig = {
 				'animation-math',
 				'shaders',
 				'light-leaks',
+				'starburst',
 			],
 		},
 		{
@@ -904,6 +964,7 @@ const sidebars: SidebarsConfig = {
 				'audio/pitch',
 				'audio/from-video',
 				'audio/visualization',
+				'audio/sfx',
 				'audio/exporting',
 				'audio/order-of-operations',
 			],
@@ -967,6 +1028,7 @@ const sidebars: SidebarsConfig = {
 				'metadata',
 				'hardware-acceleration',
 				'hdr',
+				'sample-rate',
 			],
 		},
 		{
@@ -1009,6 +1071,7 @@ const sidebars: SidebarsConfig = {
 				'client-side-rendering/migration',
 				'client-side-rendering/cancellation',
 				'client-side-rendering/telemetry',
+				'client-side-rendering/html-in-canvas',
 			],
 		},
 		{
@@ -1174,6 +1237,7 @@ const sidebars: SidebarsConfig = {
 				'font-picker',
 				'building-a-timeline',
 				'multiple-fps',
+				'electron',
 				'angular',
 				'svelte',
 				'vue',
@@ -1327,6 +1391,7 @@ const sidebars: SidebarsConfig = {
 			label: 'Troubleshooting',
 			items: [
 				'troubleshooting/debug-failed-render',
+				'troubleshooting/video-has-no-sound',
 				'timeout',
 				'target-closed',
 				'media-playback-error',
@@ -1341,6 +1406,7 @@ const sidebars: SidebarsConfig = {
 				'staticfile-relative-paths',
 				'staticfile-remote-urls',
 				'troubleshooting/background-image',
+				'troubleshooting/css-animations',
 				'troubleshooting/nextjs-image',
 				'troubleshooting/rosetta',
 				'troubleshooting/loading-root-component',
@@ -1385,16 +1451,16 @@ const sidebars: SidebarsConfig = {
 				'support',
 			],
 		},
-		'upgrading',
 		{
 			type: 'category',
-			label: 'Migration guides',
+			label: 'Upgrading',
 			items: [
-				'react-19',
+				'upgrading',
 				'5-0-migration',
 				'4-0-migration',
 				'3-0-migration',
 				'2-0-migration',
+				'react-19',
 			],
 		},
 		{
@@ -1406,12 +1472,11 @@ const sidebars: SidebarsConfig = {
 				'contributing/option',
 				'contributing/docs',
 				'contributing/formatting',
-				'contributing/bounty',
 				'contributing/rust',
 				'contributing/web-renderer',
 				'contributing/presentation',
+				'contributing/sfx',
 				'authoring-packages',
-				'contributing/ineligible',
 			],
 		},
 		'license',
@@ -1545,6 +1610,7 @@ const sidebars: SidebarsConfig = {
 				'editor-starter/production-checklist',
 				'editor-starter/features-not-included',
 				'editor-starter/faq',
+				'editor-starter/vs-studio',
 			],
 		},
 	],

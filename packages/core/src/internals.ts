@@ -1,9 +1,11 @@
 import {createRef} from 'react';
 import {getAbsoluteSrc} from './absolute-src.js';
 import {AudioForPreview} from './audio/AudioForPreview.js';
+import type {ScheduleAudioNodeResult} from './audio/shared-audio-tags.js';
 import {
 	SharedAudioContext,
 	SharedAudioContextProvider,
+	type ScheduleAudioNodeOptions,
 } from './audio/shared-audio-tags.js';
 import {
 	useFrameForVolumeProp,
@@ -19,6 +21,7 @@ import {
 	CanUseRemotionHooks,
 	CanUseRemotionHooksProvider,
 } from './CanUseRemotionHooks.js';
+import {CompositionRenderErrorContext} from './composition-render-error-context.js';
 import {type CompProps} from './Composition.js';
 import type {
 	TCompMetadata,
@@ -38,13 +41,13 @@ import {OBJECTFIT_CONTAIN_CLASS_NAME} from './default-css.js';
 import {
 	EditorPropsContext,
 	EditorPropsProvider,
-	editorPropsProviderRef,
 	timeValueRef,
 } from './EditorProps.js';
 import {
 	addSequenceStackTraces,
-	enableSequenceStackTraces,
+	getComponentsToAddStacksTo,
 } from './enable-sequence-stack-traces.js';
+import {getEffectiveVisualModeValue} from './get-effective-visual-mode-value.js';
 import {
 	getPreviewDomElement,
 	REMOTION_STUDIO_CONTAINER_ELEMENT,
@@ -60,11 +63,13 @@ import type {LoggingContextValue} from './log-level-context.js';
 import {LogLevelContext, useLogLevel} from './log-level-context.js';
 import {Log} from './log.js';
 import {MaxMediaCacheSizeContext} from './max-video-cache-size.js';
+import type {NonceHistory} from './nonce.js';
 import {NonceContext} from './nonce.js';
 import {playbackLogging} from './playback-logging.js';
 import {portalNode} from './portal-node.js';
 import {PrefetchProvider} from './prefetch-state.js';
 import {usePreload} from './prefetch.js';
+import {PremountContext} from './PremountContext.js';
 import {getRoot, waitForRoot} from './register-root.js';
 import type {RemotionEnvironment} from './remotion-environment-context.js';
 import {RemotionEnvironmentContext} from './remotion-environment-context.js';
@@ -78,13 +83,19 @@ import {
 	resolveVideoConfigOrCatch,
 } from './resolve-video-config.js';
 import {
-	PROPS_UPDATED_EXTERNALLY,
 	ResolveCompositionContext,
 	resolveCompositionsRef,
 	useResolvedVideoConfig,
 } from './ResolveCompositionConfig.js';
+import type {
+	SequenceFieldSchema,
+	SequenceSchema,
+} from './sequence-field-schema.js';
+import type {ResolvedStackLocation} from './sequence-stack-traces.js';
+import {SequenceStackTracesUpdateContext} from './sequence-stack-traces.js';
 import {SequenceContext} from './SequenceContext.js';
 import {
+	VisualModeOverridesContext,
 	SequenceManager,
 	SequenceVisibilityToggleContext,
 } from './SequenceManager.js';
@@ -92,9 +103,11 @@ import {setupEnvVariables} from './setup-env-variables.js';
 import * as TimelinePosition from './timeline-position-state.js';
 import {
 	persistCurrentFrame,
+	useTimelineContext,
 	useTimelineSetFrame,
 } from './timeline-position-state.js';
 import {
+	AbsoluteTimeContext,
 	SetTimelineContext,
 	TimelineContext,
 	type SetTimelineContextValue,
@@ -113,6 +126,9 @@ import {
 	useBasicMediaInTimeline,
 	useMediaInTimeline,
 } from './use-media-in-timeline.js';
+import type {CanUpdateSequencePropStatus} from './use-schema.js';
+import {useSchema} from './use-schema.js';
+import {useSequenceControlOverride} from './use-sequence-control-override.js';
 import {useUnsafeVideoConfig} from './use-unsafe-video-config.js';
 import {useVideo} from './use-video.js';
 import {validateMediaProps} from './validate-media-props.js';
@@ -143,6 +159,7 @@ import {evaluateVolume} from './volume-prop.js';
 import {warnAboutTooHighVolume} from './volume-safeguard.js';
 import type {WatchRemotionStaticFilesPayload} from './watch-static-file.js';
 import {WATCH_REMOTION_STATIC_FILES} from './watch-static-file.js';
+import {wrapInSchema} from './wrap-in-schema.js';
 import {
 	RemotionContextProvider,
 	useRemotionContexts,
@@ -162,6 +179,7 @@ export const Internals = {
 	useUnsafeVideoConfig,
 	useFrameForVolumeProp,
 	useTimelinePosition: TimelinePosition.useTimelinePosition,
+	useAbsoluteTimelinePosition: TimelinePosition.useAbsoluteTimelinePosition,
 	evaluateVolume,
 	getAbsoluteSrc,
 	Timeline: TimelinePosition,
@@ -171,8 +189,13 @@ export const Internals = {
 	VideoForPreview,
 	CompositionManager,
 	CompositionSetters,
+	VisualModeOverridesContext,
 	SequenceManager,
+	SequenceStackTracesUpdateContext,
 	SequenceVisibilityToggleContext,
+	useSchema,
+	wrapInSchema,
+	useSequenceControlOverride,
 	RemotionRootContexts,
 	CompositionManagerProvider,
 	useVideo,
@@ -183,6 +206,7 @@ export const Internals = {
 	useLazyComponent,
 	truthy,
 	SequenceContext,
+	PremountContext,
 	useRemotionContexts,
 	RemotionContextProvider,
 	CSSUtils,
@@ -218,6 +242,7 @@ export const Internals = {
 	REMOTION_STUDIO_CONTAINER_ELEMENT,
 	RenderAssetManager,
 	persistCurrentFrame,
+	useTimelineContext,
 	useTimelineSetFrame,
 	isIosSafari,
 	WATCH_REMOTION_STATIC_FILES,
@@ -225,12 +250,10 @@ export const Internals = {
 	useMediaStartsAt,
 	BufferingProvider,
 	BufferingContextReact,
-	enableSequenceStackTraces,
+	getComponentsToAddStacksTo,
 	CurrentScaleContext,
 	PreviewSizeContext,
 	calculateScale,
-	editorPropsProviderRef,
-	PROPS_UPDATED_EXTERNALLY,
 	validateRenderAsset,
 	Log,
 	LogLevelContext,
@@ -252,15 +275,21 @@ export const Internals = {
 	TimelinePosition,
 	DelayRenderContextType,
 	TimelineContext,
+	AbsoluteTimeContext,
 	RenderAssetManagerProvider,
+	getEffectiveVisualModeValue,
+	CompositionRenderErrorContext,
 } as const;
 
 export type {
 	CompositionManagerContext,
+	ResolvedStackLocation,
 	CompProps,
 	LoggingContextValue,
 	MediaVolumeContextValue,
 	RemotionEnvironment,
+	SequenceFieldSchema,
+	SequenceSchema,
 	SerializedJSONWithCustomFields,
 	SetMediaVolumeContextValue,
 	SetTimelineContextValue,
@@ -270,4 +299,8 @@ export type {
 	TRenderAsset,
 	TSequence,
 	WatchRemotionStaticFilesPayload,
+	ScheduleAudioNodeOptions,
+	CanUpdateSequencePropStatus,
+	ScheduleAudioNodeResult,
+	NonceHistory,
 };

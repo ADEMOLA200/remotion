@@ -4,9 +4,9 @@ import {RenderInternals} from '.';
 import type {BrowserExecutable} from './browser-executable';
 import type {BrowserLog} from './browser-log';
 import type {HeadlessBrowser} from './browser/Browser';
+import {defaultBrowserDownloadProgress} from './browser/browser-download-progress-bar';
 import type {Page} from './browser/BrowserPage';
 import {DEFAULT_TIMEOUT} from './browser/TimeoutSettings';
-import {defaultBrowserDownloadProgress} from './browser/browser-download-progress-bar';
 import {handleJavascriptException} from './error-handling/handle-javascript-exception';
 import {findRemotionRoot} from './find-closest-package-json';
 import {getPageAndCleanupFn} from './get-browser-instance';
@@ -39,20 +39,26 @@ type InternalSelectCompositionsConfig = {
 	onServeUrlVisited: () => void;
 } & ToOptions<typeof optionsMap.selectComposition>;
 
-export type SelectCompositionOptions = RequiredInputPropsInV5 & {
-	envVariables?: Record<string, string>;
-	puppeteerInstance?: HeadlessBrowser;
-	onBrowserLog?: (log: BrowserLog) => void;
-	browserExecutable?: BrowserExecutable;
-	chromiumOptions?: ChromiumOptions;
-	port?: number | null;
-	/**
-	 * @deprecated Use `logLevel` instead.
-	 */
-	verbose?: boolean;
-	serveUrl: string;
-	id: string;
-} & Partial<ToOptions<typeof optionsMap.selectComposition>>;
+type Prettify<T> = {
+	[K in keyof T]: T[K];
+} & {};
+
+export type SelectCompositionOptions = Prettify<
+	RequiredInputPropsInV5 & {
+		envVariables?: Record<string, string>;
+		puppeteerInstance?: HeadlessBrowser;
+		onBrowserLog?: (log: BrowserLog) => void;
+		browserExecutable?: BrowserExecutable;
+		chromiumOptions?: ChromiumOptions;
+		port?: number | null;
+		/**
+		 * @deprecated Use `logLevel` instead.
+		 */
+		verbose?: boolean;
+		serveUrl: string;
+		id: string;
+	} & Partial<ToOptions<typeof optionsMap.selectComposition>>
+>;
 
 type CleanupFn = () => Promise<unknown>;
 
@@ -98,6 +104,7 @@ const innerSelectComposition = async ({
 		mediaCacheSizeInBytes,
 		initialMemoryAvailable: getAvailableMemory(logLevel),
 		darkMode: chromiumOptions.darkMode ?? false,
+		sampleRate: 48000,
 	});
 
 	await puppeteerEvaluateWithCatch({
@@ -161,6 +168,7 @@ const innerSelectComposition = async ({
 		defaultVideoImageFormat,
 		defaultPixelFormat,
 		defaultProResProfile,
+		defaultSampleRate,
 	} = res;
 	return {
 		metadata: {
@@ -180,6 +188,7 @@ const innerSelectComposition = async ({
 			defaultVideoImageFormat,
 			defaultPixelFormat,
 			defaultProResProfile,
+			defaultSampleRate,
 		},
 		propsSize: size,
 	};
@@ -242,6 +251,7 @@ export const internalSelectCompositionRaw = async (
 				offthreadVideoCacheSizeInBytes,
 				binariesDirectory,
 				forceIPv4: false,
+				sampleRate: 48000,
 			},
 			{
 				onDownload: () => undefined,

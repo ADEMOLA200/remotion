@@ -7,24 +7,31 @@ import type {$ZodObject} from 'zod/v4/core';
 import type {WebRendererOnArtifact} from './artifact';
 import {handleArtifacts} from './artifact';
 import {checkForError, createScaffold} from './create-scaffold';
-import type {InternalState} from './internal-state';
+import {supportsNativeHtmlInCanvas} from './html-in-canvas';
 import {makeInternalState} from './internal-state';
 import type {CompositionCalculateMetadataOrExplicit} from './props-if-has-props';
 import type {InputPropsIfHasProps} from './render-media-on-web';
 import {onlyOneRenderAtATimeQueue} from './render-operations-queue';
+import {
+	createRenderStillOnWebResult,
+	type RenderStillOnWebResult,
+} from './render-still-screenshot-task';
 import {sendUsageEvent} from './send-telemetry-event';
-import {createLayer} from './take-screenshot';
+import {createLayer, type HtmlInCanvasLayerOutcome} from './take-screenshot';
 import {validateScale} from './validate-scale';
 import {waitForReady} from './wait-for-ready';
 
-export type RenderStillOnWebImageFormat = 'png' | 'jpeg' | 'webp';
+export type {
+	RenderStillOnWebEncodeOptions,
+	RenderStillOnWebImageFormat,
+	RenderStillOnWebResult,
+} from './render-still-screenshot-task';
 
 type MandatoryRenderStillOnWebOptions<
 	Schema extends $ZodObject,
 	Props extends Record<string, unknown>,
 > = {
 	frame: number;
-	imageFormat: RenderStillOnWebImageFormat;
 } & {
 	composition: CompositionCalculateMetadataOrExplicit<Schema, Props>;
 };
@@ -39,6 +46,7 @@ type OptionalRenderStillOnWebOptions<Schema extends $ZodObject> = {
 	licenseKey: string | null;
 	scale: number;
 	isProduction: boolean;
+	allowHtmlInCanvas: boolean;
 };
 
 type InternalRenderStillOnWebOptions<
@@ -64,7 +72,6 @@ async function internalRenderStillOnWeb<
 	logLevel,
 	inputProps,
 	schema,
-	imageFormat,
 	mediaCacheSizeInBytes,
 	composition,
 	signal,
@@ -72,8 +79,23 @@ async function internalRenderStillOnWeb<
 	licenseKey,
 	scale,
 	isProduction,
+	allowHtmlInCanvas,
 }: InternalRenderStillOnWebOptions<Schema, Props>) {
 	validateScale(scale);
+
+	const onHtmlInCanvasLayerOutcome = (outcome: HtmlInCanvasLayerOutcome) => {
+		if (outcome.native) {
+			Internals.Log.warn(
+				{logLevel, tag: '@remotion/web-renderer'},
+				'Using Chromium experimental HTML-in-canvas (drawElementImage) for this frame. Pixels may differ from the built-in DOM composer. Set allowHtmlInCanvas: false to force software rasterization. See https://github.com/WICG/html-in-canvas',
+			);
+		} else if (outcome.shouldWarn) {
+			Internals.Log.warn(
+				{logLevel, tag: '@remotion/web-renderer'},
+				`Not using HTML-in-canvas: ${outcome.reason}`,
+			);
+		}
+	};
 
 	const resolved = await Internals.resolveVideoConfig({
 		calculateMetadata:
@@ -113,9 +135,40 @@ async function internalRenderStillOnWeb<
 		initialFrame: frame,
 		defaultCodec: resolved.defaultCodec,
 		defaultOutName: resolved.defaultOutName,
+		allowHtmlInCanvas,
 	});
 
-	const {delayRenderScope, div, collectAssets, errorHolder} = scaffold;
+	const {
+		delayRenderScope,
+		div,
+		collectAssets,
+		errorHolder,
+		htmlInCanvasContext,
+	} = scaffold;
+
+	if (allowHtmlInCanvas && !htmlInCanvasContext) {
+		if (!supportsNativeHtmlInCanvas()) {
+			onHtmlInCanvasLayerOutcome({
+				native: false,
+				reason:
+					'This browser does not expose CanvasRenderingContext2D.prototype.drawElementImage. In Chromium, enable chrome://flags/#canvas-draw-element and use a version that ships the API.',
+				shouldWarn: false,
+			});
+		} else {
+			onHtmlInCanvasLayerOutcome({
+				native: false,
+				reason:
+					'drawElementImage is available but canvas.requestPaint() is missing. Use a Chromium version that ships requestPaint.',
+				shouldWarn: true,
+			});
+		}
+	} else if (!allowHtmlInCanvas) {
+		onHtmlInCanvasLayerOutcome({
+			native: false,
+			reason: 'allowHtmlInCanvas is false; using the built-in DOM composer.',
+			shouldWarn: false,
+		});
+	}
 
 	const artifactsHandler = handleArtifacts();
 
@@ -145,15 +198,22 @@ async function internalRenderStillOnWeb<
 			internalState,
 			onlyBackgroundClipText: false,
 			cutout: new DOMRect(0, 0, resolved.width, resolved.height),
+			htmlInCanvasContext,
+			onHtmlInCanvasLayerOutcome: htmlInCanvasContext
+				? onHtmlInCanvasLayerOutcome
+				: undefined,
 		});
 
-		const imageData = await capturedFrame.canvas.convertToBlob({
-			type: `image/${imageFormat}`,
-		});
+		const {canvas} = capturedFrame;
 
 		const assets = collectAssets.current!.collectAssets();
 		if (onArtifact) {
-			await artifactsHandler.handle({imageData, frame, assets, onArtifact});
+			await artifactsHandler.handle({
+				imageData: canvas,
+				frame,
+				assets,
+				onArtifact,
+			});
 		}
 
 		sendUsageEvent({
@@ -164,7 +224,7 @@ async function internalRenderStillOnWeb<
 			isProduction,
 		});
 
-		return {blob: imageData, internalState};
+		return createRenderStillOnWebResult({canvas, internalState});
 	} catch (err) {
 		if (!signal?.aborted) {
 			sendUsageEvent({
@@ -191,7 +251,7 @@ export const renderStillOnWeb = <
 	Props extends Record<string, unknown>,
 >(
 	options: RenderStillOnWebOptions<Schema, Props>,
-): Promise<{blob: Blob; internalState: InternalState}> => {
+): Promise<RenderStillOnWebResult> => {
 	onlyOneRenderAtATimeQueue.ref = onlyOneRenderAtATimeQueue.ref
 		.catch(() => Promise.resolve())
 		.then(() =>
@@ -208,11 +268,9 @@ export const renderStillOnWeb = <
 				licenseKey: options.licenseKey ?? null,
 				scale: options.scale ?? 1,
 				isProduction: options.isProduction ?? true,
+				allowHtmlInCanvas: options.allowHtmlInCanvas ?? false,
 			}),
 		);
 
-	return onlyOneRenderAtATimeQueue.ref as Promise<{
-		blob: Blob;
-		internalState: InternalState;
-	}>;
+	return onlyOneRenderAtATimeQueue.ref as Promise<RenderStillOnWebResult>;
 };

@@ -1,8 +1,8 @@
 import {createContext, createRef, useContext, useMemo} from 'react';
 import type {AnyComposition} from './CompositionManager.js';
 import {CompositionManager} from './CompositionManagerContext.js';
-import {EditorPropsContext} from './EditorProps.js';
 import {getInputProps} from './config/input-props.js';
+import {EditorPropsContext} from './EditorProps.js';
 import {useRemotionEnvironment} from './use-remotion-environment.js';
 import {validateDimension} from './validation/validate-dimensions.js';
 import {validateDurationInFrames} from './validation/validate-duration-in-frames.js';
@@ -42,8 +42,6 @@ type VideoConfigState =
 export const needsResolution = (composition: AnyComposition) => {
 	return Boolean(composition.calculateMetadata);
 };
-
-export const PROPS_UPDATED_EXTERNALLY = 'remotion.propsUpdatedExternally';
 
 export const useResolvedVideoConfig = (
 	preferredCompositionId: string | null,
@@ -127,6 +125,7 @@ export const useResolvedVideoConfig = (
 					defaultVideoImageFormat: null,
 					defaultPixelFormat: null,
 					defaultProResProfile: null,
+					defaultSampleRate: null,
 				},
 			};
 		}

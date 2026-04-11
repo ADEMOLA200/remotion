@@ -302,7 +302,7 @@ class RenderMediaParams:
     chromium_options: Optional[ChromiumOptions] = None
     scale: Optional[int] = 1
     every_nth_frame: Optional[int] = 1
-    number_of_gif_loops: Optional[int] = 0
+    number_of_gif_loops: Optional[int] = None
     concurrency_per_lambda: Optional[int] = 1
     concurrency: Optional[int] = None
     download_behavior: Optional[Union[PlayInBrowser, ShouldDownload]] = field(
@@ -334,6 +334,7 @@ class RenderMediaParams:
     encoding_buffer_size: Optional[str] = None
     encoding_max_rate: Optional[str] = None
     is_production: Optional[bool] = None
+    sample_rate: int = 48000
 
     def serialize_params(self) -> Dict:
         """
@@ -359,6 +360,7 @@ class RenderMediaParams:
             'frameRange': self.frame_range,
             'outName': self.out_name,
             'preferLossless': self.prefer_lossless,
+            'sampleRate': self.sample_rate,
             'timeoutInMilliseconds': self.timeout_in_milliseconds,
             'chromiumOptions': (
                 self.chromium_options if self.chromium_options is not None else {}

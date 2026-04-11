@@ -22,10 +22,7 @@ Besides choosing a video and output location with the command line arguments, th
 
 ### `--props`
 
-[Input Props to pass to the selected composition of your video.](/docs/passing-props#passing-input-props-in-the-cli).  
-Must be a serialized JSON string (`--props='{"hello": "world"}'`) or a path to a JSON file (`./path/to/props.json`).  
-From the root component the props can be read using [`getInputProps()`](/docs/get-input-props).  
-You may transform input props using [`calculateMetadata()`](/docs/calculate-metadata).
+<Options id="props" />
 
 :::note
 Inline JSON string isn't supported on Windows shells because it removes the `"` character, use a file name instead.
@@ -61,22 +58,15 @@ Inline JSON string isn't supported on Windows shells because it removes the `"` 
 
 ### `--image-sequence-pattern` <AvailableFrom v="4.0.313" />
 
-[Pattern for naming image sequence files. Supports `[frame]` for the zero-padded frame number and `[ext]` for the file extension.]
-
-**Example:**
-
-```bash
-npx remotion render ... --sequence --image-sequence-pattern='frame_[frame]_custom.[ext]'
-# Produces: frame_0001_custom.jpeg, frame_0002_custom.jpeg, ...
-```
+<Options id="image-sequence-pattern" />
 
 ### `--config`<AvailableFrom v="1.2.0" />
 
-Specify a location for the Remotion config file.
+<Options id="config" />
 
 ### `--env-file`<AvailableFrom v="2.2.0" />
 
-Specify a location for a dotenv file. Default `.env`.
+<Options id="env-file" />
 
 ### `--jpeg-quality`<AvailableFrom v="4.0.0" />
 
@@ -96,11 +86,13 @@ Sets the output file path, as an alternative to the `output-location` positional
 
 ### `--sequence`<AvailableFrom v="1.4.0" />
 
-[Pass this flag if you want an image sequence as the output instead of a video.](/docs/config#setimagesequence)
+<Options id="sequence" />
 
 ### `--codec`<AvailableFrom v="1.4.0" />
 
-[`h264` or `h265` or `png` or `vp8` or `vp9` or `mp3` or `aac` or `wav` or `prores` or `h264-mkv`](/docs/config#setcodec). If you don't supply `--codec`, it will use the H.264 encoder.
+[`h264` or `h265` or `av1` or `png` or `vp8` or `vp9` or `mp3` or `aac` or `wav` or `prores` or `h264-mkv`](/docs/config#setcodec). If you don't supply `--codec`, it will use the H.264 encoder.
+
+If you are rendering on Linux ARM64 GNU, `av1` is not available.
 
 ### `--audio-codec`<AvailableFrom v="3.3.42" />
 
@@ -152,7 +144,7 @@ If you enable [hardware acceleration](/docs/hardware-acceleration), you cannot s
 
 ### `--frames`<AvailableFrom v="2.0.0" />
 
-[Render a subset of a video](/docs/config#setframerange). Example: `--frames=0-9` to select the first 10 frames. You can omit the start or end: `--frames=100-` renders from frame 100 to the end<AvailableFrom v="4.0.421" inline />, `--frames=-100` renders from the start to frame 100<AvailableFrom v="4.0.421" inline />. To render a still, use the `still` command.
+<Options id="frames" />
 
 ### `--every-nth-frame`<AvailableFrom v="3.1.0" />
 
@@ -186,7 +178,7 @@ Disallows the renderer from doing rendering frames and encoding at the same time
 
 ### `--bundle-cache`<AvailableFrom v="2.0.0" />
 
-[Enable or disable Webpack caching](/docs/config#setcachingenabled). This flag is enabled by default, use `--bundle-cache=false` to disable caching.
+<Options id="bundle-cache" />
 
 ### `--log`
 
@@ -194,7 +186,7 @@ Disallows the renderer from doing rendering frames and encoding at the same time
 
 ### `--port`
 
-[Set a custom HTTP server port that will be used to host the Webpack bundle](/docs/config#setrendererport). If not defined, Remotion will try to find a free port.
+<Options id="port" />
 
 ### `--public-dir`<AvailableFrom v="3.2.13" />
 
@@ -255,6 +247,14 @@ Not to be confused with the [`--timeout` flag when deploying a Lambda function](
 ### `--binaries-directory`<AvailableFrom v="4.0.120" />
 
 <Options cli id="binaries-directory" />
+
+### `--experimental-rspack`<AvailableFrom v="4.0.426" />
+
+<Options id="experimental-rspack" />
+
+### `--sample-rate`<AvailableFrom v="4.0.448" />
+
+<Options cli id="sample-rate" />
 
 ### `--for-seamless-aac-concatenation`<AvailableFrom v="4.0.123" />
 

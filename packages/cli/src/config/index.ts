@@ -1,21 +1,3 @@
-import {getBrowser} from './browser';
-import {getConcurrency} from './concurrency';
-import {getDotEnvLocation} from './env-file';
-import {getRange, setFrameRangeFromCli} from './frame-range';
-import {getShouldOutputImageSequence} from './image-sequence';
-import {getOutputLocation} from './output-location';
-import {
-	defaultOverrideFunction,
-	getWebpackOverrideFn,
-} from './override-webpack';
-import {
-	getRendererPortFromConfigFile,
-	getRendererPortFromConfigFileAndCliFlag,
-	getStudioPort,
-} from './preview-server';
-import {getStillFrame, setStillFrame} from './still-frame';
-import {getWebpackCaching} from './webpack-caching';
-
 import type {WebpackConfiguration} from '@remotion/bundler';
 import type {
 	BrowserExecutable,
@@ -32,34 +14,44 @@ import type {
 import type {HardwareAccelerationOption} from '@remotion/renderer/client';
 import {BrowserSafeApis} from '@remotion/renderer/client';
 import {StudioServerInternals} from '@remotion/studio-server';
+import {getBrowser} from './browser';
 import {
 	getBufferStateDelayInMilliseconds,
 	setBufferStateDelayInMilliseconds,
 } from './buffer-state-delay-in-milliseconds';
+import {getConcurrency} from './concurrency';
 import type {Concurrency} from './concurrency';
 import {getEntryPoint, setEntryPoint} from './entry-point';
-import {setDotEnvLocation} from './env-file';
+import {getDotEnvLocation} from './env-file';
 import {
 	getFfmpegOverrideFunction,
 	setFfmpegOverrideFunction,
 } from './ffmpeg-override';
-import {setFrameRange} from './frame-range';
-import {setImageSequence} from './image-sequence';
+import {getShouldOutputImageSequence} from './image-sequence';
 import {getMetadata, setMetadata} from './metadata';
-import {getShouldOpenBrowser, setShouldOpenBrowser} from './open-browser';
+import {getOutputLocation} from './output-location';
 import {setOutputLocation} from './output-location';
+import {
+	defaultOverrideFunction,
+	getWebpackOverrideFn,
+} from './override-webpack';
 import type {WebpackOverrideFn} from './override-webpack';
 import {overrideWebpackConfig} from './override-webpack';
-import {setPort, setRendererPort, setStudioPort} from './preview-server';
-import {setWebpackCaching} from './webpack-caching';
 import {
-	getWebpackPolling,
-	setWebpackPollingInMilliseconds,
-} from './webpack-poll';
+	getRendererPortFromConfigFile,
+	getRendererPortFromConfigFileAndCliFlag,
+	getStudioPort,
+} from './preview-server';
+import {setPort, setRendererPort, setStudioPort} from './preview-server';
+import {getStillFrame, setStillFrame} from './still-frame';
+import {getWebpackCaching} from './webpack-caching';
+import {getWebpackPolling} from './webpack-poll';
 
 export type {Concurrency, WebpackConfiguration, WebpackOverrideFn};
 
 const {
+	allowHtmlInCanvasOption,
+	benchmarkConcurrenciesOption,
 	concurrencyOption,
 	offthreadVideoCacheSizeInBytesOption,
 	x264Option,
@@ -91,6 +83,7 @@ const {
 	publicDirOption,
 	binariesDirectoryOption,
 	preferLosslessOption,
+	framesOption,
 	forSeamlessAacConcatenationOption,
 	audioCodecOption,
 	publicPathOption,
@@ -102,6 +95,7 @@ const {
 	askAIOption,
 	publicLicenseKeyOption,
 	experimentalClientSideRenderingOption,
+	experimentalVisualModeOption,
 	keyboardShortcutsOption,
 	forceNewStudioOption,
 	numberOfSharedAudioTagsOption,
@@ -119,6 +113,15 @@ const {
 	overrideWidthOption,
 	overrideFpsOption,
 	overrideDurationOption,
+	rspackOption,
+	outDirOption,
+	webpackPollOption,
+	imageSequenceOption,
+	bundleCacheOption,
+	envFileOption,
+	runsOption,
+	noOpenOption,
+	sampleRateOption,
 } = BrowserSafeApis.options;
 
 declare global {
@@ -184,6 +187,23 @@ declare global {
 		readonly setExperimentalClientSideRenderingEnabled: (
 			enabled: boolean,
 		) => void;
+		/**
+		 * Allow the experimental HTML-in-canvas capture path in Studio client-side renders.
+		 * @default false
+		 */
+		readonly setAllowHtmlInCanvasEnabled: (enabled: boolean) => void;
+		/**
+		 * Enable experimental Rspack bundler instead of Webpack.
+		 * @param enabled Boolean whether to enable the Rspack bundler
+		 * @default false
+		 */
+		readonly setExperimentalRspackEnabled: (enabled: boolean) => void;
+		/**
+		 * Nothing here yet, but this is our playground for experiments.
+		 * @param enabled Boolean whether to enable experimental visual mode
+		 * @default false
+		 */
+		readonly setExperimentalVisualMode: (enabled: boolean) => void;
 		/**
 		 * Set number of shared audio tags. https://www.remotion.dev/docs/player/autoplay#using-the-numberofsharedaudiotags-prop
 		 * @param numberOfAudioTags
@@ -537,7 +557,7 @@ declare global {
 		readonly setImageSequencePattern: (pattern: string | null) => void;
 		/**
 		 * Set the public license key for your company license.
-		 * Obtain it from the "Usage" tab on https://remotion.pro
+		 * Obtain it from https://remotion.pro (License keys page)
 		 * Pass "free-license" if you are eligible for the free license.
 		 */
 		readonly setPublicLicenseKey: (key: string | null) => void;
@@ -588,9 +608,30 @@ type FlatConfig = RemotionConfigObject &
 		 */
 		setIPv4: (ipv4: boolean) => void;
 		/**
+		 * Define the output directory for `npx remotion bundle`.
+		 * Default: `build` in the Remotion root.
+		 */
+		setBundleOutDir: (outDir: string | null) => void;
+		/**
 		 * Choose between using Chrome Headless Shell or Chrome for Testing
 		 */
 		setChromeMode: (chromeMode: ChromeMode) => void;
+		/**
+		 * Set how many times the video should be rendered during a benchmark.
+		 * Default: 3
+		 */
+		setBenchmarkRuns: (runs: number) => void;
+		/**
+		 * Set which concurrency values should be used during a benchmark.
+		 * Pass a comma-separated string of numbers, e.g. "1,4,8".
+		 * Default: null (uses the --concurrency value)
+		 */
+		setBenchmarkConcurrencies: (concurrencies: string | null) => void;
+		/**
+		 * Set the audio sample rate for rendered output.
+		 * Default: 48000
+		 */
+		setSampleRate: (sampleRate: number) => void;
 		/**
 		 * @deprecated 'The config format has changed. Change `Config.Bundling.*()` calls to `Config.*()` in your config file.'
 		 */
@@ -652,12 +693,15 @@ export const Config: FlatConfig = {
 	setKeyboardShortcutsEnabled: keyboardShortcutsOption.setConfig,
 	setExperimentalClientSideRenderingEnabled:
 		experimentalClientSideRenderingOption.setConfig,
+	setAllowHtmlInCanvasEnabled: allowHtmlInCanvasOption.setConfig,
+	setExperimentalRspackEnabled: rspackOption.setConfig,
+	setExperimentalVisualMode: experimentalVisualModeOption.setConfig,
 	setNumberOfSharedAudioTags: numberOfSharedAudioTagsOption.setConfig,
-	setWebpackPollingInMilliseconds,
-	setShouldOpenBrowser,
+	setWebpackPollingInMilliseconds: webpackPollOption.setConfig,
+	setShouldOpenBrowser: noOpenOption.setConfig,
 	setBufferStateDelayInMilliseconds,
 	overrideWebpackConfig,
-	setCachingEnabled: setWebpackCaching,
+	setCachingEnabled: bundleCacheOption.setConfig,
 	setPort,
 	setStudioPort,
 	setRendererPort,
@@ -673,7 +717,7 @@ export const Config: FlatConfig = {
 	setChromiumHeadlessMode: headlessOption.setConfig,
 	setChromiumOpenGlRenderer: glOption.setConfig,
 	setChromiumUserAgent: userAgentOption.setConfig,
-	setDotEnvLocation,
+	setDotEnvLocation: envFileOption.setConfig,
 	setConcurrency: concurrencyOption.setConfig,
 	setChromiumMultiProcessOnLinux: enableMultiprocessOnLinuxOption.setConfig,
 	setChromiumDarkMode: darkModeOption.setConfig,
@@ -693,7 +737,7 @@ export const Config: FlatConfig = {
 	setMetadata,
 	setEncodingMaxRate: encodingMaxRateOption.setConfig,
 	setEncodingBufferSize: encodingBufferSizeOption.setConfig,
-	setFrameRange,
+	setFrameRange: framesOption.setConfig,
 	setScale: scaleOption.setConfig,
 	setEveryNthFrame: everyNthFrameOption.setConfig,
 	setNumberOfGifLoops: numberOfGifLoopsOption.setConfig,
@@ -705,7 +749,7 @@ export const Config: FlatConfig = {
 	setPixelFormat: pixelFormatOption.setConfig,
 	setCodec: videoCodecOption.setConfig,
 	setCrf: crfOption.setConfig,
-	setImageSequence,
+	setImageSequence: imageSequenceOption.setConfig,
 	setProResProfile: proResProfileOption.setConfig,
 	setX264Preset: x264Option.setConfig,
 	setAudioBitrate: audioBitrateOption.setConfig,
@@ -718,9 +762,8 @@ export const Config: FlatConfig = {
 	overrideDuration: overrideDurationOption.setConfig,
 	overrideFfmpegCommand: setFfmpegOverrideFunction,
 	setAudioCodec: audioCodecOption.setConfig,
-	setOffthreadVideoCacheSizeInBytes: (size) => {
-		offthreadVideoCacheSizeInBytesOption.setConfig(size);
-	},
+	setOffthreadVideoCacheSizeInBytes:
+		offthreadVideoCacheSizeInBytesOption.setConfig,
 	setDeleteAfter: deleteAfterOption.setConfig,
 	setColorSpace: colorSpaceOption.setConfig,
 	setDisallowParallelEncoding: disallowParallelEncodingOption.setConfig,
@@ -738,10 +781,13 @@ export const Config: FlatConfig = {
 	setPublicLicenseKey: publicLicenseKeyOption.setConfig,
 	setForceNewStudioEnabled: forceNewStudioOption.setConfig,
 	setIPv4: ipv4Option.setConfig,
+	setBundleOutDir: outDirOption.setConfig,
+	setBenchmarkRuns: runsOption.setConfig,
+	setBenchmarkConcurrencies: benchmarkConcurrenciesOption.setConfig,
+	setSampleRate: sampleRateOption.setConfig,
 };
 
 export const ConfigInternals = {
-	getRange,
 	getBrowser,
 	getStudioPort,
 	getRendererPortFromConfigFile,
@@ -753,7 +799,6 @@ export const ConfigInternals = {
 	getWebpackOverrideFn,
 	getWebpackCaching,
 	getOutputLocation,
-	setFrameRangeFromCli,
 	setStillFrame,
 	getMaxTimelineTracks: StudioServerInternals.getMaxTimelineTracks,
 	defaultOverrideFunction,
@@ -761,7 +806,6 @@ export const ConfigInternals = {
 	getMetadata,
 	getEntryPoint,
 	getWebpackPolling,
-	getShouldOpenBrowser,
 	getBufferStateDelayInMilliseconds,
 	getOutputCodecOrUndefined: BrowserSafeApis.getOutputCodecOrUndefined,
 };

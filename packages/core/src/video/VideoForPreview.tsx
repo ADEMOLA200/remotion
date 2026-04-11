@@ -7,8 +7,6 @@ import React, {
 	useRef,
 	useState,
 } from 'react';
-import {SequenceContext} from '../SequenceContext.js';
-import {SequenceVisibilityToggleContext} from '../SequenceManager.js';
 import type {IsExact} from '../audio/props.js';
 import {SharedAudioContext} from '../audio/shared-audio-tags.js';
 import {makeSharedElementSourceNode} from '../audio/shared-element-source-node.js';
@@ -17,6 +15,8 @@ import {getCrossOriginValue} from '../get-cross-origin-value.js';
 import {useLogLevel, useMountTime} from '../log-level-context.js';
 import {playbackLogging} from '../playback-logging.js';
 import {usePreload} from '../prefetch.js';
+import {SequenceContext} from '../SequenceContext.js';
+import {SequenceVisibilityToggleContext} from '../SequenceManager.js';
 import {useVolume} from '../use-amplification.js';
 import {useMediaInTimeline} from '../use-media-in-timeline.js';
 import {useMediaPlayback} from '../use-media-playback.js';
@@ -30,6 +30,7 @@ import {
 import {evaluateVolume} from '../volume-prop.js';
 import {warnAboutTooHighVolume} from '../volume-safeguard.js';
 import {useEmitVideoFrame} from './emit-video-frame.js';
+import {MediaPlaybackError} from './MediaPlaybackError.js';
 import type {NativeVideoProps, OnVideoFrame, RemotionVideoProps} from './props';
 import {isIosSafari, useAppendVideoFragment} from './video-fragment.js';
 
@@ -245,27 +246,33 @@ const VideoForDevelopmentRefForwardingFunction: React.ForwardRefRenderFunction<
 
 				// If user is handling the error, we don't cause an unhandled exception
 				if (onError) {
-					const err = new Error(
-						`Code ${current.error.code}: ${current.error.message}`,
-					);
+					const err = new MediaPlaybackError({
+						message: `Code ${current.error.code}: ${current.error.message}`,
+						src: src as string,
+					});
 					onError(err);
 					return;
 				}
 
-				throw new Error(
-					`The browser threw an error while playing the video ${src}: Code ${current.error.code} - ${current?.error?.message}. See https://remotion.dev/docs/media-playback-error for help. Pass an onError() prop to handle the error.`,
-				);
+				throw new MediaPlaybackError({
+					message: `The browser threw an error while playing the video ${src}: Code ${current.error.code} - ${current?.error?.message}. See https://remotion.dev/docs/media-playback-error for help. Pass an onError() prop to handle the error.`,
+					src: src as string,
+				});
 			} else {
 				// If user is handling the error, we don't cause an unhandled exception
 				if (onError) {
-					const err = new Error(
-						`The browser threw an error while playing the video ${src}`,
-					);
+					const err = new MediaPlaybackError({
+						message: `The browser threw an error while playing the video ${src}`,
+						src: src as string,
+					});
 					onError(err);
 					return;
 				}
 
-				throw new Error('The browser threw an error while playing the video');
+				throw new MediaPlaybackError({
+					message: 'The browser threw an error while playing the video',
+					src: src as string,
+				});
 			}
 		};
 

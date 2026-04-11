@@ -36,6 +36,7 @@ export const UpdateTime: React.FC<{
 
 	return (
 		<Internals.RemotionRootContexts
+			visualModeEnabled={false}
 			audioEnabled={audioEnabled}
 			videoEnabled={videoEnabled}
 			logLevel={logLevel}
@@ -44,7 +45,6 @@ export const UpdateTime: React.FC<{
 			frameState={{
 				[compId]: frame,
 			}}
-			nonceContextSeed={0}
 		>
 			{children}
 		</Internals.RemotionRootContexts>

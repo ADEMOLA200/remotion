@@ -24,8 +24,6 @@ import {shouldUseNonOverlayingLogger} from './should-use-non-overlaying-logger';
 import {showMultiCompositionsPicker} from './show-compositions-picker';
 import {truthy} from './truthy';
 
-const DEFAULT_RUNS = 3;
-
 const {
 	audioBitrateOption,
 	x264Option,
@@ -59,7 +57,9 @@ const {
 	darkModeOption,
 	askAIOption,
 	experimentalClientSideRenderingOption,
+	experimentalVisualModeOption,
 	keyboardShortcutsOption,
+	rspackOption,
 	pixelFormatOption,
 	browserExecutableOption,
 	everyNthFrameOption,
@@ -67,10 +67,22 @@ const {
 	userAgentOption,
 	disableWebSecurityOption,
 	ignoreCertificateErrorsOption,
+	concurrencyOption,
+	overrideHeightOption,
+	overrideWidthOption,
+	overrideFpsOption,
+	overrideDurationOption,
+	bundleCacheOption,
+	runsOption,
+	sampleRateOption,
 } = BrowserSafeApis.options;
 
+const {benchmarkConcurrenciesOption} = BrowserSafeApis.options;
+
 const getValidConcurrency = (cliConcurrency: number | string | null) => {
-	const {concurrencies} = parsedCli;
+	const concurrencies = benchmarkConcurrenciesOption.getValue({
+		commandLine: parsedCli,
+	}).value;
 
 	if (!concurrencies) {
 		return [RenderInternals.resolveConcurrency(cliConcurrency)];
@@ -182,7 +194,7 @@ export const benchmarkCommand = async (
 	args: string[],
 	logLevel: LogLevel,
 ) => {
-	const runs: number = parsedCli.runs ?? DEFAULT_RUNS;
+	const runs = runsOption.getValue({commandLine: parsedCli}).value;
 
 	const {file, reason, remainingArgs} = findEntryPoint({
 		args,
@@ -209,16 +221,25 @@ export const benchmarkCommand = async (
 		envVariables,
 		frameRange: defaultFrameRange,
 		ffmpegOverride,
-		height,
-		width,
-		fps,
-		durationInFrames,
-		concurrency: unparsedConcurrency,
 	} = getCliOptions({
 		isStill: false,
 		logLevel,
 		indent: false,
 	});
+
+	const unparsedConcurrency = concurrencyOption.getValue({
+		commandLine: parsedCli,
+	}).value;
+	const height = overrideHeightOption.getValue({
+		commandLine: parsedCli,
+	}).value;
+	const width = overrideWidthOption.getValue({
+		commandLine: parsedCli,
+	}).value;
+	const fps = overrideFpsOption.getValue({commandLine: parsedCli}).value;
+	const durationInFrames = overrideDurationOption.getValue({
+		commandLine: parsedCli,
+	}).value;
 
 	const pixelFormat = pixelFormatOption.getValue({
 		commandLine: parsedCli,
@@ -262,8 +283,15 @@ export const benchmarkCommand = async (
 		experimentalClientSideRenderingOption.getValue({
 			commandLine: parsedCli,
 		}).value;
+	const experimentalVisualModeEnabled = experimentalVisualModeOption.getValue({
+		commandLine: parsedCli,
+	}).value;
 	const askAIEnabled = askAIOption.getValue({commandLine: parsedCli}).value;
 	const keyboardShortcutsEnabled = keyboardShortcutsOption.getValue({
+		commandLine: parsedCli,
+	}).value;
+	const rspack = rspackOption.getValue({commandLine: parsedCli}).value;
+	const shouldCache = bundleCacheOption.getValue({
 		commandLine: parsedCli,
 	}).value;
 
@@ -336,8 +364,11 @@ export const benchmarkCommand = async (
 			publicPath,
 			audioLatencyHint: null,
 			experimentalClientSideRenderingEnabled,
+			experimentalVisualModeEnabled,
 			askAIEnabled,
 			keyboardShortcutsEnabled,
+			rspack,
+			shouldCache,
 		});
 
 	registerCleanupJob(`Deleting bundle`, () => cleanupBundle());
@@ -453,6 +484,7 @@ export const benchmarkCommand = async (
 		true,
 	).value;
 	const metadata = metadataOption.getValue({commandLine: parsedCli}).value;
+	const sampleRate = sampleRateOption.getValue({commandLine: parsedCli}).value;
 
 	for (const composition of compositions) {
 		const {value: videoCodec, source: codecReason} = videoCodecOption.getValue(
@@ -517,6 +549,7 @@ export const benchmarkCommand = async (
 					everyNthFrame,
 					logLevel,
 					muted,
+					sampleRate,
 					enforceAudioTrack,
 					browserExecutable,
 					ffmpegOverride,

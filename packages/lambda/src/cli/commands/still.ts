@@ -1,3 +1,4 @@
+import path from 'path';
 import {CliInternals} from '@remotion/cli';
 import {ConfigInternals} from '@remotion/cli/config';
 import {AwsProvider, LambdaClientInternals} from '@remotion/lambda-client';
@@ -11,7 +12,6 @@ import {RenderInternals} from '@remotion/renderer';
 import {BrowserSafeApis} from '@remotion/renderer/client';
 import type {ProviderSpecifics} from '@remotion/serverless';
 import {validatePrivacy} from '@remotion/serverless';
-import path from 'path';
 import {NoReactInternals} from 'remotion/no-react';
 import {internalDownloadMedia} from '../../api/download-media';
 import {validateMaxRetries} from '../../shared/validate-retries';
@@ -39,6 +39,10 @@ const {
 	userAgentOption,
 	disableWebSecurityOption,
 	ignoreCertificateErrorsOption,
+	overrideHeightOption,
+	overrideWidthOption,
+	overrideFpsOption,
+	overrideDurationOption,
 } = BrowserSafeApis.options;
 
 const {
@@ -79,19 +83,20 @@ export const stillCommand = async ({
 		quit(1);
 	}
 
-	const {
-		envVariables,
-		inputProps,
-		stillFrame,
-		height,
-		width,
-		fps,
-		durationInFrames,
-	} = getCliOptions({
+	const {envVariables, inputProps, stillFrame} = getCliOptions({
 		isStill: true,
 		logLevel,
 		indent: false,
 	});
+
+	const height = overrideHeightOption.getValue({
+		commandLine: parsedCli,
+	}).value;
+	const width = overrideWidthOption.getValue({commandLine: parsedCli}).value;
+	const fps = overrideFpsOption.getValue({commandLine: parsedCli}).value;
+	const durationInFrames = overrideDurationOption.getValue({
+		commandLine: parsedCli,
+	}).value;
 
 	const browserExecutable = browserExecutableOption.getValue({
 		commandLine: parsedCli,
@@ -168,6 +173,7 @@ export const stillCommand = async ({
 			offthreadVideoCacheSizeInBytes,
 			binariesDirectory,
 			forceIPv4: false,
+			sampleRate: 48000,
 		});
 
 		const indent = false;

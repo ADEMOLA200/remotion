@@ -33,8 +33,6 @@ export type Template = {
 		| 'react-router'
 		| 'three'
 		| 'still'
-		| 'tts'
-		| 'google-tts'
 		| 'audiogram'
 		| 'music-visualization'
 		| 'prompt-to-video'
@@ -46,6 +44,7 @@ export type Template = {
 		| 'render-server'
 		| 'recorder'
 		| 'prompt-to-motion-graphics'
+		| 'electron'
 		| 'vercel';
 	defaultBranch: string;
 	featuredOnHomePage: string | null;
@@ -239,7 +238,7 @@ export const FEATURED_TEMPLATES: Template[] = [
 		shortName: 'Prompt to Motion Graphics SaaS Starter Kit',
 		org: 'remotion-dev',
 		repoName: 'template-prompt-to-motion-graphics-saas',
-		description: 'SaaS template for AI-powered code generation with Remotion',
+		description: 'SaaS template for AI-powered animation generation',
 		longerDescription:
 			'A SaaS template for "Prompt to Motion Graphics" products. Generates Remotion code, streams it to the frontend, and compiles and previews it in the browser. See the <a href="/docs/ai/ai-saas-template">documentation page</a> for more details.',
 		promoBanner: {
@@ -306,6 +305,30 @@ export const FEATURED_TEMPLATES: Template[] = [
 		allowEnableTailwind: false,
 		contributedBy: null,
 		showStackblitz: true,
+	},
+	{
+		homePageLabel: 'Electron',
+		shortName: 'Electron',
+		org: 'remotion-dev',
+		repoName: 'template-electron',
+		description: 'Render Remotion videos from a desktop app',
+		longerDescription:
+			'An Electron Forge + Vite starter template that renders Remotion videos from the Electron main process.',
+		promoVideo: {
+			muxId: 'EvaWtUbbZ5zuYQ5EZFcZ501fg4JPtdVXXt9K02Rf62xcM',
+			width: 1920,
+			height: 1080,
+		},
+		cliId: 'electron' as const,
+		type: 'video' as const,
+		defaultBranch: 'main',
+		featuredOnHomePage: null,
+		previewURL: null,
+		previewLabel: null,
+		templateInMonorepo: 'template-electron',
+		allowEnableTailwind: false,
+		contributedBy: null,
+		showStackblitz: false,
 	},
 	{
 		homePageLabel: 'React Router 7',
@@ -375,54 +398,6 @@ export const FEATURED_TEMPLATES: Template[] = [
 		previewURL: 'https://template-still.vercel.app/?/PreviewCard',
 		previewLabel: null,
 		templateInMonorepo: 'template-still',
-		allowEnableTailwind: false,
-		contributedBy: null,
-		showStackblitz: true,
-	},
-	{
-		homePageLabel: 'Text-To-Speech (Azure)',
-		shortName: 'TTS (Azure)',
-		org: 'FelippeChemello',
-		repoName: 'Remotion-TTS-Example',
-		description: 'Turns text into speech and makes a video',
-		longerDescription:
-			'A template that turns text into a spoken video. Integrates with Azure Cloud for Speech synthesis.',
-		promoVideo: {
-			muxId: '8vJJ01lNuFmQCx7n59VILevqQGxRuQHp9a7VBR7B4C8k',
-			width: 1920,
-			height: 1080,
-		},
-		cliId: 'tts' as const,
-		type: 'video' as const,
-		defaultBranch: 'master',
-		featuredOnHomePage: null,
-		previewURL: null,
-		previewLabel: null,
-		templateInMonorepo: 'template-tts-azure',
-		allowEnableTailwind: false,
-		contributedBy: null,
-		showStackblitz: true,
-	},
-	{
-		homePageLabel: 'Text-To-Speech (Google)',
-		shortName: 'TTS (Google)',
-		org: 'thecmdrunner',
-		repoName: 'remotion-gtts-template',
-		description: 'Turns text into speech and makes a video',
-		longerDescription:
-			'A template that turns text into a spoken video. Integrates with Firebase for Storage, and Google Cloud for Speech synthesis.',
-		promoVideo: {
-			muxId: '82dzhGhv3bl3p8LW009cFGd8oltqt6UvxTWdP27202BAY',
-			width: 1920,
-			height: 1080,
-		},
-		cliId: 'google-tts' as const,
-		type: 'video' as const,
-		defaultBranch: 'master',
-		featuredOnHomePage: null,
-		previewURL: null,
-		previewLabel: null,
-		templateInMonorepo: 'template-tts-google',
 		allowEnableTailwind: false,
 		contributedBy: null,
 		showStackblitz: true,

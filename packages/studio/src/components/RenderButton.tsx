@@ -25,6 +25,7 @@ import {ThinRenderIcon} from '../icons/render';
 import {useTimelineInOutFramePosition} from '../state/in-out';
 import {ModalsContext} from '../state/modals';
 import {HigherZIndex, useZIndex} from '../state/z-index';
+import {Row, Spacing} from './layout';
 import {MENU_INITIATOR_CLASSNAME, isMenuItem} from './Menu/is-menu-item';
 import {getPortal} from './Menu/portals';
 import {
@@ -35,7 +36,6 @@ import {
 } from './Menu/styles';
 import type {ComboboxValue} from './NewComposition/ComboBox';
 import {MenuContent} from './NewComposition/MenuContent';
-import {Row, Spacing} from './layout';
 
 const splitButtonContainer: React.CSSProperties = {
 	display: 'inline-flex',
@@ -90,13 +90,13 @@ const label: React.CSSProperties = {
 	fontSize: 14,
 };
 
-export type RenderType = 'server-render' | 'client-render';
+export type RenderType = 'server-render' | 'client-render' | 'render-command';
 
 const RENDER_TYPE_STORAGE_KEY = 'remotion.renderType';
 
 const getInitialRenderType = (readOnlyStudio: boolean): RenderType => {
 	if (!SHOW_BROWSER_RENDERING) {
-		return 'server-render';
+		return readOnlyStudio ? 'render-command' : 'server-render';
 	}
 
 	if (readOnlyStudio) {
@@ -178,10 +178,21 @@ export const RenderButton: React.FC<{readonly readOnlyStudio: boolean}> = ({
 
 	const connectionStatus = useContext(StudioServerConnectionCtx)
 		.previewServerState.type;
+	const canServerRender = connectionStatus === 'connected';
 
-	const canRender = connectionStatus === 'connected' || SHOW_BROWSER_RENDERING;
+	const canRender = canServerRender || SHOW_BROWSER_RENDERING || readOnlyStudio;
 
 	const renderType: RenderType = useMemo(() => {
+		if (readOnlyStudio) {
+			if (!SHOW_BROWSER_RENDERING) {
+				return 'render-command';
+			}
+
+			return preferredRenderType === 'render-command'
+				? 'render-command'
+				: 'client-render';
+		}
+
 		if (connectionStatus === 'disconnected' && SHOW_BROWSER_RENDERING) {
 			return 'client-render';
 		}
@@ -191,12 +202,15 @@ export const RenderButton: React.FC<{readonly readOnlyStudio: boolean}> = ({
 		}
 
 		return preferredRenderType;
-	}, [connectionStatus, preferredRenderType]);
+	}, [connectionStatus, preferredRenderType, readOnlyStudio]);
 
 	const shortcut = areKeyboardShortcutsDisabled() ? '' : '(R)';
-	const tooltip = canRender
-		? 'Export the current composition ' + shortcut
-		: 'Connect to the Studio server to render';
+	const tooltip =
+		renderType === 'render-command'
+			? 'Copy a CLI command to render this composition ' + shortcut
+			: canRender
+				? 'Export the current composition ' + shortcut
+				: 'Connect to the Studio server to render';
 
 	const iconStyle: SVGProps<SVGSVGElement> = useMemo(() => {
 		return {
@@ -212,70 +226,77 @@ export const RenderButton: React.FC<{readonly readOnlyStudio: boolean}> = ({
 
 	const {props} = useContext(Internals.EditorPropsContext);
 
-	const openServerRenderModal = useCallback(() => {
-		if (!video) {
-			return null;
-		}
+	const openServerRenderModal = useCallback(
+		(copyCommandOnly: boolean) => {
+			if (!video) {
+				return null;
+			}
 
-		const defaults = window.remotion_renderDefaults;
+			const defaults = window.remotion_renderDefaults;
 
-		if (!defaults) {
-			throw new TypeError('Expected defaults');
-		}
+			if (!defaults) {
+				throw new TypeError('Expected defaults');
+			}
 
-		setSelectedModal({
-			type: 'server-render',
-			compositionId: video.id,
-			initialFrame: getCurrentFrame(),
-			initialStillImageFormat: defaults.stillImageFormat,
-			initialVideoImageFormat: null,
-			initialJpegQuality: defaults.jpegQuality,
-			initialScale: window.remotion_renderDefaults?.scale ?? 1,
-			initialLogLevel: defaults.logLevel as LogLevel,
-			initialConcurrency: defaults.concurrency,
-			maxConcurrency: defaults.maxConcurrency,
-			minConcurrency: defaults.minConcurrency,
-			initialMuted: defaults.muted,
-			initialEnforceAudioTrack: defaults.enforceAudioTrack,
-			initialProResProfile:
-				defaults.proResProfile as _InternalTypes['ProResProfile'],
-			initialx264Preset: defaults.x264Preset as X264Preset,
-			initialPixelFormat: null,
-			initialAudioBitrate: defaults.audioBitrate,
-			initialVideoBitrate: defaults.videoBitrate,
-			initialEveryNthFrame: defaults.everyNthFrame,
-			initialNumberOfGifLoops: defaults.numberOfGifLoops,
-			initialDelayRenderTimeout: defaults.delayRenderTimeout,
-			defaultConfigurationAudioCodec: defaults.audioCodec as AudioCodec | null,
-			initialEnvVariables: window.process.env as Record<string, string>,
-			initialDisableWebSecurity: defaults.disableWebSecurity,
-			initialDarkMode: defaults.darkMode,
-			initialOpenGlRenderer: defaults.openGlRenderer as OpenGlRenderer | null,
-			initialHeadless: defaults.headless,
-			initialIgnoreCertificateErrors: defaults.ignoreCertificateErrors,
-			initialOffthreadVideoCacheSizeInBytes:
-				defaults.offthreadVideoCacheSizeInBytes,
-			initialOffthreadVideoThreads: defaults.offthreadVideoThreads,
-			defaultProps: props[video.id] ?? video.defaultProps,
-			inFrameMark: inFrame,
-			outFrameMark: outFrame,
-			initialColorSpace: defaults.colorSpace as ColorSpace,
-			initialMultiProcessOnLinux: defaults.multiProcessOnLinux,
-			defaultConfigurationVideoCodec: defaults.codec as Codec,
-			initialEncodingBufferSize: defaults.encodingBufferSize,
-			initialEncodingMaxRate: defaults.encodingMaxRate,
-			initialUserAgent: defaults.userAgent,
-			initialBeep: defaults.beepOnFinish,
-			initialRepro: defaults.repro,
-			initialForSeamlessAacConcatenation: defaults.forSeamlessAacConcatenation,
-			renderTypeOfLastRender: null,
-			defaulMetadata: defaults.metadata,
-			initialHardwareAcceleration: defaults.hardwareAcceleration,
-			initialChromeMode: defaults.chromeMode,
-			initialMediaCacheSizeInBytes: defaults.mediaCacheSizeInBytes,
-			renderDefaults: defaults,
-		});
-	}, [video, setSelectedModal, getCurrentFrame, props, inFrame, outFrame]);
+			setSelectedModal({
+				type: 'server-render',
+				readOnlyStudio: copyCommandOnly,
+				compositionId: video.id,
+				initialFrame: getCurrentFrame(),
+				initialStillImageFormat: defaults.stillImageFormat,
+				initialVideoImageFormat: null,
+				initialJpegQuality: defaults.jpegQuality,
+				initialScale: window.remotion_renderDefaults?.scale ?? 1,
+				initialLogLevel: defaults.logLevel as LogLevel,
+				initialConcurrency: defaults.concurrency,
+				maxConcurrency: defaults.maxConcurrency,
+				minConcurrency: defaults.minConcurrency,
+				initialMuted: defaults.muted,
+				initialEnforceAudioTrack: defaults.enforceAudioTrack,
+				initialProResProfile:
+					defaults.proResProfile as _InternalTypes['ProResProfile'],
+				initialx264Preset: defaults.x264Preset as X264Preset,
+				initialPixelFormat: null,
+				initialAudioBitrate: defaults.audioBitrate,
+				initialVideoBitrate: defaults.videoBitrate,
+				initialEveryNthFrame: defaults.everyNthFrame,
+				initialNumberOfGifLoops: defaults.numberOfGifLoops,
+				initialDelayRenderTimeout: defaults.delayRenderTimeout,
+				defaultConfigurationAudioCodec:
+					defaults.audioCodec as AudioCodec | null,
+				initialEnvVariables: window.process.env as Record<string, string>,
+				initialDisableWebSecurity: defaults.disableWebSecurity,
+				initialDarkMode: defaults.darkMode,
+				initialOpenGlRenderer: defaults.openGlRenderer as OpenGlRenderer | null,
+				initialHeadless: defaults.headless,
+				initialIgnoreCertificateErrors: defaults.ignoreCertificateErrors,
+				initialOffthreadVideoCacheSizeInBytes:
+					defaults.offthreadVideoCacheSizeInBytes,
+				initialOffthreadVideoThreads: defaults.offthreadVideoThreads,
+				defaultProps: props[video.id] ?? video.defaultProps,
+				inFrameMark: inFrame,
+				outFrameMark: outFrame,
+				initialColorSpace: defaults.colorSpace as ColorSpace,
+				initialMultiProcessOnLinux: defaults.multiProcessOnLinux,
+				defaultConfigurationVideoCodec: defaults.codec as Codec,
+				initialEncodingBufferSize: defaults.encodingBufferSize,
+				initialEncodingMaxRate: defaults.encodingMaxRate,
+				initialUserAgent: defaults.userAgent,
+				initialBeep: defaults.beepOnFinish,
+				initialRepro: defaults.repro,
+				initialForSeamlessAacConcatenation:
+					defaults.forSeamlessAacConcatenation,
+				renderTypeOfLastRender: null,
+				defaulMetadata: defaults.metadata,
+				initialHardwareAcceleration: defaults.hardwareAcceleration,
+				initialSampleRate: defaults.sampleRate,
+				initialChromeMode: defaults.chromeMode,
+				initialMediaCacheSizeInBytes: defaults.mediaCacheSizeInBytes,
+				renderDefaults: defaults,
+			});
+		},
+		[video, setSelectedModal, getCurrentFrame, props, inFrame, outFrame],
+	);
 
 	const openClientRenderModal = useCallback(() => {
 		if (!video) {
@@ -312,12 +333,18 @@ export const RenderButton: React.FC<{readonly readOnlyStudio: boolean}> = ({
 			initialTransparent: null,
 			initialMuted: null,
 			initialMediaCacheSizeInBytes: defaults.mediaCacheSizeInBytes,
+			initialAllowHtmlInCanvas: defaults.allowHtmlInCanvas,
 		});
 	}, [video, setSelectedModal, getCurrentFrame, props, inFrame, outFrame]);
 
 	const onClick = useCallback(() => {
+		if (renderType === 'render-command') {
+			openServerRenderModal(true);
+			return;
+		}
+
 		if (!SHOW_BROWSER_RENDERING || renderType === 'server-render') {
-			openServerRenderModal();
+			openServerRenderModal(false);
 		} else {
 			openClientRenderModal();
 		}
@@ -339,14 +366,43 @@ export const RenderButton: React.FC<{readonly readOnlyStudio: boolean}> = ({
 			setDropdownOpened(false);
 
 			if (newType === 'server-render') {
-				openServerRenderModal();
+				openServerRenderModal(false);
+			} else if (newType === 'render-command') {
+				openServerRenderModal(true);
 			} else {
 				openClientRenderModal();
 			}
 		},
-		[openServerRenderModal, openClientRenderModal],
+		[openClientRenderModal, openServerRenderModal],
 	);
 	const dropdownValues: ComboboxValue[] = useMemo(() => {
+		if (readOnlyStudio) {
+			return [
+				{
+					type: 'item' as const,
+					id: 'client-render',
+					label: 'Render on web',
+					value: 'client-render',
+					onClick: () => handleRenderTypeChange('client-render'),
+					keyHint: null,
+					leftItem: null,
+					subMenu: null,
+					quickSwitcherLabel: null,
+				},
+				{
+					type: 'item' as const,
+					id: 'render-command',
+					label: 'Render via CLI',
+					value: 'render-command',
+					onClick: () => handleRenderTypeChange('render-command'),
+					keyHint: null,
+					leftItem: null,
+					subMenu: null,
+					quickSwitcherLabel: null,
+				},
+			];
+		}
+
 		return [
 			{
 				type: 'item' as const,
@@ -371,7 +427,7 @@ export const RenderButton: React.FC<{readonly readOnlyStudio: boolean}> = ({
 				quickSwitcherLabel: null,
 			},
 		];
-	}, [handleRenderTypeChange]);
+	}, [handleRenderTypeChange, readOnlyStudio]);
 
 	const spaceToBottom = useMemo(() => {
 		const margin = 10;
@@ -425,15 +481,17 @@ export const RenderButton: React.FC<{readonly readOnlyStudio: boolean}> = ({
 	}, [canRender]);
 
 	const renderLabel =
-		renderType === 'server-render' ? 'Render' : 'Render on web';
+		renderType === 'server-render'
+			? 'Render'
+			: renderType === 'render-command'
+				? 'Render via CLI'
+				: 'Render on web';
 
 	const shouldShowDropdown = useMemo(() => {
-		// Server render is not available
 		if (readOnlyStudio) {
-			return false;
+			return SHOW_BROWSER_RENDERING;
 		}
 
-		// client render is not available
 		if (!SHOW_BROWSER_RENDERING) {
 			return false;
 		}
@@ -450,8 +508,8 @@ export const RenderButton: React.FC<{readonly readOnlyStudio: boolean}> = ({
 			<button
 				style={{display: 'none'}}
 				id="render-modal-button-server"
-				disabled={!canRender}
-				onClick={openServerRenderModal}
+				disabled={!canServerRender}
+				onClick={() => openServerRenderModal(false)}
 				type="button"
 			/>{' '}
 			<button
@@ -481,7 +539,7 @@ export const RenderButton: React.FC<{readonly readOnlyStudio: boolean}> = ({
 							ref={dropdownRef}
 							type="button"
 							style={dropdownTriggerStyle}
-							disabled={connectionStatus !== 'connected'}
+							disabled={!readOnlyStudio && connectionStatus !== 'connected'}
 							className={MENU_INITIATOR_CLASSNAME}
 							onPointerDown={onPointerDown}
 							onClick={onClickDropdown}

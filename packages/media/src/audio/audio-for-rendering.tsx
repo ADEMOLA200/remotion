@@ -11,7 +11,7 @@ import {
 } from 'remotion';
 import {useMaxMediaCacheSize} from '../caches';
 import {applyVolume} from '../convert-audiodata/apply-volume';
-import {TARGET_SAMPLE_RATE} from '../convert-audiodata/resample-audiodata';
+import {getTargetSampleRate} from '../convert-audiodata/resample-audiodata';
 import {frameForVolumeProp} from '../looped-frame';
 import {callOnErrorAndResolve} from '../on-error';
 import {extractFrameViaBroadcastChannel} from '../video-extraction/extract-frame-via-broadcast-channel';
@@ -37,6 +37,7 @@ export const AudioForRendering: React.FC<AudioProps> = ({
 	trimAfter,
 	trimBefore,
 	onError,
+	credentials,
 }) => {
 	const defaultLogLevel = Internals.useLogLevel();
 	const logLevel = overriddenLogLevel ?? defaultLogLevel;
@@ -129,6 +130,7 @@ export const AudioForRendering: React.FC<AudioProps> = ({
 			trimBefore,
 			fps,
 			maxCacheSize,
+			credentials,
 		})
 			.then((result) => {
 				const handleError = (
@@ -222,7 +224,8 @@ export const AudioForRendering: React.FC<AudioProps> = ({
 							: Array.from(audio.data),
 						frame: absoluteFrame,
 						timestamp: audio.timestamp,
-						duration: (audio.numberOfFrames / TARGET_SAMPLE_RATE) * 1_000_000,
+						duration:
+							(audio.numberOfFrames / getTargetSampleRate()) * 1_000_000,
 						toneFrequency: toneFrequency ?? 1,
 					});
 				}
@@ -266,6 +269,7 @@ export const AudioForRendering: React.FC<AudioProps> = ({
 		maxCacheSize,
 		audioEnabled,
 		onError,
+		credentials,
 	]);
 
 	if (replaceWithHtml5Audio) {

@@ -2,11 +2,13 @@ import './_check-rsc.js';
 import './asset-types.js';
 import {Clipper} from './Clipper.js';
 import type {Codec} from './codec.js';
+import {Composition} from './Composition.js';
 import type {
 	AnyCompMetadata,
 	AnyComposition,
 	AudioOrVideoAsset,
 	LoopDisplay,
+	SequenceControls,
 	TRenderAsset,
 } from './CompositionManager.js';
 import type {DelayRenderScope} from './delay-render.js';
@@ -18,6 +20,10 @@ import {checkMultipleRemotionVersions} from './multiple-versions-warning.js';
 import {Null} from './Null.js';
 import type {ProResProfile} from './prores-profile.js';
 import type {PixelFormat, VideoImageFormat} from './render-types.js';
+import type {
+	SequenceFieldSchema,
+	SequenceSchema,
+} from './sequence-field-schema.js';
 import {Sequence} from './Sequence.js';
 import type {UseBufferState} from './use-buffer-state';
 import type {VideoConfig} from './video-config.js';
@@ -58,7 +64,7 @@ declare global {
 		remotion_ignoreFastRefreshUpdate: number | null;
 		remotion_numberOfAudioTags: number;
 		remotion_audioLatencyHint: AudioContextLatencyCategory | undefined;
-		remotion_logLevel: LogLevel;
+		remotion_logLevel: LogLevel | undefined;
 		remotion_projectName: string;
 		remotion_cwd: string;
 		remotion_studioServerCommand: string;
@@ -78,6 +84,7 @@ declare global {
 		remotion_envVariables: string;
 		remotion_isMainTab: boolean;
 		remotion_mediaCacheSizeInBytes: number | null;
+		remotion_sampleRate: number;
 		remotion_initialMemoryAvailable: number | null;
 		remotion_collectAssets: () => TRenderAsset[];
 		remotion_isPlayer: boolean;
@@ -88,7 +95,6 @@ declare global {
 		siteVersion: '11';
 		remotion_version: string;
 		remotion_imported: string | boolean;
-		remotion_unsavedProps: boolean | undefined;
 	}
 }
 
@@ -105,6 +111,7 @@ export type BundleCompositionState = {
 	compositionDefaultVideoImageFormat: VideoImageFormat | null;
 	compositionDefaultPixelFormat: PixelFormat | null;
 	compositionDefaultProResProfile: ProResProfile | null;
+	compositionDefaultSampleRate: number | null;
 };
 
 export type BundleIndexState = {
@@ -143,6 +150,7 @@ export {DownloadBehavior} from './download-behavior.js';
 export * from './easing.js';
 export * from './Folder.js';
 export * from './freeze.js';
+export type {NonceHistory} from './nonce.js';
 export {getRemotionEnvironment} from './get-remotion-environment.js';
 export {getStaticFiles, StaticFile} from './get-static-files.js';
 export * from './IFrame.js';
@@ -197,6 +205,7 @@ export {
 	RemotionVideoProps,
 	Video,
 } from './video/index.js';
+export {MediaPlaybackError} from './video/MediaPlaybackError.js';
 export type {OnVideoFrame} from './video/props.js';
 export type {VolumeProp} from './volume-prop.js';
 export {watchStaticFile} from './watch-static-file.js';
@@ -251,7 +260,9 @@ export const Config = new Proxy(proxyObj, {
 	},
 });
 
+Sequence.displayName = 'Sequence';
 addSequenceStackTraces(Sequence);
+addSequenceStackTraces(Composition);
 
 export type _InternalTypes = {
 	AnyComposition: AnyComposition;
@@ -264,4 +275,12 @@ export type _InternalTypes = {
 	ProResProfile: ProResProfile;
 };
 
-export type {AnyComposition, DelayRenderScope, LoopDisplay, UseBufferState};
+export type {
+	AnyComposition,
+	DelayRenderScope,
+	LoopDisplay,
+	SequenceControls,
+	SequenceFieldSchema,
+	SequenceSchema,
+	UseBufferState,
+};

@@ -1,15 +1,47 @@
 import React from 'react';
-import {Internals, useRemotionEnvironment} from 'remotion';
+import type {SequenceControls, SequenceSchema} from 'remotion';
+import {Internals, Sequence, useRemotionEnvironment} from 'remotion';
 import {AudioForPreview} from './audio-for-preview';
 import {AudioForRendering} from './audio-for-rendering';
 import type {AudioProps} from './props';
 
 const {validateMediaProps} = Internals;
 
-export const Audio: React.FC<AudioProps> = (props) => {
+const audioSchema = {
+	volume: {
+		type: 'number',
+		min: 0,
+		max: 20,
+		step: 0.01,
+		default: 1,
+		description: 'Volume',
+	},
+	playbackRate: {
+		type: 'number',
+		min: 0.1,
+		step: 0.01,
+		default: 1,
+		description: 'Playback Rate',
+	},
+	loop: {type: 'boolean', default: false, description: 'Loop'},
+} as const satisfies SequenceSchema;
+
+const AudioInner: React.FC<
+	AudioProps & {
+		readonly controls: SequenceControls | undefined;
+	}
+> = (props) => {
 	// Should only destruct `trimBefore` and `trimAfter` from props,
 	// rest gets drilled down
-	const {name, stack, showInTimeline, ...otherProps} = props;
+	const {
+		name,
+		stack,
+		showInTimeline,
+		controls,
+		from,
+		durationInFrames,
+		...otherProps
+	} = props;
 	const environment = useRemotionEnvironment();
 
 	if (typeof props.src !== 'string') {
@@ -25,11 +57,27 @@ export const Audio: React.FC<AudioProps> = (props) => {
 		'Audio',
 	);
 
-	if (environment.isRendering) {
-		return <AudioForRendering {...otherProps} />;
-	}
-
-	return <AudioForPreview name={name} {...otherProps} stack={stack ?? null} />;
+	return (
+		<Sequence
+			layout="none"
+			from={from ?? 0}
+			durationInFrames={durationInFrames ?? Infinity}
+			showInTimeline={false}
+		>
+			{environment.isRendering ? (
+				<AudioForRendering {...otherProps} />
+			) : (
+				<AudioForPreview
+					name={name}
+					{...otherProps}
+					stack={stack ?? null}
+					controls={controls}
+				/>
+			)}
+		</Sequence>
+	);
 };
+
+export const Audio = Internals.wrapInSchema(AudioInner, audioSchema);
 
 Internals.addSequenceStackTraces(Audio);

@@ -17,19 +17,6 @@ import {
 	removeJob,
 } from './render-queue/queue';
 
-const getPort = () => {
-	if (parsedCli.port) {
-		return parsedCli.port;
-	}
-
-	const serverPort = ConfigInternals.getStudioPort();
-	if (serverPort) {
-		return serverPort;
-	}
-
-	return null;
-};
-
 const {
 	binariesDirectoryOption,
 	publicDirOption,
@@ -37,11 +24,17 @@ const {
 	enableCrossSiteIsolationOption,
 	askAIOption,
 	experimentalClientSideRenderingOption,
+	experimentalVisualModeOption,
 	keyboardShortcutsOption,
 	forceNewStudioOption,
 	numberOfSharedAudioTagsOption,
 	audioLatencyHintOption,
 	ipv4Option,
+	rspackOption,
+	webpackPollOption,
+	noOpenOption,
+	portOption,
+	browserOption,
 } = BrowserSafeApis.options;
 
 export const studioCommand = async (
@@ -77,9 +70,16 @@ export const studioCommand = async (
 		process.exit(1);
 	}
 
-	const desiredPort = getPort();
+	const desiredPort =
+		portOption.getValue({commandLine: parsedCli}).value ??
+		ConfigInternals.getStudioPort() ??
+		null;
 
 	const fullEntryPath = convertEntryPointToServeUrl(file);
+
+	StudioServerInternals.setFileWatcherRegistry(
+		StudioServerInternals.createFileWatcherRegistry(),
+	);
 
 	let inputProps = getInputProps((newProps) => {
 		StudioServerInternals.waitForLiveEventsListener().then((listener) => {
@@ -142,23 +142,41 @@ export const studioCommand = async (
 
 	const gitSource = getGitSource({remotionRoot, disableGitSource, logLevel});
 
+	const useRspack = rspackOption.getValue({commandLine: parsedCli}).value;
+
+	if (useRspack) {
+		Log.warn(
+			{indent: false, logLevel},
+			'Enabling experimental Rspack bundler.',
+		);
+	}
+
+	const useVisualMode = experimentalVisualModeOption.getValue({
+		commandLine: parsedCli,
+	}).value;
+
+	if (useVisualMode) {
+		Log.warn({indent: false, logLevel}, 'Enabling experimental visual mode.');
+	}
+
 	const result = await StudioServerInternals.startStudio({
 		previewEntry: require.resolve('@remotion/studio/previewEntry'),
 		browserArgs: parsedCli['browser-args'],
-		browserFlag: parsedCli.browser,
+		browserFlag: browserOption.getValue({commandLine: parsedCli}).value ?? '',
 		logLevel,
-		configValueShouldOpenBrowser: ConfigInternals.getShouldOpenBrowser(),
+		shouldOpenBrowser: !noOpenOption.getValue({commandLine: parsedCli}).value,
 		fullEntryPath,
 		getCurrentInputProps: () => inputProps,
 		getEnvVariables: () => envVariables,
 		desiredPort,
 		keyboardShortcutsEnabled,
 		experimentalClientSideRenderingEnabled,
+		experimentalVisualModeEnabled: useVisualMode,
 		maxTimelineTracks: ConfigInternals.getMaxTimelineTracks(),
 		remotionRoot,
 		relativePublicDir,
 		webpackOverride: ConfigInternals.getWebpackOverrideFn(),
-		poll: ConfigInternals.getWebpackPolling(),
+		poll: webpackPollOption.getValue({commandLine: parsedCli}).value,
 		getRenderDefaults,
 		getRenderQueue,
 		numberOfAudioTags: numberOfSharedAudioTagsOption.getValue({
@@ -169,9 +187,6 @@ export const studioCommand = async (
 			cancelJob,
 			removeJob,
 		},
-		// Minimist quirk: Adding `--no-open` flag will result in {['no-open']: false, open: true}
-		// @ts-expect-error
-		parsedCliOpen: parsedCli.open,
 		gitSource,
 		bufferStateDelayInMilliseconds:
 			ConfigInternals.getBufferStateDelayInMilliseconds(),
@@ -183,6 +198,7 @@ export const studioCommand = async (
 		enableCrossSiteIsolation,
 		askAIEnabled,
 		forceNew: forceNewStudioOption.getValue({commandLine: parsedCli}).value,
+		rspack: useRspack,
 	});
 
 	if (result.type === 'already-running') {

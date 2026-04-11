@@ -1,13 +1,10 @@
-/* eslint-disable @typescript-eslint/no-use-before-define */
-import type {EmittedArtifact, LogOptions} from '@remotion/renderer';
-import {RenderInternals} from '@remotion/renderer';
-
-import {validateCodec, VERSION} from '@remotion/serverless-client';
 import {existsSync, mkdirSync, rmSync} from 'fs';
 import {type EventEmitter} from 'node:events';
 import {join} from 'path';
-import type {InsideFunctionSpecifics} from '../provider-implementation';
-
+/* eslint-disable @typescript-eslint/no-use-before-define */
+import type {EmittedArtifact, LogOptions} from '@remotion/renderer';
+import {RenderInternals} from '@remotion/renderer';
+import {validateCodec, VERSION} from '@remotion/serverless-client';
 import type {
 	CloudProvider,
 	PostRenderData,
@@ -38,6 +35,7 @@ import {mergeChunksAndFinishRender} from '../merge-chunks';
 import type {OverallProgressHelper} from '../overall-render-progress';
 import {makeOverallRenderProgress} from '../overall-render-progress';
 import {planFrameRanges} from '../plan-frame-ranges';
+import type {InsideFunctionSpecifics} from '../provider-implementation';
 import {removeOutnameCredentials} from '../remove-outname-credentials';
 import {streamRendererFunctionWithRetry} from '../stream-renderer';
 import {validateComposition} from '../validate-composition';
@@ -314,6 +312,7 @@ const innerLaunchHandler = async <Provider extends CloudProvider>({
 			metadata: params.metadata,
 			offthreadVideoThreads: params.offthreadVideoThreads,
 			mediaCacheSizeInBytes: params.mediaCacheSizeInBytes,
+			sampleRate: params.sampleRate,
 		};
 		return payload;
 	});
@@ -479,7 +478,7 @@ const innerLaunchHandler = async <Provider extends CloudProvider>({
 					willRetry: false,
 					totalAttempts: 1,
 				});
-				overallProgress.upload();
+				overallProgress.upload('artifactWriteError');
 				RenderInternals.Log.error(
 					{indent: false, logLevel: params.logLevel},
 					'Failed to write artifact to S3',
@@ -541,6 +540,7 @@ const innerLaunchHandler = async <Provider extends CloudProvider>({
 		frameRange: params.frameRange,
 		storageClass: params.storageClass,
 		requestHandler: null,
+		sampleRate: params.sampleRate,
 	});
 
 	return postRenderData;
@@ -684,7 +684,7 @@ export const launchHandler = async <Provider extends CloudProvider>({
 				willRetry: false,
 				totalAttempts: 1,
 			});
-			overallProgress.upload();
+			overallProgress.upload('timeoutWebhookError');
 		}
 	};
 
@@ -777,7 +777,7 @@ export const launchHandler = async <Provider extends CloudProvider>({
 				willRetry: false,
 				totalAttempts: 1,
 			});
-			overallProgress.upload();
+			overallProgress.upload('successWebhookError');
 
 			RenderInternals.Log.error(
 				{indent: false, logLevel: params.logLevel},
@@ -816,7 +816,7 @@ export const launchHandler = async <Provider extends CloudProvider>({
 			willRetry: false,
 			message: (err as Error).message,
 		});
-		await overallProgress.upload();
+		await overallProgress.upload('fatalError');
 
 		runCleanupTasks();
 
@@ -866,7 +866,7 @@ export const launchHandler = async <Provider extends CloudProvider>({
 					willRetry: false,
 					totalAttempts: 1,
 				});
-				overallProgress.upload();
+				overallProgress.upload('errorWebhookError');
 
 				RenderInternals.Log.error(
 					{indent: false, logLevel: params.logLevel},

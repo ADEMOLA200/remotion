@@ -1,4 +1,3 @@
-import {Glob} from 'bun';
 import {spawn} from 'child_process';
 import {createHash} from 'crypto';
 import {
@@ -10,15 +9,20 @@ import {
 	writeFileSync,
 } from 'fs';
 import {createRequire} from 'module';
-import {cpus} from 'os';
+import {availableParallelism, cpus} from 'os';
 import {join, resolve} from 'path';
+import {Glob} from 'bun';
 
 const DOCS_ROOT = resolve(import.meta.dirname);
 const CACHE_ROOT = join(DOCS_ROOT, 'node_modules', '.cache', 'twoslash');
 const WORKER_PATH = join(DOCS_ROOT, 'twoslash-worker.ts');
+const cpuCount =
+	typeof availableParallelism === 'function'
+		? availableParallelism()
+		: cpus().length;
 const NUM_WORKERS = process.env.VERCEL
-	? Math.max(1, cpus().length - 1)
-	: Math.max(1, cpus().length - 2);
+	? Math.max(1, cpuCount - 1)
+	: Math.max(1, cpuCount - 2);
 
 const pluginDir = join(DOCS_ROOT, '..', 'docusaurus-plugin');
 const pluginRequire = createRequire(join(pluginDir, 'package.json'));
@@ -152,7 +156,7 @@ interface WorkerResult {
 	timings: TimingEntry[];
 }
 
-const WORKER_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes per worker
+const WORKER_TIMEOUT_MS = 8 * 60 * 1000; // 8 minutes per worker
 
 function runWorker(
 	workItems: TwoslashBlock[],

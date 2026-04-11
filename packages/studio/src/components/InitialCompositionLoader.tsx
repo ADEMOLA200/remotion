@@ -16,25 +16,28 @@ export const useSelectAsset = () => {
 	const {setCanvasContent} = useContext(Internals.CompositionSetters);
 	const {setAssetFoldersExpanded} = useContext(FolderContext);
 
-	return (asset: string) => {
-		setCanvasContent({type: 'asset', asset});
-		explorerSidebarTabs.current?.selectAssetsPanel();
-		setAssetFoldersExpanded((ex) => {
-			const split = asset.split('/');
+	return useCallback(
+		(asset: string) => {
+			setCanvasContent({type: 'asset', asset});
+			explorerSidebarTabs.current?.selectAssetsPanel();
+			setAssetFoldersExpanded((ex) => {
+				const split = asset.split('/');
 
-			const keysToExpand = split.map((_, i) => {
-				return split.slice(0, i).join('/');
+				const keysToExpand = split.map((_, i) => {
+					return split.slice(0, i).join('/');
+				});
+				const newState: ExpandedFoldersState = {
+					...ex,
+				};
+				for (const key of keysToExpand) {
+					newState[key] = true;
+				}
+
+				return newState;
 			});
-			const newState: ExpandedFoldersState = {
-				...ex,
-			};
-			for (const key of keysToExpand) {
-				newState[key] = true;
-			}
-
-			return newState;
-		});
-	};
+		},
+		[setAssetFoldersExpanded, setCanvasContent],
+	);
 };
 
 export const useSelectComposition = () => {
@@ -91,11 +94,29 @@ export const InitialCompositionLoader: React.FC = () => {
 	const staticFiles = useStaticFiles();
 
 	useEffect(() => {
+		const canvasContentFromUrl = deriveCanvasContentFromUrl();
+
 		if (canvasContent) {
+			// If the URL points to a different composition than the one currently
+			// displayed, switch to it. This handles the case where the URL is
+			// updated externally (e.g. after duplicating a composition).
+			if (
+				canvasContentFromUrl &&
+				canvasContentFromUrl.type === 'composition' &&
+				canvasContent.type === 'composition' &&
+				canvasContentFromUrl.compositionId !== canvasContent.compositionId
+			) {
+				const exists = compositions.find(
+					(c) => c.id === canvasContentFromUrl.compositionId,
+				);
+				if (exists) {
+					selectComposition(exists, false);
+				}
+			}
+
 			return;
 		}
 
-		const canvasContentFromUrl = deriveCanvasContentFromUrl();
 		if (canvasContentFromUrl && canvasContentFromUrl.type === 'composition') {
 			const exists = compositions.find(
 				(c) => c.id === canvasContentFromUrl.compositionId,
@@ -147,7 +168,7 @@ export const InitialCompositionLoader: React.FC = () => {
 				});
 
 				if (exists) {
-					setCanvasContent(newCanvas);
+					selectAsset(newCanvas.asset);
 				}
 
 				return;
@@ -159,7 +180,13 @@ export const InitialCompositionLoader: React.FC = () => {
 		window.addEventListener('popstate', onchange);
 
 		return () => window.removeEventListener('popstate', onchange);
-	}, [compositions, selectComposition, setCanvasContent, staticFiles]);
+	}, [
+		compositions,
+		selectAsset,
+		selectComposition,
+		setCanvasContent,
+		staticFiles,
+	]);
 
 	return null;
 };

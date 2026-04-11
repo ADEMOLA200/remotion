@@ -2,9 +2,9 @@ import {formatBytes} from '@remotion/studio-shared';
 import React from 'react';
 import type {AssetMetadata} from '../helpers/get-asset-metadata';
 import {JSONViewer} from './JSONViewer';
+import {Spacing} from './layout';
 import type {AssetFileType} from './Preview';
 import {TextViewer} from './TextViewer';
-import {Spacing} from './layout';
 
 const msgStyle: React.CSSProperties = {
 	fontSize: 13,
@@ -26,6 +26,10 @@ export const FilePreview: React.FC<{
 
 	if (assetMetadata.type === 'not-found') {
 		throw new Error('expected to have assetMetadata, got "not-found"');
+	}
+
+	if (assetMetadata.type === 'metadata-error') {
+		throw new Error('unexpected metadata-error in FilePreview');
 	}
 
 	if (fileType === 'audio') {

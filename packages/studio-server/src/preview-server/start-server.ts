@@ -1,5 +1,11 @@
+import type {IncomingMessage} from 'node:http';
+import http from 'node:http';
 import type {WebpackOverrideFn} from '@remotion/bundler';
-import {BundlerInternals, webpack} from '@remotion/bundler';
+import {
+	BundlerInternals,
+	WatchIgnoreNextChangePlugin,
+	webpack,
+} from '@remotion/bundler';
 import type {LogLevel} from '@remotion/renderer';
 import {RenderInternals} from '@remotion/renderer';
 import type {
@@ -7,15 +13,16 @@ import type {
 	RenderDefaults,
 	RenderJob,
 } from '@remotion/studio-shared';
-import type {IncomingMessage} from 'node:http';
-import http from 'node:http';
 import {detectRemotionServer} from '../detect-remotion-server';
 import {handleRoutes} from '../routes';
 import type {QueueMethods} from './api-types';
 import {wdm} from './dev-middleware';
-import {webpackHotMiddleware} from './hot-middleware';
+import {setupWebpackHmr} from './hot-middleware';
 import type {LiveEventsServer} from './live-events';
 import {makeLiveEventsRouter} from './live-events';
+import {clearNodePathCache} from './node-path-cache';
+import {getRedoStack, getUndoStack} from './undo-stack';
+import {setWatchIgnoreNextChangePlugin} from './watch-ignore-next-change';
 
 export type StartServerResult =
 	| {
@@ -41,6 +48,7 @@ export const startServer = async (options: {
 	remotionRoot: string;
 	keyboardShortcutsEnabled: boolean;
 	experimentalClientSideRenderingEnabled: boolean;
+	experimentalVisualModeEnabled: boolean;
 	publicDir: string;
 	poll: number | null;
 	staticHash: string;
@@ -59,6 +67,7 @@ export const startServer = async (options: {
 	enableCrossSiteIsolation: boolean;
 	askAIEnabled: boolean;
 	forceNew: boolean;
+	rspack: boolean;
 }): Promise<StartServerResult> => {
 	const desiredPort =
 		options?.port ??
@@ -78,28 +87,59 @@ export const startServer = async (options: {
 				return detection.type === 'match' ? 'stop' : 'continue';
 			};
 
-	const [, config] = await BundlerInternals.webpackConfig({
+	const watchIgnorePlugin = new WatchIgnoreNextChangePlugin((...args) => {
+		RenderInternals.Log.trace(
+			{indent: false, logLevel: options.logLevel},
+			...args,
+		);
+	});
+
+	const configArgs = {
 		entry: options.entry,
 		userDefinedComponent: options.userDefinedComponent,
 		outDir: null,
-		environment: 'development',
+		environment: 'development' as const,
 		webpackOverride: options?.webpackOverride,
 		maxTimelineTracks: options?.maxTimelineTracks ?? null,
 		remotionRoot: options.remotionRoot,
 		keyboardShortcutsEnabled: options.keyboardShortcutsEnabled,
 		experimentalClientSideRenderingEnabled:
 			options.experimentalClientSideRenderingEnabled,
+		experimentalVisualModeEnabled: options.experimentalVisualModeEnabled,
 		poll: options.poll,
 		bufferStateDelayInMilliseconds: options.bufferStateDelayInMilliseconds,
 		askAIEnabled: options.askAIEnabled,
-	});
+		extraPlugins: [watchIgnorePlugin],
+	};
 
-	const compiler = webpack(config);
+	let compiler: webpack.Compiler;
+	if (options.rspack) {
+		const [, rspackConf] = await BundlerInternals.rspackConfig(configArgs);
+		compiler = BundlerInternals.createRspackCompiler(
+			rspackConf,
+		) as unknown as webpack.Compiler;
+	} else {
+		const [, webpackConf] = await BundlerInternals.webpackConfig(configArgs);
+		compiler = webpack(webpackConf);
+	}
+
+	setWatchIgnoreNextChangePlugin(watchIgnorePlugin);
 
 	const wdmMiddleware = wdm(compiler, options.logLevel);
-	const whm = webpackHotMiddleware(compiler, options.logLevel);
-
-	const liveEventsServer = makeLiveEventsRouter(options.logLevel);
+	const liveEventsServer = makeLiveEventsRouter(options.logLevel, () => {
+		const undoStack = getUndoStack();
+		const redoStack = getRedoStack();
+		return {
+			undoFile:
+				undoStack.length > 0 ? undoStack[undoStack.length - 1].filePath : null,
+			redoFile:
+				redoStack.length > 0 ? redoStack[redoStack.length - 1].filePath : null,
+		};
+	});
+	setupWebpackHmr(compiler, options.logLevel, liveEventsServer);
+	compiler.hooks.done.tap('remotion-node-path-cache', () => {
+		clearNodePathCache();
+	});
 
 	const server = http.createServer((request, response) => {
 		if (options.enableCrossSiteIsolation) {
@@ -112,13 +152,6 @@ export const startServer = async (options: {
 				resolve();
 			});
 		})
-			.then(() => {
-				return new Promise<void>((resolve) => {
-					whm(request as IncomingMessage, response, () => {
-						resolve();
-					});
-				});
-			})
 			.then(() => {
 				return handleRoutes({
 					staticHash: options.staticHash,

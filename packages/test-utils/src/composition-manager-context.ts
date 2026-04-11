@@ -19,6 +19,7 @@ export const makeMockCompositionManagerContext =
 				defaultVideoImageFormat: null,
 				defaultPixelFormat: null,
 				defaultProResProfile: null,
+				defaultSampleRate: null,
 			},
 			folders: [],
 			compositions: [
@@ -29,7 +30,7 @@ export const makeMockCompositionManagerContext =
 							default: Mock as ComponentType<unknown>,
 						}),
 					),
-					nonce: 0,
+					nonce: [[0, 0]],
 					defaultProps: undefined,
 					folderName: null,
 					parentFolderName: null,
@@ -39,6 +40,7 @@ export const makeMockCompositionManagerContext =
 					fps: 30,
 					height: 100,
 					width: 100,
+					stack: null,
 				},
 			],
 			canvasContent: {

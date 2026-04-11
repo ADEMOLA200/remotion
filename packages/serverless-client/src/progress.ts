@@ -1,5 +1,4 @@
 import {NoReactAPIs} from '@remotion/renderer/pure';
-
 import {calculateChunkTimes} from './calculate-chunk-times';
 import type {CustomCredentials} from './constants';
 import {estimatePriceFromMetadata} from './estimate-price-from-bucket';
@@ -210,6 +209,7 @@ export const getProgress = async <Provider extends CloudProvider>({
 		timings: overallProgress.timings ?? [],
 		region,
 		providerSpecifics,
+		fatalErrorTimestamp: overallProgress.fatalErrorTimestamp ?? null,
 	});
 
 	const chunkMultiplier = [hasAudio, hasVideo].filter(truthy).length;

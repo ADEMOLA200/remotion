@@ -10,6 +10,13 @@ export type MediaErrorEvent = {
 	error: Error;
 };
 
+export type VideoObjectFit =
+	| 'fill'
+	| 'contain'
+	| 'cover'
+	| 'none'
+	| 'scale-down';
+
 export type FallbackOffthreadVideoProps = {
 	acceptableTimeShiftInSeconds?: number;
 	transparent?: boolean;
@@ -55,8 +62,12 @@ type OptionalVideoProps = {
 	toneFrequency: number;
 	showInTimeline: boolean;
 	debugOverlay: boolean;
+	debugAudioScheduling: boolean;
 	headless: boolean;
 	onError: MediaOnError | undefined;
+	credentials: RequestCredentials | undefined;
+	objectFit: VideoObjectFit;
+	_experimentalInitiallyDrawCachedFrame: boolean;
 };
 
 export type InnerVideoProps = MandatoryVideoProps &
@@ -65,4 +76,13 @@ export type InnerVideoProps = MandatoryVideoProps &
 
 export type VideoProps = MandatoryVideoProps &
 	Partial<OuterVideoProps> &
-	Partial<OptionalVideoProps>;
+	Partial<OptionalVideoProps> & {
+		/**
+		 * When set, `<Video>` applies timing via an inner `<Sequence layout="none">` that is hidden from the timeline (`showInTimeline={false}`) so the clip still appears once as media.
+		 */
+		from?: number;
+		/**
+		 * Bounds the clip in frames together with `from`. Defaults to `Infinity` like `<Sequence>`.
+		 */
+		durationInFrames?: number;
+	};

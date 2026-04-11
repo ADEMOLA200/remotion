@@ -30,9 +30,17 @@ import {
 	removeCompletedClientRender,
 } from './client-render-queue';
 import {parseAndApplyCodemod} from './codemods/duplicate-composition';
-import {installFileWatcher} from './file-watcher';
+import {
+	createFileWatcherRegistry,
+	installFileWatcher,
+	setFileWatcherRegistry,
+	writeFileAndNotifyFileWatchers,
+} from './file-watcher';
 import {getLatestRemotionVersion} from './get-latest-remotion-version';
-import {getInstalledDependencies} from './helpers/get-installed-dependencies';
+import {
+	getInstalledDependencies,
+	getInstalledDependenciesWithVersions,
+} from './helpers/get-installed-dependencies';
 import {getInstallCommand} from './helpers/install-command';
 import {
 	getMaxTimelineTracks,
@@ -56,10 +64,14 @@ export const StudioServerInternals = {
 	setMaxTimelineTracks,
 	getLatestRemotionVersion,
 	installFileWatcher,
+	writeFileAndNotifyFileWatchers,
+	createFileWatcherRegistry,
+	setFileWatcherRegistry,
 	AnsiDiff,
 	formatBytes,
 	parseAndApplyCodemod,
 	getInstalledDependencies,
+	getInstalledDependenciesWithVersions,
 	getInstallCommand,
 	addCompletedClientRender,
 	getCompletedClientRenders,

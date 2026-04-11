@@ -53,10 +53,7 @@ The [GCP region](/docs/cloudrun/region-selection) to select. For lowest latency,
 
 ### `--props`
 
-[Input Props to pass to the selected composition of your video.](/docs/passing-props#passing-input-props-in-the-cli).  
-Must be a serialized JSON string (`--props='{"hello": "world"}'`) or a path to a JSON file (`./path/to/props.json`).  
-From the root component the props can be read using [`getInputProps()`](/docs/get-input-props).  
-You may transform input props using [`calculateMetadata()`](/docs/calculate-metadata).
+<Options id="props" />
 
 :::note
 Inline JSON string isn't supported on Windows shells because it removes the `"` character, use a file name instead.
@@ -95,7 +92,7 @@ Before v4.0.76, this was "100%" by default. It is now aligned to the other serve
 
 ### `--env-file`
 
-Specify a location for a dotenv file - Default `.env`. [Read about how environment variables work in Remotion.](/docs/env-variables)
+<Options id="env-file" />
 
 ### `--out-name`
 
@@ -189,7 +186,7 @@ For example only every second frame, every third frame and so on. Only works for
 
 ### `--frames`
 
-[Render a subset of a video](/docs/config#setframerange). Example: `--frames=0-9` to select the first 10 frames. You can omit the start or end: `--frames=100-` renders from frame 100 to the end<AvailableFrom v="4.0.421" inline />, `--frames=-100` renders from the start to frame 100<AvailableFrom v="4.0.421" inline />.
+<Options id="frames" />
 
 ### `--media-cache-size-in-bytes`<AvailableFrom v="4.0.352"/>
 
@@ -210,3 +207,7 @@ For example only every second frame, every third frame and so on. Only works for
 ### `--metadata`<AvailableFrom v="4.0.216" />
 
 <Options cli id="metadata" />
+
+### `--sample-rate`<AvailableFrom v="4.0.448" />
+
+<Options cli id="sample-rate" />
