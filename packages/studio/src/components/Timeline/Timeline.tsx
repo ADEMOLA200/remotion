@@ -23,6 +23,7 @@ import {timelineVerticalScroll} from './timeline-refs';
 import {TimelineDragHandler} from './TimelineDragHandler';
 import {TimelineInOutPointer} from './TimelineInOutPointer';
 import {TimelineList} from './TimelineList';
+import {TimelinePinchZoom} from './TimelinePinchZoom';
 import {TimelinePlayCursorSyncer} from './TimelinePlayCursorSyncer';
 import {TimelineScrollable} from './TimelineScrollable';
 import {TimelineSlider} from './TimelineSlider';
@@ -53,17 +54,17 @@ const TimelineInner: React.FC = () => {
 		Boolean(process.env.EXPERIMENTAL_VISUAL_MODE_ENABLED) &&
 		previewServerState.type === 'connected';
 	const videoConfig = Internals.useUnsafeVideoConfig();
+	const videoConfigIsNull = videoConfig === null;
 
 	const timeline = useMemo((): TrackWithHash[] => {
-		if (!videoConfig) {
+		if (videoConfigIsNull) {
 			return [];
 		}
 
 		return calculateTimeline({
 			sequences,
-			sequenceDuration: videoConfig.durationInFrames,
 		});
-	}, [sequences, videoConfig]);
+	}, [sequences, videoConfigIsNull]);
 
 	const durationInFrames = videoConfig?.durationInFrames ?? 0;
 
@@ -113,6 +114,7 @@ const TimelineInner: React.FC = () => {
 			className={'css-reset ' + VERTICAL_SCROLLBAR_CLASSNAME}
 		>
 			<TimelineWidthProvider>
+				<TimelinePinchZoom />
 				<div style={inner}>
 					<SplitterContainer
 						orientation="vertical"

@@ -268,6 +268,15 @@ const sidebars: SidebarsConfig = {
 		},
 		{
 			type: 'category',
+			label: '@remotion/elevenlabs',
+			link: {
+				type: 'doc',
+				id: 'elevenlabs/index',
+			},
+			items: ['elevenlabs/elevenlabs-transcript-to-captions'],
+		},
+		{
+			type: 'category',
 			label: '@remotion/fonts',
 			link: {
 				type: 'doc',
@@ -1019,6 +1028,7 @@ const sidebars: SidebarsConfig = {
 				'metadata',
 				'hardware-acceleration',
 				'hdr',
+				'sample-rate',
 			],
 		},
 		{
@@ -1061,6 +1071,7 @@ const sidebars: SidebarsConfig = {
 				'client-side-rendering/migration',
 				'client-side-rendering/cancellation',
 				'client-side-rendering/telemetry',
+				'client-side-rendering/html-in-canvas',
 			],
 		},
 		{
@@ -1380,6 +1391,7 @@ const sidebars: SidebarsConfig = {
 			label: 'Troubleshooting',
 			items: [
 				'troubleshooting/debug-failed-render',
+				'troubleshooting/video-has-no-sound',
 				'timeout',
 				'target-closed',
 				'media-playback-error',
@@ -1394,6 +1406,7 @@ const sidebars: SidebarsConfig = {
 				'staticfile-relative-paths',
 				'staticfile-remote-urls',
 				'troubleshooting/background-image',
+				'troubleshooting/css-animations',
 				'troubleshooting/nextjs-image',
 				'troubleshooting/rosetta',
 				'troubleshooting/loading-root-component',
@@ -1438,16 +1451,16 @@ const sidebars: SidebarsConfig = {
 				'support',
 			],
 		},
-		'upgrading',
 		{
 			type: 'category',
-			label: 'Migration guides',
+			label: 'Upgrading',
 			items: [
-				'react-19',
+				'upgrading',
 				'5-0-migration',
 				'4-0-migration',
 				'3-0-migration',
 				'2-0-migration',
+				'react-19',
 			],
 		},
 		{

@@ -51,6 +51,7 @@ export type WebRenderModalState = {
 	initialMuted: boolean | null;
 	initialLicenseKey: string | null;
 	initialMediaCacheSizeInBytes: number | null;
+	initialAllowHtmlInCanvas: boolean;
 };
 
 export type RenderModalState = {
@@ -90,6 +91,7 @@ export type RenderModalState = {
 	initialEncodingBufferSize: string | null;
 	initialForSeamlessAacConcatenation: boolean;
 	initialHardwareAcceleration: HardwareAccelerationOption;
+	initialSampleRate: number;
 	initialBeep: boolean;
 	initialRepro: boolean;
 	initialChromeMode: ChromeMode;

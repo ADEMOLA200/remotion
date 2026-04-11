@@ -1,3 +1,4 @@
+import {allowHtmlInCanvasOption} from './allow-html-in-canvas';
 import {apiKeyOption} from './api-key';
 import {askAIOption} from './ask-ai';
 import {audioBitrateOption} from './audio-bitrate';
@@ -72,6 +73,7 @@ import {publicPathOption} from './public-path';
 import {reproOption} from './repro';
 import {rspackOption} from './rspack';
 import {runsOption} from './runs';
+import {sampleRateOption} from './sample-rate';
 import {scaleOption} from './scale';
 import {separateAudioOption} from './separate-audio';
 import {stillFrameOption} from './still-frame';
@@ -89,6 +91,7 @@ import {webpackPollOption} from './webpack-poll';
 import {x264Option} from './x264-preset';
 
 export const allOptions = {
+	allowHtmlInCanvasOption,
 	audioCodecOption,
 	benchmarkConcurrenciesOption,
 	browserExecutableOption,
@@ -167,6 +170,7 @@ export const allOptions = {
 	rspackOption,
 	outDirOption,
 	packageManagerOption,
+	sampleRateOption,
 	webpackPollOption,
 	stillFrameOption,
 	imageSequenceOption,

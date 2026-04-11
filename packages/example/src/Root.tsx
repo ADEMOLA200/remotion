@@ -24,6 +24,10 @@ import CorruptVideo from './CorruptVideo';
 import {CssLoaderTest} from './CssLoaderTest';
 import {DarkModeTest} from './DarkModeTest';
 import {DecoderDemo} from './DecoderDemo';
+import {
+	DiscriminatedUnionSchemaTest,
+	discriminatedUnionRootSchema,
+} from './DiscriminatedUnionSchemaTest';
 import {DynamicDuration, dynamicDurationSchema} from './DynamicDuration';
 import {EmojiTestbed} from './Emoji';
 import {ErrorOnFrame10} from './ErrorOnFrame10';
@@ -137,6 +141,12 @@ import {LoopedOffthreadRemoteVideo} from './OffthreadRemoteVideo/LoopedOffthread
 import {MultiChannelAudio} from './OffthreadRemoteVideo/MultiChannelAudio';
 import {OffthreadRemoteSeries} from './OffthreadRemoteVideo/OffthreadRemoteSeries';
 import {ParseAndDownloadMedia} from './ParseAndDownloadMedia';
+import {
+	PLAY_RANGES_MEDIA_DEFAULT,
+	PLAY_RANGES_MEDIA_VIDEO_URL_DEFAULT,
+	PlayRangesMediaVideo,
+	calculateMetadataPlayRangesMedia,
+} from './PlayRangesMediaVideo';
 import {PremountOnTransitionSeries} from './PremountOnTransitionSeries';
 import {PrintProps} from './PrintProps';
 import {SfxExample} from './Sfx';
@@ -867,6 +877,17 @@ export const Index: React.FC = () => {
 					}}
 				/>
 				<Composition
+					id="play-ranges-media-video"
+					component={PlayRangesMediaVideo}
+					width={480}
+					height={270}
+					calculateMetadata={calculateMetadataPlayRangesMedia}
+					defaultProps={{
+						url: PLAY_RANGES_MEDIA_VIDEO_URL_DEFAULT,
+						playRanges: PLAY_RANGES_MEDIA_DEFAULT,
+					}}
+				/>
+				<Composition
 					id="corrupt-video"
 					component={CorruptVideo}
 					width={1280}
@@ -1501,6 +1522,7 @@ export const Index: React.FC = () => {
 						list: [{name: 'first', age: 12}],
 						matrix: [0, 1, 1, 0] as const,
 						description: 'Sample description \nOn multiple lines',
+						country: 'Armenia' as const,
 						dropdown: 'a' as const,
 						superSchema: [
 							{type: 'a' as const, a: {a: 'hi'}},
@@ -1537,6 +1559,21 @@ export const Index: React.FC = () => {
 						items: [{label: 'alpha!', value: 1}],
 						mode: 'light' as const,
 						nested: {a: 'asdfadsf', b: 99},
+					}}
+				/>
+
+				<Composition
+					id="discriminated-union-root"
+					component={DiscriminatedUnionSchemaTest}
+					width={1920}
+					height={1080}
+					fps={30}
+					durationInFrames={150}
+					schema={discriminatedUnionRootSchema}
+					defaultProps={{
+						preset: 'Simple' as const,
+						track: 'Main audio',
+						fontSize: 48,
 					}}
 				/>
 			</Folder>

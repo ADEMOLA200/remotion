@@ -1,6 +1,6 @@
 import React from 'react';
 import type {SequenceControls, SequenceSchema} from 'remotion';
-import {Internals, useRemotionEnvironment} from 'remotion';
+import {Internals, Sequence, useRemotionEnvironment} from 'remotion';
 import type {InnerVideoProps, VideoProps} from './props';
 import {VideoForPreview} from './video-for-preview';
 import {VideoForRendering} from './video-for-rendering';
@@ -88,6 +88,7 @@ const InnerVideo: React.FC<
 	credentials,
 	controls,
 	objectFit,
+	_experimentalInitiallyDrawCachedFrame,
 }) => {
 	const environment = useRemotionEnvironment();
 
@@ -177,6 +178,9 @@ const InnerVideo: React.FC<
 			credentials={credentials}
 			controls={controls}
 			objectFit={objectFit}
+			_experimentalInitiallyDrawCachedFrame={
+				_experimentalInitiallyDrawCachedFrame
+			}
 		/>
 	);
 };
@@ -214,43 +218,56 @@ const VideoInner: React.FC<
 	credentials,
 	controls,
 	objectFit,
+	_experimentalInitiallyDrawCachedFrame,
+	from,
+	durationInFrames,
 }) => {
 	const fallbackLogLevel = Internals.useLogLevel();
 	return (
-		<InnerVideo
-			audioStreamIndex={audioStreamIndex ?? 0}
-			className={className}
-			delayRenderRetries={delayRenderRetries ?? null}
-			delayRenderTimeoutInMilliseconds={
-				delayRenderTimeoutInMilliseconds ?? null
-			}
-			disallowFallbackToOffthreadVideo={
-				disallowFallbackToOffthreadVideo ?? false
-			}
-			fallbackOffthreadVideoProps={fallbackOffthreadVideoProps ?? {}}
-			logLevel={logLevel ?? fallbackLogLevel}
-			loop={loop ?? false}
-			loopVolumeCurveBehavior={loopVolumeCurveBehavior ?? 'repeat'}
-			muted={muted ?? false}
-			name={name}
-			onVideoFrame={onVideoFrame}
-			playbackRate={playbackRate ?? 1}
-			showInTimeline={showInTimeline ?? true}
-			src={src}
-			style={style ?? {}}
-			trimAfter={trimAfter}
-			trimBefore={trimBefore}
-			volume={volume ?? 1}
-			toneFrequency={toneFrequency ?? 1}
-			stack={stack}
-			debugOverlay={debugOverlay ?? false}
-			debugAudioScheduling={debugAudioScheduling ?? false}
-			headless={headless ?? false}
-			onError={onError}
-			credentials={credentials}
-			controls={controls}
-			objectFit={objectFit ?? 'contain'}
-		/>
+		<Sequence
+			layout="none"
+			from={from ?? 0}
+			durationInFrames={durationInFrames ?? Infinity}
+			showInTimeline={false}
+		>
+			<InnerVideo
+				audioStreamIndex={audioStreamIndex ?? 0}
+				className={className}
+				delayRenderRetries={delayRenderRetries ?? null}
+				delayRenderTimeoutInMilliseconds={
+					delayRenderTimeoutInMilliseconds ?? null
+				}
+				disallowFallbackToOffthreadVideo={
+					disallowFallbackToOffthreadVideo ?? false
+				}
+				fallbackOffthreadVideoProps={fallbackOffthreadVideoProps ?? {}}
+				logLevel={logLevel ?? fallbackLogLevel}
+				loop={loop ?? false}
+				loopVolumeCurveBehavior={loopVolumeCurveBehavior ?? 'repeat'}
+				muted={muted ?? false}
+				name={name}
+				onVideoFrame={onVideoFrame}
+				playbackRate={playbackRate ?? 1}
+				showInTimeline={showInTimeline ?? true}
+				src={src}
+				style={style ?? {}}
+				trimAfter={trimAfter}
+				trimBefore={trimBefore}
+				volume={volume ?? 1}
+				toneFrequency={toneFrequency ?? 1}
+				stack={stack}
+				debugOverlay={debugOverlay ?? false}
+				debugAudioScheduling={debugAudioScheduling ?? false}
+				headless={headless ?? false}
+				onError={onError}
+				credentials={credentials}
+				controls={controls}
+				objectFit={objectFit ?? 'contain'}
+				_experimentalInitiallyDrawCachedFrame={
+					_experimentalInitiallyDrawCachedFrame ?? false
+				}
+			/>
+		</Sequence>
 	);
 };
 

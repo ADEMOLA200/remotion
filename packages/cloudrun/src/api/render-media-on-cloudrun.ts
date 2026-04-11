@@ -1,3 +1,4 @@
+import type {Readable} from 'stream';
 import {
 	type AudioCodec,
 	type ChromiumOptions,
@@ -152,6 +153,7 @@ const internalRenderMediaOnCloudrunRaw = async ({
 	downloadBehavior,
 	metadata,
 	mediaCacheSizeInBytes,
+	sampleRate,
 }: InternalRenderMediaOnCloudrun): Promise<
 	RenderMediaOnCloudrunOutput | CloudRunCrashResponse
 > => {
@@ -209,6 +211,7 @@ const internalRenderMediaOnCloudrunRaw = async ({
 		concurrency: concurrency ?? null,
 		enforceAudioTrack: enforceAudioTrack ?? false,
 		preferLossless: preferLossless ?? false,
+		sampleRate: sampleRate ?? 48000,
 		offthreadVideoCacheSizeInBytes: offthreadVideoCacheSizeInBytes ?? null,
 		offthreadVideoThreads: offthreadVideoThreads ?? null,
 		colorSpace: colorSpace ?? null,
@@ -222,7 +225,7 @@ const internalRenderMediaOnCloudrunRaw = async ({
 
 	const client = await getAuthClientForUrl(cloudRunEndpoint);
 
-	const postResponse = await client.request({
+	const postResponse = await client.request<Readable>({
 		url: cloudRunEndpoint,
 		method: 'POST',
 		data,
@@ -232,7 +235,6 @@ const internalRenderMediaOnCloudrunRaw = async ({
 	const renderResponse = await new Promise<
 		RenderMediaOnCloudrunOutput | CloudRunCrashResponse
 	>((resolve, reject) => {
-		// TODO: Add any sort of type safety
 		let response:
 			| RenderMediaOnCloudrunOutput
 			| ErrorResponsePayload
@@ -241,7 +243,7 @@ const internalRenderMediaOnCloudrunRaw = async ({
 		const startTime = Date.now();
 		const formattedStartTime = new Date().toISOString();
 
-		const stream: any = postResponse.data;
+		const stream: Readable = postResponse.data;
 
 		let accumulatedChunks = ''; // A buffer to accumulate chunks.
 
@@ -357,6 +359,7 @@ export const renderMediaOnCloudrun = ({
 	renderStatusWebhook,
 	offthreadVideoThreads,
 	mediaCacheSizeInBytes,
+	sampleRate,
 }: RenderMediaOnCloudrunInput): Promise<
 	RenderMediaOnCloudrunOutput | CloudRunCrashResponse
 > => {
@@ -411,5 +414,6 @@ export const renderMediaOnCloudrun = ({
 		renderStatusWebhook: renderStatusWebhook ?? undefined,
 		offthreadVideoThreads: offthreadVideoThreads ?? null,
 		mediaCacheSizeInBytes: mediaCacheSizeInBytes ?? null,
+		sampleRate: sampleRate ?? 48000,
 	});
 };

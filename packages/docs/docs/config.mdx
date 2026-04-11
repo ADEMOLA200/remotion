@@ -187,6 +187,18 @@ Config.setExperimentalClientSideRenderingEnabled(true);
 
 The [command line flag](/docs/cli/studio#--enable-experimental-client-side-rendering) `--enable-experimental-client-side-rendering` will take precedence over this option.
 
+## `setAllowHtmlInCanvasEnabled()`<AvailableFrom v="4.0.447" />
+
+<Options id="allow-html-in-canvas" />
+
+```ts twoslash title="remotion.config.ts"
+import {Config} from '@remotion/cli/config';
+// ---cut---
+Config.setAllowHtmlInCanvasEnabled(true);
+```
+
+The [command line flag](/docs/cli/studio#--allow-html-in-canvas) `--allow-html-in-canvas` will take precedence over this option.
+
 ## `setExperimentalRspackEnabled()`<AvailableFrom v="4.0.426" />
 
 Use [Rspack](https://rspack.dev) instead of Webpack as the bundler for the Studio. Default `false`.
@@ -458,6 +470,18 @@ Config.setEnforceAudioTrack(true);
 ```
 
 The [command line flag](/docs/cli/render#--enforce-audio-track) `--enforce-audio-track` will take precedence over this option.
+
+## `setSampleRate()`<AvailableFrom v="4.0.448" />
+
+<Options id="sample-rate" />
+
+```ts twoslash title="remotion.config.ts"
+import {Config} from '@remotion/cli/config';
+// ---cut---
+Config.setSampleRate(44100);
+```
+
+The [command line flag](/docs/cli/render#--sample-rate) `--sample-rate` will take precedence over this option.
 
 ## `setForSeamlessAacConcatenation()`<AvailableFrom v="4.0.123" />
 

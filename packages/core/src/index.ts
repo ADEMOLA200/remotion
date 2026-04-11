@@ -2,6 +2,7 @@ import './_check-rsc.js';
 import './asset-types.js';
 import {Clipper} from './Clipper.js';
 import type {Codec} from './codec.js';
+import {Composition} from './Composition.js';
 import type {
 	AnyCompMetadata,
 	AnyComposition,
@@ -83,6 +84,7 @@ declare global {
 		remotion_envVariables: string;
 		remotion_isMainTab: boolean;
 		remotion_mediaCacheSizeInBytes: number | null;
+		remotion_sampleRate: number;
 		remotion_initialMemoryAvailable: number | null;
 		remotion_collectAssets: () => TRenderAsset[];
 		remotion_isPlayer: boolean;
@@ -109,6 +111,7 @@ export type BundleCompositionState = {
 	compositionDefaultVideoImageFormat: VideoImageFormat | null;
 	compositionDefaultPixelFormat: PixelFormat | null;
 	compositionDefaultProResProfile: ProResProfile | null;
+	compositionDefaultSampleRate: number | null;
 };
 
 export type BundleIndexState = {
@@ -202,6 +205,7 @@ export {
 	RemotionVideoProps,
 	Video,
 } from './video/index.js';
+export {MediaPlaybackError} from './video/MediaPlaybackError.js';
 export type {OnVideoFrame} from './video/props.js';
 export type {VolumeProp} from './volume-prop.js';
 export {watchStaticFile} from './watch-static-file.js';
@@ -258,6 +262,7 @@ export const Config = new Proxy(proxyObj, {
 
 Sequence.displayName = 'Sequence';
 addSequenceStackTraces(Sequence);
+addSequenceStackTraces(Composition);
 
 export type _InternalTypes = {
 	AnyComposition: AnyComposition;

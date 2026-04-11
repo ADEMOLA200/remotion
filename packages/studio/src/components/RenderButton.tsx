@@ -289,6 +289,7 @@ export const RenderButton: React.FC<{readonly readOnlyStudio: boolean}> = ({
 				renderTypeOfLastRender: null,
 				defaulMetadata: defaults.metadata,
 				initialHardwareAcceleration: defaults.hardwareAcceleration,
+				initialSampleRate: defaults.sampleRate,
 				initialChromeMode: defaults.chromeMode,
 				initialMediaCacheSizeInBytes: defaults.mediaCacheSizeInBytes,
 				renderDefaults: defaults,
@@ -332,6 +333,7 @@ export const RenderButton: React.FC<{readonly readOnlyStudio: boolean}> = ({
 			initialTransparent: null,
 			initialMuted: null,
 			initialMediaCacheSizeInBytes: defaults.mediaCacheSizeInBytes,
+			initialAllowHtmlInCanvas: defaults.allowHtmlInCanvas,
 		});
 	}, [video, setSelectedModal, getCurrentFrame, props, inFrame, outFrame]);
 

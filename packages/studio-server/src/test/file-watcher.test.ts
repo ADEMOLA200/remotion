@@ -7,6 +7,21 @@ import {createFileWatcherRegistry} from '../file-watcher';
 
 const tmpDir = os.tmpdir();
 
+const waitFor = async (
+	predicate: () => boolean,
+	timeoutMs = 5_000,
+	intervalMs = 50,
+): Promise<void> => {
+	const deadline = Date.now() + timeoutMs;
+	while (!predicate()) {
+		if (Date.now() >= deadline) {
+			throw new Error(`waitFor timed out after ${timeoutMs}ms`);
+		}
+
+		await new Promise((resolve) => setTimeout(resolve, intervalMs));
+	}
+};
+
 let registry: ReturnType<typeof createFileWatcherRegistry>;
 let tmpFile: string;
 
@@ -28,8 +43,16 @@ test('multiple watchers on the same file share a single OS watcher', () => {
 	const cb1 = mock(() => {});
 	const cb2 = mock(() => {});
 
-	const w1 = registry.installFileWatcher({file: tmpFile, onChange: cb1});
-	const w2 = registry.installFileWatcher({file: tmpFile, onChange: cb2});
+	const w1 = registry.installFileWatcher({
+		file: tmpFile,
+		existenceOnly: false,
+		onChange: cb1,
+	});
+	const w2 = registry.installFileWatcher({
+		file: tmpFile,
+		existenceOnly: false,
+		onChange: cb2,
+	});
 
 	// Only one fs.watchFile call despite two subscribers
 	expect(watchFileSpy).toHaveBeenCalledTimes(1);
@@ -56,8 +79,16 @@ test('OS watcher is only removed when last subscriber unwatches', () => {
 	const cb1 = mock(() => {});
 	const cb2 = mock(() => {});
 
-	const w1 = registry.installFileWatcher({file: tmpFile, onChange: cb1});
-	const w2 = registry.installFileWatcher({file: tmpFile, onChange: cb2});
+	const w1 = registry.installFileWatcher({
+		file: tmpFile,
+		existenceOnly: false,
+		onChange: cb1,
+	});
+	const w2 = registry.installFileWatcher({
+		file: tmpFile,
+		existenceOnly: false,
+		onChange: cb2,
+	});
 
 	w1.unwatch();
 	// First unwatch should NOT remove the OS watcher
@@ -74,8 +105,16 @@ test('unwatching one subscriber does not affect the other', () => {
 	const cb1 = mock(() => {});
 	const cb2 = mock(() => {});
 
-	const w1 = registry.installFileWatcher({file: tmpFile, onChange: cb1});
-	const w2 = registry.installFileWatcher({file: tmpFile, onChange: cb2});
+	const w1 = registry.installFileWatcher({
+		file: tmpFile,
+		existenceOnly: false,
+		onChange: cb1,
+	});
+	const w2 = registry.installFileWatcher({
+		file: tmpFile,
+		existenceOnly: false,
+		onChange: cb2,
+	});
 
 	w1.unwatch();
 
@@ -93,6 +132,7 @@ test('writeFileAndNotifyFileWatchers passes content to subscribers', () => {
 
 	const w = registry.installFileWatcher({
 		file: tmpFile,
+		existenceOnly: false,
 		onChange: (evt) => {
 			receivedEvent = evt;
 		},
@@ -114,6 +154,7 @@ test('writeFileAndNotifyFileWatchers passes content to subscribers', () => {
 test('writeFileAndNotifyFileWatchers writes the file to disk', () => {
 	const w = registry.installFileWatcher({
 		file: tmpFile,
+		existenceOnly: false,
 		onChange: () => {},
 	});
 
@@ -134,14 +175,18 @@ test('writeFileAndNotifyFileWatchers works even without watchers', () => {
 test('duplicate content from fs.watchFile is suppressed', async () => {
 	const cb = mock(() => {});
 
-	const w = registry.installFileWatcher({file: tmpFile, onChange: cb});
+	const w = registry.installFileWatcher({
+		file: tmpFile,
+		existenceOnly: false,
+		onChange: cb,
+	});
 
 	// Simulate a write via our API — sets lastKnownContent
 	registry.writeFileAndNotifyFileWatchers(tmpFile, 'new content');
 	expect(cb).toHaveBeenCalledTimes(1);
 
-	// Wait for fs.watchFile to poll (100ms interval + some buffer)
-	await new Promise((resolve) => setTimeout(resolve, 300));
+	// Wait for fs.watchFile to poll (100ms interval + generous buffer)
+	await new Promise((resolve) => setTimeout(resolve, 500));
 
 	// The polled change should be suppressed since content is identical
 	expect(cb).toHaveBeenCalledTimes(1);
@@ -155,8 +200,16 @@ test('registries are isolated from each other', () => {
 	const cb1 = mock(() => {});
 	const cb2 = mock(() => {});
 
-	const w1 = registry.installFileWatcher({file: tmpFile, onChange: cb1});
-	const w2 = registry2.installFileWatcher({file: tmpFile, onChange: cb2});
+	const w1 = registry.installFileWatcher({
+		file: tmpFile,
+		existenceOnly: false,
+		onChange: cb1,
+	});
+	const w2 = registry2.installFileWatcher({
+		file: tmpFile,
+		existenceOnly: false,
+		onChange: cb2,
+	});
 
 	registry.writeFileAndNotifyFileWatchers(tmpFile, 'from registry 1');
 
@@ -172,10 +225,101 @@ test('exists returns false for non-existent file', () => {
 
 	const w = registry.installFileWatcher({
 		file: nonExistent,
+		existenceOnly: false,
 		onChange: () => {},
 	});
 
 	expect(w.exists).toBe(false);
 
 	w.unwatch();
+});
+
+test('existenceOnly does not read the file when content changes', async () => {
+	const readSpy = spyOn(fs, 'readFileSync');
+
+	const cb = mock(() => {});
+
+	const w = registry.installFileWatcher({
+		file: tmpFile,
+		existenceOnly: true,
+		onChange: cb,
+	});
+
+	await new Promise((resolve) => setTimeout(resolve, 500));
+
+	writeFileSync(tmpFile, 'updated without reading');
+
+	await new Promise((resolve) => setTimeout(resolve, 500));
+
+	expect(readSpy).not.toHaveBeenCalled();
+
+	w.unwatch();
+	readSpy.mockRestore();
+});
+
+test('existenceOnly emits created with empty content when file appears', async () => {
+	const newFile = path.join(tmpDir, `existence-created-${Date.now()}.txt`);
+
+	const cb = mock(() => {});
+
+	const w = registry.installFileWatcher({
+		file: newFile,
+		existenceOnly: true,
+		onChange: cb,
+	});
+
+	expect(w.exists).toBe(false);
+
+	writeFileSync(newFile, 'hello');
+
+	await waitFor(() => cb.mock.calls.length > 0);
+
+	expect(cb).toHaveBeenCalledWith({type: 'created', content: ''});
+
+	w.unwatch();
+	unlinkSync(newFile);
+});
+
+test('existenceOnly emits deleted when file is removed', async () => {
+	const cb = mock(() => {});
+
+	const w = registry.installFileWatcher({
+		file: tmpFile,
+		existenceOnly: true,
+		onChange: cb,
+	});
+
+	expect(w.exists).toBe(true);
+
+	unlinkSync(tmpFile);
+
+	await waitFor(() => cb.mock.calls.length > 0);
+
+	expect(cb).toHaveBeenCalledWith({type: 'deleted'});
+
+	w.unwatch();
+});
+
+test('existenceOnly and content watchers on the same path use separate OS watchers', () => {
+	const watchFileSpy = spyOn(fs, 'watchFile');
+
+	const cb1 = mock(() => {});
+	const cb2 = mock(() => {});
+
+	const w1 = registry.installFileWatcher({
+		file: tmpFile,
+		existenceOnly: true,
+		onChange: cb1,
+	});
+	const w2 = registry.installFileWatcher({
+		file: tmpFile,
+		existenceOnly: false,
+		onChange: cb2,
+	});
+
+	expect(watchFileSpy).toHaveBeenCalledTimes(2);
+
+	w1.unwatch();
+	w2.unwatch();
+	watchFileSpy.mockRestore();
 });
