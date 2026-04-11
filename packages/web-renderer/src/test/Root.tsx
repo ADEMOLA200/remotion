@@ -58,6 +58,7 @@ import {filterDropShadowBackgroundClipText} from './fixtures/text/filter-drop-sh
 import {filterText} from './fixtures/text/filter-text';
 import {fontStyle} from './fixtures/text/font-style';
 import {fontVariantCaps} from './fixtures/text/font-variant-caps';
+import {issue7050Repro} from './fixtures/text/issue-7050-repro';
 import {letterSpacing} from './fixtures/text/letter-spacing';
 import {paragraphs} from './fixtures/text/paragraphs';
 import {textFixture} from './fixtures/text/text';
@@ -157,6 +158,7 @@ export const Root: React.FC = () => {
 				<Composition {...whiteSpaceCollapsing2} />
 				<Composition {...filterText} />
 				<Composition {...filterDropShadowBackgroundClipText} />
+				<Composition {...issue7050Repro} />
 			</Folder>
 			<Folder name="Projects">
 				<Composition {...unwrapped} />
