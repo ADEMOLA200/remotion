@@ -74,6 +74,11 @@ const inputStyle: React.CSSProperties = {
 	minWidth: 250,
 };
 
+const billingHintStyle: React.CSSProperties = {
+	...paddedDescriptionStyle,
+	marginTop: 8,
+};
+
 const justifyCenter: React.CSSProperties = {
 	display: 'flex',
 	alignItems: 'center',
@@ -106,6 +111,17 @@ const codeLineSmall: React.CSSProperties = {
 
 const LICENSE_KEY_LENGTH = 55;
 const LICENSE_KEY_PREFIX = 'rm_pub_';
+
+const isLikelyDevelopmentHost = (hostname: string) => {
+	const normalizedHostname = hostname.toLowerCase();
+	const isIpv4Loopback = /^127(?:\.\d{1,3}){3}$/.test(normalizedHostname);
+	return (
+		normalizedHostname === 'localhost' ||
+		normalizedHostname === '[::1]' ||
+		normalizedHostname === '::1' ||
+		isIpv4Loopback
+	);
+};
 
 type LicenseKeyValidation = {
 	valid: boolean;
@@ -155,6 +171,12 @@ export const WebRenderModalLicense: React.FC<WebRenderModalLicenseProps> = ({
 	const [licenseValidation, setLicenseValidation] =
 		useState<LicenseKeyValidation>({valid: true, message: null, details: null});
 	const [isLoading, setIsLoading] = useState(false);
+	const currentHost =
+		typeof window === 'undefined' || typeof window.location === 'undefined'
+			? null
+			: window.location.hostname;
+	const isDevelopmentRender =
+		currentHost === null ? false : isLikelyDevelopmentHost(currentHost);
 
 	useEffect(() => {
 		if (licenseKey === null || licenseKey === 'free-license') {
@@ -220,6 +242,20 @@ export const WebRenderModalLicense: React.FC<WebRenderModalLicenseProps> = ({
 					LICENSE.md
 				</a>
 				.
+			</div>
+			<div style={billingHintStyle}>
+				{isDevelopmentRender ? (
+					<>
+						This render runs on <code style={codeStyle}>{currentHost}</code> and
+						will be classified as development usage (non-billable).
+					</>
+				) : (
+					<>
+						This render runs on{' '}
+						<code style={codeStyle}>{currentHost ?? 'this host'}</code> and may
+						be classified as billable production usage.
+					</>
+				)}
 			</div>
 			<div style={row}>
 				<div style={justifyCenter}>
